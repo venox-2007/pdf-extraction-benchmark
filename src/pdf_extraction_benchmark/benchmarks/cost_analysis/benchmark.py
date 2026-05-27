@@ -10,5 +10,6 @@ class CostAnalysisBenchmark:
 
     def evaluate(self) -> BenchmarkResult:
         """Return a placeholder benchmark score."""
-        return BenchmarkResult(dimension=\"cost_analysis\", score=0.0, details={\"status\": \"not_implemented\"})
+        return BenchmarkResult(dimension="cost_analysis", score=0.0, details={"status": "not_implemented"})
+
 

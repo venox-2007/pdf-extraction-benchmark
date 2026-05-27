@@ -11,15 +11,16 @@ from pdf_extraction_benchmark.models.extraction_result import ExtractionMetadata
 class SuryaExtractor(BaseExtractor):
     """Placeholder adapter for the surya backend."""
 
-    tool_name = \"surya\"
+    tool_name = "surya"
 
     def extract(self, pdf_path: Path) -> list[ExtractionResult]:
         """Return placeholder page results for the given PDF file."""
         result = ExtractionResult(
             tool_name=self.tool_name,
             page_number=1,
-            extracted_text=\"\",
-            metadata=ExtractionMetadata(source_file=pdf_path.name, extra={\"status\": \"not_implemented\"}),
+            extracted_text="",
+            metadata=ExtractionMetadata(source_file=pdf_path.name, extra={"status": "not_implemented"}),
         )
         return [result]
+
 

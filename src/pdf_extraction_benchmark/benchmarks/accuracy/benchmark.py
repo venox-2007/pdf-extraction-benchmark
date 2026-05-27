@@ -10,5 +10,6 @@ class AccuracyBenchmark:
 
     def evaluate(self) -> BenchmarkResult:
         """Return a placeholder benchmark score."""
-        return BenchmarkResult(dimension=\"accuracy\", score=0.0, details={\"status\": \"not_implemented\"})
+        return BenchmarkResult(dimension="accuracy", score=0.0, details={"status": "not_implemented"})
+
 

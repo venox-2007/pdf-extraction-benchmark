@@ -11,15 +11,16 @@ from pdf_extraction_benchmark.models.extraction_result import ExtractionMetadata
 class PaddleocrExtractor(BaseExtractor):
     """Placeholder adapter for the paddleocr backend."""
 
-    tool_name = \"paddleocr\"
+    tool_name = "paddleocr"
 
     def extract(self, pdf_path: Path) -> list[ExtractionResult]:
         """Return placeholder page results for the given PDF file."""
         result = ExtractionResult(
             tool_name=self.tool_name,
             page_number=1,
-            extracted_text=\"\",
-            metadata=ExtractionMetadata(source_file=pdf_path.name, extra={\"status\": \"not_implemented\"}),
+            extracted_text="",
+            metadata=ExtractionMetadata(source_file=pdf_path.name, extra={"status": "not_implemented"}),
         )
         return [result]
+
 

@@ -11,9 +11,9 @@ import opendataloader_pdf
 from pdf_extraction_benchmark.interfaces.base_extractor import BaseExtractor
 from pdf_extraction_benchmark.models.extraction_result import (
     BoundingBox,
+    ExtractedTable,
     ExtractionMetadata,
     ExtractionResult,
-    ExtractedTable,
     TableCell,
 )
 from pdf_extraction_benchmark.utils.logger import get_logger
@@ -58,7 +58,7 @@ class OpendataloaderExtractor(BaseExtractor):
         if not json_file.exists():
             raise FileNotFoundError(f"Expected JSON output not found: {json_file}")
 
-        payload = json.loads(json_file.read_text(encoding="utf-8"))
+        payload = json.loads(self._read_text_safely(json_file))
         results = self._map_json_to_results(pdf_path=pdf_path, payload=payload)
 
         self.logger.info("Extraction completed: %s pages from %s", len(results), pdf_path.name)
@@ -209,3 +209,15 @@ class OpendataloaderExtractor(BaseExtractor):
                 return None
 
         return None
+
+    def _read_text_safely(self, path: Path) -> str:
+        """Read text with fallback decoding for Windows-encoded outputs."""
+        try:
+            return path.read_text(encoding="utf-8")
+        except UnicodeDecodeError:
+            self.logger.warning("UTF-8 decode failed for %s; falling back to cp1252.", path)
+            try:
+                return path.read_text(encoding="cp1252")
+            except UnicodeDecodeError:
+                self.logger.warning("cp1252 decode failed for %s; falling back to latin-1.", path)
+                return path.read_text(encoding="latin-1")

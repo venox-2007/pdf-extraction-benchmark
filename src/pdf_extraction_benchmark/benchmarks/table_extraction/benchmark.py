@@ -10,5 +10,6 @@ class TableExtractionBenchmark:
 
     def evaluate(self) -> BenchmarkResult:
         """Return a placeholder benchmark score."""
-        return BenchmarkResult(dimension=\"table_extraction\", score=0.0, details={\"status\": \"not_implemented\"})
+        return BenchmarkResult(dimension="table_extraction", score=0.0, details={"status": "not_implemented"})
+
 

@@ -11,6 +11,17 @@ from pdf_extraction_benchmark.parsers.unified_output_parser import UnifiedOutput
 from pdf_extraction_benchmark.utils.logger import configure_logging, get_logger
 
 
+def _read_text_safely(path: Path) -> str:
+    """Read text with robust encoding fallbacks."""
+    try:
+        return path.read_text(encoding="utf-8")
+    except UnicodeDecodeError:
+        try:
+            return path.read_text(encoding="cp1252")
+        except UnicodeDecodeError:
+            return path.read_text(encoding="latin-1")
+
+
 def main() -> None:
     """Execute OpenDataLoader extraction for a single PDF path."""
     project_root = Path(__file__).resolve().parents[1]
@@ -40,7 +51,7 @@ def main() -> None:
 
     json_out.write_text(json.dumps(payload, indent=2), encoding="utf-8")
 
-    markdown_text = md_source.read_text(encoding="utf-8") if md_source.exists() else "\n\n".join(
+    markdown_text = _read_text_safely(md_source) if md_source.exists() else "\n\n".join(
         result.extracted_text for result in results
     )
     md_out.write_text(markdown_text, encoding="utf-8")

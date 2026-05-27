@@ -11,15 +11,16 @@ from pdf_extraction_benchmark.models.extraction_result import ExtractionMetadata
 class PymupdfExtractor(BaseExtractor):
     """Placeholder adapter for the pymupdf backend."""
 
-    tool_name = \"pymupdf\"
+    tool_name = "pymupdf"
 
     def extract(self, pdf_path: Path) -> list[ExtractionResult]:
         """Return placeholder page results for the given PDF file."""
         result = ExtractionResult(
             tool_name=self.tool_name,
             page_number=1,
-            extracted_text=\"\",
-            metadata=ExtractionMetadata(source_file=pdf_path.name, extra={\"status\": \"not_implemented\"}),
+            extracted_text="",
+            metadata=ExtractionMetadata(source_file=pdf_path.name, extra={"status": "not_implemented"}),
         )
         return [result]
+
 

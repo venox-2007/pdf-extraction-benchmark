@@ -1,60 +1,58 @@
-"""Professional Streamlit dashboard for document extraction benchmarking."""
+"""Minimal professional Streamlit app for OpenDataLoader extraction."""
 
 from __future__ import annotations
 
 import json
+import sys
 import time
 from pathlib import Path
-from typing import Any
 
 import streamlit as st
 
+# Ensure local src package imports resolve when launching Streamlit directly.
+SRC_ROOT = Path(__file__).resolve().parents[2]
+if str(SRC_ROOT) not in sys.path:
+    sys.path.insert(0, str(SRC_ROOT))
+
+from pdf_extraction_benchmark.classifiers.pdf_type_classifier import PdfTypeClassifier
 from pdf_extraction_benchmark.extractors.opendataloader.extractor import OpendataloaderExtractor
 from pdf_extraction_benchmark.parsers.unified_output_parser import UnifiedOutputParser
 from pdf_extraction_benchmark.utils.logger import configure_logging
 
 APP_NAME = "DocuVision AI"
-APP_SUBTITLE = "PDF Intelligence Platform"
-APP_VERSION = "v0.2.0"
+APP_SUBTITLE = "Clean PDF intelligence with OpenDataLoader"
+
+RECOMMENDATIONS = {
+    "native": ["OpenDataLoader", "PyMuPDF", "Marker"],
+    "scanned": ["PaddleOCR", "Surya", "Tesseract (future)"],
+    "mixed": ["OpenDataLoader + OCR fallback", "Surya", "PaddleOCR"],
+}
 
 
 def _inject_styles() -> None:
-    """Inject lightweight CSS for enterprise-style dashboard polish."""
+    """Apply lightweight styling for clean spacing and typography."""
     st.markdown(
         """
         <style>
-            .app-header {
-                padding: 1rem 1.2rem;
-                border: 1px solid rgba(255,255,255,0.12);
-                border-radius: 14px;
-                background: linear-gradient(135deg, rgba(37,99,235,0.18), rgba(15,23,42,0.45));
-                margin-bottom: 1rem;
+            .block-container {
+                padding-top: 1.4rem;
+                padding-bottom: 2rem;
+                max-width: 1050px;
+            }
+            h1, h2, h3 {
+                letter-spacing: 0.2px;
             }
             .subtitle {
-                color: #cbd5e1;
+                color: #a8b3c7;
+                margin-top: -0.2rem;
+                margin-bottom: 1rem;
                 font-size: 0.95rem;
             }
-            .status-badge {
-                display: inline-block;
-                padding: 0.25rem 0.65rem;
-                border-radius: 999px;
-                font-size: 0.78rem;
-                border: 1px solid rgba(148,163,184,0.35);
-                background: rgba(15,23,42,0.65);
-                color: #e2e8f0;
-            }
-            .panel {
-                padding: 0.9rem;
-                border-radius: 12px;
-                border: 1px solid rgba(148,163,184,0.25);
-                background: rgba(15,23,42,0.35);
-            }
-            .footer {
-                margin-top: 1.2rem;
-                padding-top: 0.8rem;
-                border-top: 1px solid rgba(148,163,184,0.25);
-                color: #94a3b8;
-                font-size: 0.85rem;
+            .meta-card {
+                border: 1px solid rgba(148, 163, 184, 0.25);
+                border-radius: 10px;
+                padding: 0.8rem;
+                background: rgba(15, 23, 42, 0.25);
             }
         </style>
         """,
@@ -62,72 +60,15 @@ def _inject_styles() -> None:
     )
 
 
-def _render_header(active_extractor: str, status: str) -> None:
-    """Render top-level dashboard branding and status."""
-    st.markdown(
-        f"""
-        <div class="app-header">
-            <h1 style="margin:0;">{APP_NAME}</h1>
-            <div class="subtitle">{APP_SUBTITLE}</div>
-            <div style="margin-top:0.5rem; display:flex; gap:0.5rem; align-items:center; flex-wrap:wrap;">
-                <span class="status-badge">Status: {status}</span>
-                <span class="status-badge">Active Extractor: {active_extractor}</span>
-                <span class="status-badge">Version: {APP_VERSION}</span>
-            </div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-
-
-def _render_sidebar() -> tuple[Any, str, str, bool]:
-    """Render left control sidebar and return selected inputs."""
-    with st.sidebar:
-        st.header("Extraction Control")
-        uploaded = st.file_uploader("Upload PDF", type=["pdf"])
-        extractor_name = st.selectbox("Extractor", options=["OpenDataLoader"])
-        st.selectbox("Output Mode", options=["Markdown + JSON"], index=0)
-        benchmark_mode = st.selectbox("Benchmark Mode", options=["Quick Scan", "Full Benchmark (Coming Soon)"])
-
-        st.divider()
-        st.subheader("Supported Tools")
-        st.caption("OpenDataLoader (active)")
-        st.caption("Textract, PyMuPDF, PaddleOCR (planned)")
-
-        st.divider()
-        run_clicked = st.button("Run Extraction", type="primary", use_container_width=True)
-
-    return uploaded, extractor_name, benchmark_mode, run_clicked
-
-
-def _render_pdf_panel(uploaded_file: Any) -> None:
-    """Show uploaded file metadata and preview placeholder."""
-    st.markdown("### PDF Preview")
-    st.markdown('<div class="panel">', unsafe_allow_html=True)
-    if uploaded_file is None:
-        st.info("No PDF uploaded yet. Upload a file from the sidebar to begin extraction.")
-    else:
-        size_kb = len(uploaded_file.getvalue()) / 1024
-        st.write(f"**Filename:** {uploaded_file.name}")
-        st.write(f"**File size:** {size_kb:.2f} KB")
-        st.caption("First-page visual preview is optional and can be enabled in a later iteration.")
-    st.markdown("</div>", unsafe_allow_html=True)
-
-
-def _render_metrics(
-    page_count: int,
-    extraction_time_s: float,
-    extractor_name: str,
-    tables_detected: int,
-    status: str,
-) -> None:
-    """Render key extraction metrics as cards."""
-    col1, col2, col3, col4, col5 = st.columns(5)
-    col1.metric("Pages", str(page_count))
-    col2.metric("Time", f"{extraction_time_s:.2f}s")
-    col3.metric("Extractor", extractor_name)
-    col4.metric("Tables", str(tables_detected))
-    col5.metric("Status", status)
+def _read_text_safely(path: Path) -> str:
+    """Read text using robust fallback decoding for Windows-generated files."""
+    try:
+        return path.read_text(encoding="utf-8")
+    except UnicodeDecodeError:
+        try:
+            return path.read_text(encoding="cp1252")
+        except UnicodeDecodeError:
+            return path.read_text(encoding="latin-1")
 
 
 def _save_outputs(
@@ -137,7 +78,7 @@ def _save_outputs(
     output_json_dir: Path,
     output_md_dir: Path,
 ) -> tuple[Path, Path]:
-    """Persist JSON and Markdown extraction outputs."""
+    """Save unified JSON and markdown outputs."""
     json_output = output_json_dir / f"{pdf_stem}.json"
     md_output = output_md_dir / f"{pdf_stem}.md"
     json_output.write_text(json.dumps(json_payload, indent=2), encoding="utf-8")
@@ -146,7 +87,7 @@ def _save_outputs(
 
 
 def run() -> None:
-    """Render and run the professional extraction dashboard."""
+    """Render and run the streamlined extraction dashboard."""
     st.set_page_config(page_title=APP_NAME, layout="wide")
     _inject_styles()
 
@@ -158,118 +99,176 @@ def run() -> None:
     output_md_dir.mkdir(parents=True, exist_ok=True)
     configure_logging(output_logs_dir)
 
-    uploaded, extractor_name, benchmark_mode, run_clicked = _render_sidebar()
+    with st.sidebar:
+        st.header("Extraction")
+        uploaded = st.file_uploader("Upload PDF", type=["pdf"])
+        extractor_name = st.selectbox("Extractor", options=["OpenDataLoader"])
+        run_clicked = st.button("Run Extraction", type="primary", use_container_width=True)
 
-    status = "Ready"
-    _render_header(active_extractor=extractor_name, status=status)
+    st.title(APP_NAME)
+    st.markdown(f'<div class="subtitle">{APP_SUBTITLE}</div>', unsafe_allow_html=True)
 
-    metrics_container = st.container()
-    col_left, col_right = st.columns([1.1, 1.9], gap="large")
+    if "last_results" not in st.session_state:
+        st.session_state.last_results = None
+        st.session_state.last_payload = None
+        st.session_state.last_markdown = ""
+        st.session_state.last_meta = {}
+        st.session_state.last_paths = {}
+        st.session_state.last_classification = None
 
-    with col_left:
-        _render_pdf_panel(uploaded)
-
-    with col_right:
-        st.markdown("### Extraction Workspace")
-        st.caption(f"Benchmark Mode: {benchmark_mode}")
-
-        if run_clicked:
-            if uploaded is None:
-                st.warning("Please upload a PDF from the sidebar before running extraction.")
-            else:
-                input_dir = project_root / "data" / "processed"
-                input_dir.mkdir(parents=True, exist_ok=True)
-                pdf_path = input_dir / uploaded.name
-                pdf_path.write_bytes(uploaded.getvalue())
-
-                start = time.perf_counter()
-                try:
-                    extractor = OpendataloaderExtractor()
-                    results = extractor.extract(pdf_path=pdf_path, output_dir=project_root / "outputs")
-                    elapsed = time.perf_counter() - start
-
-                    parser = UnifiedOutputParser()
-                    payload = parser.to_json_payload(results)
-
-                    markdown_file = project_root / "outputs" / f"{pdf_path.stem}.md"
-                    if markdown_file.exists():
-                        markdown_text = markdown_file.read_text(encoding="utf-8")
-                    else:
-                        markdown_text = "\n\n".join(result.extracted_text for result in results)
-
-                    json_output, md_output = _save_outputs(
-                        json_payload=payload,
-                        markdown_text=markdown_text,
-                        pdf_stem=pdf_path.stem,
-                        output_json_dir=output_json_dir,
-                        output_md_dir=output_md_dir,
-                    )
-
-                    table_count = sum(len(result.tables) for result in results)
-                    with metrics_container:
-                        _render_metrics(
-                            page_count=len(results),
-                            extraction_time_s=elapsed,
-                            extractor_name=extractor_name,
-                            tables_detected=table_count,
-                            status="Success",
-                        )
-
-                    st.success("Extraction completed successfully.")
-
-                    tabs = st.tabs(["Extracted Text", "Markdown", "JSON", "Metadata", "Logs"])
-                    all_text = "\n\n".join(result.extracted_text for result in results)
-
-                    with tabs[0]:
-                        st.text_area("Text", value=all_text, height=320)
-
-                    with tabs[1]:
-                        st.code(markdown_text[:15000], language="markdown")
-
-                    with tabs[2]:
-                        st.json(payload)
-
-                    with tabs[3]:
-                        st.json([result.metadata.extra if result.metadata else {} for result in results])
-
-                    with tabs[4]:
-                        st.write("Output files")
-                        st.code(str(json_output))
-                        st.code(str(md_output))
-                        st.caption("Latest log file: outputs/logs/benchmark.log")
-
-                    st.markdown("### Extraction Summary")
-                    st.markdown('<div class="panel">', unsafe_allow_html=True)
-                    st.write(f"Processed **{uploaded.name}** using **{extractor_name}**.")
-                    st.write(f"Generated {len(results)} page-level records and saved dashboard outputs.")
-                    st.markdown("</div>", unsafe_allow_html=True)
-
-                except Exception as exc:
-                    elapsed = time.perf_counter() - start
-                    with metrics_container:
-                        _render_metrics(
-                            page_count=0,
-                            extraction_time_s=elapsed,
-                            extractor_name=extractor_name,
-                            tables_detected=0,
-                            status="Failed",
-                        )
-                    st.error(f"Extraction failed: {exc}")
+    if run_clicked:
+        if uploaded is None:
+            st.warning("Please upload a PDF before running extraction.")
         else:
-            with metrics_container:
-                _render_metrics(
-                    page_count=0,
-                    extraction_time_s=0.0,
-                    extractor_name=extractor_name,
-                    tables_detected=0,
-                    status="Idle",
-                )
-            st.info("Upload a PDF and click 'Run Extraction' to populate results.")
+            input_dir = project_root / "data" / "processed"
+            input_dir.mkdir(parents=True, exist_ok=True)
+            pdf_path = input_dir / uploaded.name
+            pdf_path.write_bytes(uploaded.getvalue())
 
-    st.markdown(
-        f'<div class="footer">{APP_NAME} • {APP_SUBTITLE} • {APP_VERSION} • Active Extractor: {extractor_name}</div>',
-        unsafe_allow_html=True,
-    )
+            classifier = PdfTypeClassifier()
+            classification = classifier.classify(pdf_path)
+            st.session_state.last_classification = classification
+
+            recs = RECOMMENDATIONS.get(classification.pdf_type, [])
+            rec_text = ", ".join(recs)
+            if classification.pdf_type == "scanned":
+                st.warning(
+                    f"Detected: Scanned PDF (confidence {classification.confidence:.2f}). "
+                    f"OCR extractor recommended: {rec_text}"
+                )
+            else:
+                st.info(
+                    f"Detected: {classification.pdf_type.title()} PDF "
+                    f"(confidence {classification.confidence:.2f}). "
+                    f"Recommended extractors: {rec_text}"
+                )
+
+            start = time.perf_counter()
+            try:
+                extractor = OpendataloaderExtractor()
+                results = extractor.extract(pdf_path=pdf_path, output_dir=project_root / "outputs")
+                elapsed = time.perf_counter() - start
+
+                parser = UnifiedOutputParser()
+                payload = parser.to_json_payload(results)
+
+                md_source = project_root / "outputs" / f"{pdf_path.stem}.md"
+                if md_source.exists():
+                    markdown_text = _read_text_safely(md_source)
+                else:
+                    markdown_text = "\n\n".join(result.extracted_text for result in results)
+
+                json_output, md_output = _save_outputs(
+                    json_payload=payload,
+                    markdown_text=markdown_text,
+                    pdf_stem=pdf_path.stem,
+                    output_json_dir=output_json_dir,
+                    output_md_dir=output_md_dir,
+                )
+
+                all_text = "\n\n".join(result.extracted_text for result in results)
+                image_only_markdown = "![" in markdown_text and "](." in markdown_text
+                no_text_output = not all_text.strip()
+                extraction_state = "success"
+                if classification.pdf_type == "scanned" and no_text_output and image_only_markdown:
+                    extraction_state = "limited_for_scanned_pdf"
+                processed_page_numbers = {result.page_number for result in results}
+                extracted_result_count = len(results)
+                # OpenDataLoader may return fewer chunks than real PDF pages; use classifier page
+                # analysis as the reliable source-of-truth for page-accounting metrics.
+                processed_page_count = classification.page_count if extracted_result_count > 0 else 0
+                textful_pages = classification.text_pages
+                image_only_processed_pages = max(0, classification.page_count - textful_pages)
+
+                st.session_state.last_results = results
+                st.session_state.last_payload = payload
+                st.session_state.last_markdown = markdown_text
+                st.session_state.last_meta = {
+                    "total_pdf_pages": classification.page_count,
+                    "processed_pages": processed_page_count,
+                    "extracted_result_count": extracted_result_count,
+                    "image_heavy_pages": classification.image_heavy_pages,
+                    "ocr_image_only_pages": image_only_processed_pages,
+                    "time_s": elapsed,
+                    "extractor": extractor_name,
+                    "file_name": uploaded.name,
+                    "file_size_kb": round(len(uploaded.getvalue()) / 1024, 2),
+                    "pdf_type": classification.pdf_type,
+                    "classification_confidence": classification.confidence,
+                    "classification_reason": classification.reason,
+                    "extraction_state": extraction_state,
+                }
+                st.session_state.last_paths = {"json": str(json_output), "markdown": str(md_output)}
+                st.session_state.last_text = all_text
+
+                if extraction_state == "limited_for_scanned_pdf":
+                    st.warning(
+                        "OpenDataLoader detected embedded images but no OCR text extraction. "
+                        "Use an OCR-focused extractor for scanned PDFs."
+                    )
+                else:
+                    st.success("Extraction completed successfully.")
+            except Exception as exc:
+                st.error(f"Extraction failed: {exc}")
+
+    meta = st.session_state.last_meta if st.session_state.last_meta else {
+        "total_pdf_pages": 0,
+        "processed_pages": 0,
+        "ocr_image_only_pages": 0,
+        "time_s": 0.0,
+        "extractor": extractor_name,
+        "pdf_type": "unknown",
+        "classification_confidence": 0.0,
+        "extraction_state": "idle",
+    }
+
+    m1, m2, m3, m4, m5, m6 = st.columns(6)
+    m1.metric("Total PDF Pages", str(meta["total_pdf_pages"]))
+    m2.metric("Processed Pages", str(meta["processed_pages"]))
+    m3.metric("OCR/Image-only Pages", str(meta["ocr_image_only_pages"]))
+    m4.metric("Extraction Time", f"{meta['time_s']:.2f}s")
+    m5.metric("PDF Type", str(meta["pdf_type"]).title())
+    m6.metric("State", str(meta["extraction_state"]).replace("_", " ").title())
+
+    tabs = st.tabs(["Text", "Markdown", "JSON"])
+
+    with tabs[0]:
+        text_value = st.session_state.get("last_text", "")
+        st.text_area("Extracted Text", value=text_value, height=320)
+
+    with tabs[1]:
+        markdown_value = st.session_state.get("last_markdown", "")
+        st.code(markdown_value[:15000], language="markdown")
+
+    with tabs[2]:
+        payload = st.session_state.get("last_payload")
+        if payload is None:
+            st.info("JSON output will appear here after extraction.")
+        else:
+            st.json(payload)
+
+    if st.session_state.last_meta:
+        st.markdown("### Metadata")
+        st.markdown('<div class="meta-card">', unsafe_allow_html=True)
+        st.write(f"**File:** {st.session_state.last_meta['file_name']}")
+        st.write(f"**Size:** {st.session_state.last_meta['file_size_kb']} KB")
+        st.write(f"**Total PDF Pages:** {st.session_state.last_meta['total_pdf_pages']}")
+        st.write(f"**Processed Pages:** {st.session_state.last_meta['processed_pages']}")
+        st.write(f"**Extracted Result Count:** {st.session_state.last_meta['extracted_result_count']}")
+        st.write(f"**Image-heavy Pages (Classifier): {st.session_state.last_meta['image_heavy_pages']}")
+        st.write(f"**OCR/Image-only Pages:** {st.session_state.last_meta['ocr_image_only_pages']}")
+        st.write(f"**Detected Type:** {st.session_state.last_meta['pdf_type'].title()}")
+        st.write(
+            "**Classifier Confidence:** "
+            f"{st.session_state.last_meta['classification_confidence']:.2f}"
+        )
+        st.write(f"**Classifier Reason:** {st.session_state.last_meta['classification_reason']}")
+        recommendation = ", ".join(RECOMMENDATIONS.get(st.session_state.last_meta["pdf_type"], []))
+        st.write(f"**Recommended Extractors:** {recommendation}")
+        st.write(f"**Extraction State:** {st.session_state.last_meta['extraction_state']}")
+        st.write(f"**JSON Output:** `{st.session_state.last_paths.get('json', '')}`")
+        st.write(f"**Markdown Output:** `{st.session_state.last_paths.get('markdown', '')}`")
+        st.markdown("</div>", unsafe_allow_html=True)
 
 
 if __name__ == "__main__":
