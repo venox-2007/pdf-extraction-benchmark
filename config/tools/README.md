@@ -1,0 +1,1 @@
+# Tool configuration placeholders

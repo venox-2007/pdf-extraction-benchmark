@@ -1,0 +1,50 @@
+# Python caches
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+# Build artifacts
+build/
+dist/
+*.egg-info/
+
+# Virtual environments
+.venv/
+venv/
+
+# Test and coverage
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Ruff cache
+.ruff_cache/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Environment files
+.env
+
+# Local runtime outputs
+outputs/json/*
+outputs/markdown/*
+outputs/charts/*
+outputs/logs/*
+outputs/benchmarks/*
+!outputs/json/.gitkeep
+!outputs/markdown/.gitkeep
+!outputs/charts/.gitkeep
+!outputs/logs/.gitkeep
+!outputs/benchmarks/.gitkeep
+
+# Processed/derived data
+data/processed/*
+!data/processed/.gitkeep
+
+# OS/editor junk
+.DS_Store
+Thumbs.db
+.vscode/*.log
+.idea/

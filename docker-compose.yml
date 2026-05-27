@@ -1,0 +1,13 @@
+version: "3.9"
+
+services:
+  benchmark:
+    build: .
+    container_name: pdf-extraction-benchmark
+    env_file:
+      - .env.example
+    volumes:
+      - ./data:/app/data
+      - ./outputs:/app/outputs
+      - ./config:/app/config
+    command: ["python", "-m", "pdf_extraction_benchmark.main"]
