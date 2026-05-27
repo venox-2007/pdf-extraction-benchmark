@@ -1,4 +1,4 @@
-\"\"\"pymupdf extractor adapter (placeholder).\"\"\"
+"""pymupdf extractor adapter (placeholder)."""
 
 from __future__ import annotations
 
@@ -9,12 +9,12 @@ from pdf_extraction_benchmark.models.extraction_result import ExtractionMetadata
 
 
 class PymupdfExtractor(BaseExtractor):
-    \"\"\"Placeholder adapter for the pymupdf backend.\"\"\"
+    """Placeholder adapter for the pymupdf backend."""
 
     tool_name = \"pymupdf\"
 
     def extract(self, pdf_path: Path) -> list[ExtractionResult]:
-        \"\"\"Return placeholder page results for the given PDF file.\"\"\"
+        """Return placeholder page results for the given PDF file."""
         result = ExtractionResult(
             tool_name=self.tool_name,
             page_number=1,
@@ -22,3 +22,4 @@ class PymupdfExtractor(BaseExtractor):
             metadata=ExtractionMetadata(source_file=pdf_path.name, extra={\"status\": \"not_implemented\"}),
         )
         return [result]
+
