@@ -1,41 +1,57 @@
 # PDF Extraction Tool Evaluation & Benchmarking
 
-Production-ready, src-based Python scaffold for benchmarking PDF extraction and OCR tools.
+Beginner-friendly, src-based Python project for benchmarking PDF extraction and OCR tools.
+
+## Runtime Requirements
+
+- Python 3.11+
+- Java 11+ on system PATH (required by OpenDataLoader)
+
+Verify Java:
+
+```bash
+java -version
+```
+
+If Java is missing on Windows, install Eclipse Temurin JDK 11+ and reopen terminal.
+
+## Setup
+
+```bash
+python -m venv .venv
+.venv\\Scripts\\activate
+pip install --upgrade pip
+pip install -e .[dev]
+pip install -r requirements.txt
+```
+
+## Run Streamlit UI
+
+```bash
+streamlit run src/pdf_extraction_benchmark/ui/app.py
+```
+
+## Run OpenDataLoader Demo Script
+
+```bash
+python scripts/run_opendataloader_demo.py data/raw/native/sample_native_demo.pdf
+```
 
 ## Major directories
 
-- `config/`: Tool configs, benchmark configs, dataset paths, and environment config placeholders.
+- `config/`: Tool configs, benchmark configs, dataset paths, environment placeholders.
 - `data/`: Raw PDFs, processed outputs, and ground-truth references.
-- `src/pdf_extraction_benchmark/`: Main package with clean modular architecture.
-- `tests/`: Sample tests for extractors, benchmark pipeline, and parser outputs.
-- `outputs/`: Generated artifacts, logs, and benchmark result storage.
-- `scripts/`: Runnable benchmark scripts.
+- `src/pdf_extraction_benchmark/`: Main package with modular architecture.
+- `tests/`: Starter tests for extractors, benchmark pipeline, parser outputs.
+- `outputs/`: JSON/Markdown/charts/logs/benchmark results.
+- `scripts/`: Runnable benchmark and extraction scripts.
 
-## Architecture
+## Milestone 1 scope
 
-- `interfaces/`: Abstract contracts (for example, `BaseExtractor`) for extensibility.
-- `models/`: Shared schemas (`ExtractionResult`) used across extractors/parsers/benchmarks.
-- `extractors/`: Tool adapters with a unified API.
-- `classifiers/`: Document routing/classification modules.
-- `parsers/`: Output normalization into unified JSON payloads.
-- `benchmarks/`: Isolated benchmark dimensions and orchestrator pipeline.
-- `utils/`: Cross-cutting helpers such as logging.
-
-## Dev workflow
-
-```bash
-make setup
-make lint
-make format
-make test
-make run
-```
-
-## Notes
-
-- Uses `pathlib` throughout starter modules.
-- Configured for Python 3.11+, Ruff lint+format, and pytest discovery.
-- Add new extraction tools by creating a package under `extractors/` implementing `BaseExtractor`.
+- Streamlit UI
+- OpenDataLoader integration
+- Basic extraction flow
+- Visible JSON + Markdown outputs
 
 ## Git Workflow
 
@@ -56,13 +72,6 @@ git push
 
 ### Recommended commit style
 
-Use short, clear commit messages. A simple format is:
-
-- `feat: add pymupdf extractor parsing`
-- `fix: handle empty OCR output`
-- `docs: update benchmark usage`
-
-If you are just starting, plain messages are also okay, for example:
-
-- `Update parser output fields`
-- `Add latency benchmark script`
+- `feat: add opendataloader extractor`
+- `fix: handle missing output json`
+- `docs: update streamlit setup`

@@ -9,7 +9,10 @@ description = "Benchmarking toolkit for PDF extraction and OCR tools"
 readme = "README.md"
 requires-python = ">=3.11"
 authors = [{ name = "Your Team" }]
-dependencies = []
+dependencies = [
+  "opendataloader-pdf>=2.4.6",
+  "streamlit>=1.36.0",
+]
 
 [project.optional-dependencies]
 dev = [
