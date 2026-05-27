@@ -48,3 +48,9 @@ data/processed/*
 Thumbs.db
 .vscode/*.log
 .idea/
+
+outputs/*.json
+outputs/*.md
+outputs/*_images/
+!outputs/.gitkeep
+
