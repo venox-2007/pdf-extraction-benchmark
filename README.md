@@ -34,7 +34,7 @@ streamlit run src/pdf_extraction_benchmark/ui/app.py
 ## Run OpenDataLoader Demo Script
 
 ```bash
-python scripts/run_opendataloader_demo.py data/raw/native/sample_native_demo.pdf
+python scripts/run_opendataloader_demo.py data/raw/native/native_research_01.pdf
 ```
 
 ## Major directories
@@ -45,6 +45,27 @@ python scripts/run_opendataloader_demo.py data/raw/native/sample_native_demo.pdf
 - `tests/`: Starter tests for extractors, benchmark pipeline, parser outputs.
 - `outputs/`: JSON/Markdown/charts/logs/benchmark results.
 - `scripts/`: Runnable benchmark and extraction scripts.
+
+## Dataset Strategy (Native vs Scanned)
+
+The dataset is intentionally organized around extraction strategy, not early document subcategories:
+
+- `data/raw/native/`: text-based PDFs suited for direct parsing/extraction.
+- `data/raw/scanned/`: image-based PDFs requiring OCR-oriented extractors.
+
+Why this matters:
+
+- Native PDFs -> direct extraction tools (OpenDataLoader, PyMuPDF, Marker)
+- Scanned PDFs -> OCR-based extractors (PaddleOCR, Surya, Tesseract/future)
+
+This keeps routing and benchmarking aligned with real-world document AI pipelines.
+
+Future-ready TODOs (not implemented yet):
+
+- dataset metadata manifests
+- benchmark tags and document categories
+- quality labels (low quality, rotated, skewed)
+- page-level rotation/skew annotations
 
 ## Milestone 1 scope
 

@@ -1,3 +1,3 @@
 dataset_id,file_name,document_type,pdf_type,source_path,ground_truth_path,notes
-DS001,sample_native_invoice.pdf,invoice,native,data/raw/invoices/sample_native_invoice.pdf,data/ground_truth/sample_native_invoice.json,starter row
-DS002,sample_scanned_form.pdf,form,scanned,data/raw/forms/sample_scanned_form.pdf,data/ground_truth/sample_scanned_form.json,starter row
+DS001,native_research_01.pdf,research,native,data/raw/native/native_research_01.pdf,data/ground_truth/native_research_01.json,starter row
+DS002,scanned_form_01.pdf,form,scanned,data/raw/scanned/scanned_form_01.pdf,data/ground_truth/scanned_form_01.json,starter row
