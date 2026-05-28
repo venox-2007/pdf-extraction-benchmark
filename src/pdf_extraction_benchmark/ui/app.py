@@ -280,23 +280,33 @@ def run() -> None:
 
     with tabs[1]:
         markdown_value = st.session_state.get("last_markdown", "")
-        st.markdown(markdown_value[:15000])
+        markdown_for_view = markdown_value[:15000]
+        markdown_without_images = re.sub(r"!\[[^\]]*\]\([^)]+\)", "", markdown_for_view)
+        st.markdown(markdown_without_images)
 
         md_output_path = st.session_state.last_paths.get("markdown") if st.session_state.last_paths else ""
         if md_output_path:
             md_base_dir = Path(md_output_path).resolve().parent
-            image_paths = re.findall(r"!\[[^\]]*\]\(([^)]+)\)", markdown_value)
+            image_paths = re.findall(r"!\[[^\]]*\]\(([^)]+)\)", markdown_for_view)
             rendered: set[str] = set()
             for rel_path in image_paths:
-                if rel_path.startswith(("http://", "https://", "data:")):
+                cleaned = rel_path.strip().strip("<>").strip().strip("\"'")
+                if cleaned.startswith(("http://", "https://", "data:")):
                     continue
-                resolved = (md_base_dir / rel_path).resolve()
-                key = str(resolved)
-                if key in rendered:
-                    continue
-                if resolved.exists():
-                    st.image(str(resolved), caption=resolved.name, use_container_width=True)
-                    rendered.add(key)
+                candidates = [
+                    (md_base_dir / cleaned).resolve(),
+                    (md_base_dir.parent / cleaned).resolve(),
+                    (project_root / cleaned).resolve(),
+                    (project_root / "outputs" / cleaned).resolve(),
+                ]
+                for resolved in candidates:
+                    key = str(resolved)
+                    if key in rendered:
+                        break
+                    if resolved.exists():
+                        st.image(str(resolved), caption=resolved.name, width=900)
+                        rendered.add(key)
+                        break
 
     with tabs[2]:
         payload = st.session_state.get("last_payload")
