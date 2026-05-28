@@ -1,4 +1,4 @@
-"""Minimal professional Streamlit app for OpenDataLoader extraction."""
+"""Minimal professional Streamlit app for PDF extraction benchmarking."""
 
 from __future__ import annotations
 
@@ -16,18 +16,26 @@ SRC_ROOT = Path(__file__).resolve().parents[2]
 if str(SRC_ROOT) not in sys.path:
     sys.path.insert(0, str(SRC_ROOT))
 
-from pdf_extraction_benchmark.classifiers.pdf_type_classifier import PdfTypeClassifier
-from pdf_extraction_benchmark.extractors.opendataloader.extractor import OpendataloaderExtractor
-from pdf_extraction_benchmark.parsers.unified_output_parser import UnifiedOutputParser
-from pdf_extraction_benchmark.utils.logger import configure_logging
+from pdf_extraction_benchmark.classifiers.pdf_type_classifier import PdfTypeClassifier  # noqa: E402
+from pdf_extraction_benchmark.extractors.opendataloader.extractor import (  # noqa: E402
+    OpendataloaderExtractor,
+)
+from pdf_extraction_benchmark.extractors.pymupdf.extractor import PymupdfExtractor  # noqa: E402
+from pdf_extraction_benchmark.parsers.unified_output_parser import UnifiedOutputParser  # noqa: E402
+from pdf_extraction_benchmark.utils.logger import configure_logging  # noqa: E402
 
 APP_NAME = "DocuVision AI"
-APP_SUBTITLE = "Clean PDF intelligence with OpenDataLoader"
+APP_SUBTITLE = "Clean PDF intelligence with multiple extraction backends"
 
 RECOMMENDATIONS = {
     "native": ["OpenDataLoader", "PyMuPDF", "Marker"],
     "scanned": ["PaddleOCR", "Surya", "Tesseract (future)"],
     "mixed": ["OpenDataLoader + OCR fallback", "Surya", "PaddleOCR"],
+}
+
+EXTRACTOR_OPTIONS = {
+    "OpenDataLoader": OpendataloaderExtractor,
+    "PyMuPDF": PymupdfExtractor,
 }
 
 
@@ -128,7 +136,7 @@ def run() -> None:
     with st.sidebar:
         st.header("Extraction")
         uploaded = st.file_uploader("Upload PDF", type=["pdf"])
-        extractor_name = st.selectbox("Extractor", options=["OpenDataLoader"])
+        extractor_name = st.selectbox("Extractor", options=list(EXTRACTOR_OPTIONS.keys()))
         run_clicked = st.button("Run Extraction", type="primary", use_container_width=True)
 
     st.title(APP_NAME)
@@ -171,15 +179,22 @@ def run() -> None:
 
             start = time.perf_counter()
             try:
-                extractor = OpendataloaderExtractor()
-                results = extractor.extract(pdf_path=pdf_path, output_dir=project_root / "outputs")
+                extractor_cls = EXTRACTOR_OPTIONS[extractor_name]
+                extractor = extractor_cls()
+                if extractor_name == "OpenDataLoader":
+                    results = extractor.extract(
+                        pdf_path=pdf_path,
+                        output_dir=project_root / "outputs",
+                    )
+                else:
+                    results = extractor.extract(pdf_path=pdf_path)
                 elapsed = time.perf_counter() - start
 
                 parser = UnifiedOutputParser()
                 payload = parser.to_json_payload(results)
 
                 md_source = project_root / "outputs" / f"{pdf_path.stem}.md"
-                if md_source.exists():
+                if extractor_name == "OpenDataLoader" and md_source.exists():
                     markdown_text = _read_text_safely(md_source)
                 else:
                     markdown_text = "\n\n".join(result.extracted_text for result in results)
@@ -209,11 +224,12 @@ def run() -> None:
                     extraction_state = "limited_for_scanned_pdf"
                 elif no_text_output:
                     extraction_state = "empty_text_output"
-                processed_page_numbers = {result.page_number for result in results}
                 extracted_result_count = len(results)
                 # OpenDataLoader may return fewer chunks than real PDF pages; use classifier page
                 # analysis as the reliable source-of-truth for page-accounting metrics.
-                processed_page_count = classification.page_count if extracted_result_count > 0 else 0
+                processed_page_count = (
+                    classification.page_count if extracted_result_count > 0 else 0
+                )
                 textful_pages = classification.text_pages
                 image_only_processed_pages = max(0, classification.page_count - textful_pages)
 
@@ -284,7 +300,11 @@ def run() -> None:
         markdown_without_images = re.sub(r"!\[[^\]]*\]\([^)]+\)", "", markdown_for_view)
         st.markdown(markdown_without_images)
 
-        md_output_path = st.session_state.last_paths.get("markdown") if st.session_state.last_paths else ""
+        md_output_path = (
+            st.session_state.last_paths.get("markdown")
+            if st.session_state.last_paths
+            else ""
+        )
         if md_output_path:
             md_base_dir = Path(md_output_path).resolve().parent
             image_paths = re.findall(r"!\[[^\]]*\]\(([^)]+)\)", markdown_for_view)
@@ -322,8 +342,12 @@ def run() -> None:
         st.write(f"**Size:** {st.session_state.last_meta['file_size_kb']} KB")
         st.write(f"**Total PDF Pages:** {st.session_state.last_meta['total_pdf_pages']}")
         st.write(f"**Processed Pages:** {st.session_state.last_meta['processed_pages']}")
-        st.write(f"**Extracted Result Count:** {st.session_state.last_meta['extracted_result_count']}")
-        st.write(f"**Image-heavy Pages (Classifier): {st.session_state.last_meta['image_heavy_pages']}")
+        st.write(
+            f"**Extracted Result Count:** {st.session_state.last_meta['extracted_result_count']}"
+        )
+        st.write(
+            f"**Image-heavy Pages (Classifier): {st.session_state.last_meta['image_heavy_pages']}"
+        )
         st.write(f"**OCR/Image-only Pages:** {st.session_state.last_meta['ocr_image_only_pages']}")
         st.write(f"**Detected Type:** {st.session_state.last_meta['pdf_type'].title()}")
         st.write(
