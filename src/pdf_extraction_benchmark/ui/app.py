@@ -249,7 +249,8 @@ def run() -> None:
                     else:
                         markdown_text = "\n\n".join(result.extracted_text for result in results)
 
-                    if classification.pdf_type == "scanned":
+                    has_markdown_images = bool(re.search(r"!\[[^\]]*\]\([^)]+\)", markdown_text))
+                    if classification.pdf_type == "scanned" and not has_markdown_images:
                         image_section = _build_scanned_page_image_markdown(
                             pdf_path=pdf_path,
                             markdown_root_dir=output_markdown_dir,
@@ -404,6 +405,7 @@ def run() -> None:
                                 (md_base_dir.parent / cleaned).resolve(),
                                 (project_root / cleaned).resolve(),
                                 (project_root / "outputs" / cleaned).resolve(),
+                                (project_root / "outputs" / "markdown" / cleaned).resolve(),
                             ]
                             for resolved in candidates:
                                 key = str(resolved)
