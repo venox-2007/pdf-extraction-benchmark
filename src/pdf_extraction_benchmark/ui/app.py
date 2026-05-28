@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 import json
+import re
 import sys
 import time
 from pathlib import Path
 
+import fitz
 import streamlit as st
 
 # Ensure local src package imports resolve when launching Streamlit directly.
@@ -86,6 +88,30 @@ def _save_outputs(
     return json_output, md_output
 
 
+def _build_scanned_page_image_markdown(
+    pdf_path: Path,
+    markdown_root_dir: Path,
+    pdf_stem: str,
+) -> str:
+    """Render full-page PNGs and return markdown image links for scanned PDFs."""
+    image_dir = markdown_root_dir / "images" / pdf_stem
+    image_dir.mkdir(parents=True, exist_ok=True)
+
+    lines = ["## Scanned Page Images", ""]
+    with fitz.open(pdf_path) as doc:
+        for page_index in range(len(doc)):
+            page = doc.load_page(page_index)
+            pix = page.get_pixmap(dpi=150)
+            image_path = image_dir / f"page_{page_index + 1}.png"
+            pix.save(image_path)
+            relative = image_path.relative_to(markdown_root_dir).as_posix()
+            lines.append(f"### Page {page_index + 1}")
+            lines.append(f"![Page {page_index + 1}]({relative})")
+            lines.append("")
+
+    return "\n".join(lines).strip()
+
+
 def run() -> None:
     """Render and run the streamlined extraction dashboard."""
     st.set_page_config(page_title=APP_NAME, layout="wide")
@@ -157,6 +183,15 @@ def run() -> None:
                     markdown_text = _read_text_safely(md_source)
                 else:
                     markdown_text = "\n\n".join(result.extracted_text for result in results)
+
+                if classification.pdf_type == "scanned":
+                    image_section = _build_scanned_page_image_markdown(
+                        pdf_path=pdf_path,
+                        markdown_root_dir=output_md_dir,
+                        pdf_stem=pdf_path.stem,
+                    )
+                    if image_section:
+                        markdown_text = f"{markdown_text.rstrip()}\n\n{image_section}\n"
 
                 json_output, md_output = _save_outputs(
                     json_payload=payload,
@@ -245,7 +280,23 @@ def run() -> None:
 
     with tabs[1]:
         markdown_value = st.session_state.get("last_markdown", "")
-        st.code(markdown_value[:15000], language="markdown")
+        st.markdown(markdown_value[:15000])
+
+        md_output_path = st.session_state.last_paths.get("markdown") if st.session_state.last_paths else ""
+        if md_output_path:
+            md_base_dir = Path(md_output_path).resolve().parent
+            image_paths = re.findall(r"!\[[^\]]*\]\(([^)]+)\)", markdown_value)
+            rendered: set[str] = set()
+            for rel_path in image_paths:
+                if rel_path.startswith(("http://", "https://", "data:")):
+                    continue
+                resolved = (md_base_dir / rel_path).resolve()
+                key = str(resolved)
+                if key in rendered:
+                    continue
+                if resolved.exists():
+                    st.image(str(resolved), caption=resolved.name, use_container_width=True)
+                    rendered.add(key)
 
     with tabs[2]:
         payload = st.session_state.get("last_payload")
