@@ -172,6 +172,8 @@ def run() -> None:
                 extraction_state = "success"
                 if classification.pdf_type == "scanned" and no_text_output and image_only_markdown:
                     extraction_state = "limited_for_scanned_pdf"
+                elif no_text_output:
+                    extraction_state = "empty_text_output"
                 processed_page_numbers = {result.page_number for result in results}
                 extracted_result_count = len(results)
                 # OpenDataLoader may return fewer chunks than real PDF pages; use classifier page
@@ -205,6 +207,11 @@ def run() -> None:
                     st.warning(
                         "OpenDataLoader detected embedded images but no OCR text extraction. "
                         "Use an OCR-focused extractor for scanned PDFs."
+                    )
+                elif extraction_state == "empty_text_output":
+                    st.warning(
+                        "Extraction finished, but normalized text output is empty. "
+                        "Please verify parser mapping for this PDF schema."
                     )
                 else:
                     st.success("Extraction completed successfully.")

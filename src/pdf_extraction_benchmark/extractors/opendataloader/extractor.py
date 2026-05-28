@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from collections import defaultdict
 from pathlib import Path
 from typing import Any
 
@@ -66,6 +67,11 @@ class OpendataloaderExtractor(BaseExtractor):
 
     def _map_json_to_results(self, pdf_path: Path, payload: dict[str, Any]) -> list[ExtractionResult]:
         """Map OpenDataLoader JSON payload to standardized results."""
+        if isinstance(payload, dict):
+            kids = payload.get("kids")
+            if isinstance(kids, list):
+                return self._map_kids_to_results(pdf_path=pdf_path, payload=payload)
+
         pages = payload.get("pages", []) if isinstance(payload, dict) else []
         if not isinstance(pages, list):
             pages = []
@@ -117,6 +123,70 @@ class OpendataloaderExtractor(BaseExtractor):
                 ),
             )
         ]
+
+    def _map_kids_to_results(self, pdf_path: Path, payload: dict[str, Any]) -> list[ExtractionResult]:
+        """Map OpenDataLoader `kids` block schema into page-level extraction results."""
+        raw_kids = payload.get("kids", [])
+        if not isinstance(raw_kids, list):
+            raw_kids = []
+
+        page_blocks: dict[int, list[dict[str, Any]]] = defaultdict(list)
+        for block in raw_kids:
+            if not isinstance(block, dict):
+                continue
+            page_num = self._to_int(block.get("page number"))
+            if page_num is None or page_num <= 0:
+                continue
+            page_blocks[page_num].append(block)
+
+        if not page_blocks:
+            return [
+                ExtractionResult(
+                    tool_name=self.tool_name,
+                    page_number=1,
+                    extracted_text="",
+                    metadata=ExtractionMetadata(
+                        source_file=pdf_path.name,
+                        extra={"status": "empty_output"},
+                    ),
+                )
+            ]
+
+        total_pages = self._to_int(payload.get("number of pages"))
+        ordered_pages = sorted(page_blocks.keys())
+        if total_pages is not None and total_pages > 0:
+            ordered_pages = sorted(set(ordered_pages) | set(range(1, total_pages + 1)))
+
+        results: list[ExtractionResult] = []
+        for page_num in ordered_pages:
+            blocks = page_blocks.get(page_num, [])
+            text_parts: list[str] = []
+            boxes: list[BoundingBox] = []
+
+            for block in blocks:
+                content = block.get("content")
+                if isinstance(content, str) and content.strip():
+                    text_parts.append(content.strip())
+                box = self._to_bbox(block.get("bounding box"))
+                if box is not None:
+                    boxes.append(box)
+
+            results.append(
+                ExtractionResult(
+                    tool_name=self.tool_name,
+                    page_number=page_num,
+                    extracted_text="\n\n".join(text_parts),
+                    tables=[],
+                    bounding_boxes=boxes,
+                    confidence_scores=[],
+                    metadata=ExtractionMetadata(
+                        source_file=pdf_path.name,
+                        extra={"status": "ok", "schema": "kids"},
+                    ),
+                )
+            )
+
+        return results
 
     def _extract_text(self, page: dict[str, Any]) -> str:
         """Extract text using common OpenDataLoader page keys."""
@@ -209,6 +279,13 @@ class OpendataloaderExtractor(BaseExtractor):
                 return None
 
         return None
+
+    def _to_int(self, value: Any) -> int | None:
+        """Safely parse integer-like values."""
+        try:
+            return int(value)
+        except (TypeError, ValueError):
+            return None
 
     def _read_text_safely(self, path: Path) -> str:
         """Read text with fallback decoding for Windows-encoded outputs."""
