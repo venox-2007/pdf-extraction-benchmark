@@ -367,7 +367,11 @@ def run() -> None:
 
     if st.session_state.comparison_rows:
         st.markdown("### Comparison Overview")
-        st.dataframe(st.session_state.comparison_rows, use_container_width=True)
+        display_rows = [
+            {key: value for key, value in row.items() if key != "ocr_supported"}
+            for row in st.session_state.comparison_rows
+        ]
+        st.dataframe(display_rows, use_container_width=True)
 
     if st.session_state.observations:
         st.markdown("### Benchmark Notes")
