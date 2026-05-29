@@ -39,6 +39,11 @@ EXTRACTOR_OPTIONS = {
     "PyMuPDF": PymupdfExtractor,
 }
 
+EXTRACTOR_CAPABILITIES = {
+    "OpenDataLoader": {"ocr_supported": False},
+    "PyMuPDF": {"ocr_supported": False},
+}
+
 
 def _extractor_slug(extractor_name: str) -> str:
     """Convert extractor display name into output folder slug."""
@@ -149,6 +154,16 @@ def _build_comparison_observations(rows: list[dict[str, object]]) -> list[str]:
     return notes
 
 
+def _build_markdown_from_results(results: list[Any], extractor_name: str) -> str:
+    """Build plain markdown-like text from standardized extraction results."""
+    parts: list[str] = []
+    for result in results:
+        page_text = result.extracted_text.strip()
+        if page_text:
+            parts.append(page_text)
+    return "\n\n".join(parts).strip()
+
+
 def run() -> None:
     """Render and run the streamlined extraction dashboard."""
     st.set_page_config(page_title=APP_NAME, layout="wide")
@@ -247,7 +262,7 @@ def run() -> None:
                     if extractor_name == "OpenDataLoader" and md_source.exists():
                         markdown_text = _read_text_safely(md_source)
                     else:
-                        markdown_text = "\n\n".join(result.extracted_text for result in results)
+                        markdown_text = _build_markdown_from_results(results, extractor_name)
 
                     has_markdown_images = bool(re.search(r"!\[[^\]]*\]\([^)]+\)", markdown_text))
                     if classification.pdf_type == "scanned" and not has_markdown_images:
@@ -276,10 +291,7 @@ def run() -> None:
                         for result in results
                         if result.metadata and result.metadata.extra.get("ocr_required") is True
                     )
-                    ocr_supported = any(
-                        result.metadata and result.metadata.extra.get("ocr_supported") is not False
-                        for result in results
-                    )
+                    ocr_supported = EXTRACTOR_CAPABILITIES[extractor_name]["ocr_supported"]
                     status = "success" if not no_text_output else "empty_text_output"
                     if classification.pdf_type == "scanned" and no_text_output:
                         status = "limited_for_scanned_pdf"
@@ -380,7 +392,7 @@ def run() -> None:
 
                 with inner_tabs[1]:
                     markdown_value = st.session_state.last_markdown.get(extractor_name, "")
-                    markdown_for_view = markdown_value[:15000]
+                    markdown_for_view = markdown_value
                     markdown_without_images = re.sub(
                         r"!\[[^\]]*\]\([^)]+\)",
                         "",
