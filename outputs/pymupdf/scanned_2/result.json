@@ -1,0 +1,269 @@
+{
+  "pages": [
+    {
+      "tool_name": "pymupdf",
+      "page_number": 1,
+      "extracted_text": "",
+      "tables": [],
+      "bounding_boxes": [],
+      "confidence_scores": [],
+      "metadata": {
+        "source_file": "scanned_2.pdf",
+        "latency_ms": null,
+        "cost_usd": null,
+        "extra": {
+          "status": "ocr_required",
+          "extractor": "pymupdf",
+          "ocr_supported": false,
+          "ocr_required": true,
+          "layout_preservation": "basic",
+          "extraction_timestamp": "2026-05-28T09:34:05.509953+00:00",
+          "total_page_count": 8,
+          "word_count": 0,
+          "image_count": 1,
+          "text_blocks": [],
+          "pdf_metadata": {
+            "format": "PDF 1.5",
+            "title": "Scanned Document",
+            "creator": "HardCopy",
+            "producer": "Lexmark X652de",
+            "creationDate": "D:20151112153907-06'00'",
+            "modDate": "D:20151112153907-06'00'"
+          }
+        }
+      }
+    },
+    {
+      "tool_name": "pymupdf",
+      "page_number": 2,
+      "extracted_text": "",
+      "tables": [],
+      "bounding_boxes": [],
+      "confidence_scores": [],
+      "metadata": {
+        "source_file": "scanned_2.pdf",
+        "latency_ms": null,
+        "cost_usd": null,
+        "extra": {
+          "status": "ocr_required",
+          "extractor": "pymupdf",
+          "ocr_supported": false,
+          "ocr_required": true,
+          "layout_preservation": "basic",
+          "extraction_timestamp": "2026-05-28T09:34:05.509953+00:00",
+          "total_page_count": 8,
+          "word_count": 0,
+          "image_count": 1,
+          "text_blocks": [],
+          "pdf_metadata": {
+            "format": "PDF 1.5",
+            "title": "Scanned Document",
+            "creator": "HardCopy",
+            "producer": "Lexmark X652de",
+            "creationDate": "D:20151112153907-06'00'",
+            "modDate": "D:20151112153907-06'00'"
+          }
+        }
+      }
+    },
+    {
+      "tool_name": "pymupdf",
+      "page_number": 3,
+      "extracted_text": "",
+      "tables": [],
+      "bounding_boxes": [],
+      "confidence_scores": [],
+      "metadata": {
+        "source_file": "scanned_2.pdf",
+        "latency_ms": null,
+        "cost_usd": null,
+        "extra": {
+          "status": "ocr_required",
+          "extractor": "pymupdf",
+          "ocr_supported": false,
+          "ocr_required": true,
+          "layout_preservation": "basic",
+          "extraction_timestamp": "2026-05-28T09:34:05.509953+00:00",
+          "total_page_count": 8,
+          "word_count": 0,
+          "image_count": 1,
+          "text_blocks": [],
+          "pdf_metadata": {
+            "format": "PDF 1.5",
+            "title": "Scanned Document",
+            "creator": "HardCopy",
+            "producer": "Lexmark X652de",
+            "creationDate": "D:20151112153907-06'00'",
+            "modDate": "D:20151112153907-06'00'"
+          }
+        }
+      }
+    },
+    {
+      "tool_name": "pymupdf",
+      "page_number": 4,
+      "extracted_text": "",
+      "tables": [],
+      "bounding_boxes": [],
+      "confidence_scores": [],
+      "metadata": {
+        "source_file": "scanned_2.pdf",
+        "latency_ms": null,
+        "cost_usd": null,
+        "extra": {
+          "status": "ocr_required",
+          "extractor": "pymupdf",
+          "ocr_supported": false,
+          "ocr_required": true,
+          "layout_preservation": "basic",
+          "extraction_timestamp": "2026-05-28T09:34:05.509953+00:00",
+          "total_page_count": 8,
+          "word_count": 0,
+          "image_count": 1,
+          "text_blocks": [],
+          "pdf_metadata": {
+            "format": "PDF 1.5",
+            "title": "Scanned Document",
+            "creator": "HardCopy",
+            "producer": "Lexmark X652de",
+            "creationDate": "D:20151112153907-06'00'",
+            "modDate": "D:20151112153907-06'00'"
+          }
+        }
+      }
+    },
+    {
+      "tool_name": "pymupdf",
+      "page_number": 5,
+      "extracted_text": "",
+      "tables": [],
+      "bounding_boxes": [],
+      "confidence_scores": [],
+      "metadata": {
+        "source_file": "scanned_2.pdf",
+        "latency_ms": null,
+        "cost_usd": null,
+        "extra": {
+          "status": "ocr_required",
+          "extractor": "pymupdf",
+          "ocr_supported": false,
+          "ocr_required": true,
+          "layout_preservation": "basic",
+          "extraction_timestamp": "2026-05-28T09:34:05.509953+00:00",
+          "total_page_count": 8,
+          "word_count": 0,
+          "image_count": 1,
+          "text_blocks": [],
+          "pdf_metadata": {
+            "format": "PDF 1.5",
+            "title": "Scanned Document",
+            "creator": "HardCopy",
+            "producer": "Lexmark X652de",
+            "creationDate": "D:20151112153907-06'00'",
+            "modDate": "D:20151112153907-06'00'"
+          }
+        }
+      }
+    },
+    {
+      "tool_name": "pymupdf",
+      "page_number": 6,
+      "extracted_text": "",
+      "tables": [],
+      "bounding_boxes": [],
+      "confidence_scores": [],
+      "metadata": {
+        "source_file": "scanned_2.pdf",
+        "latency_ms": null,
+        "cost_usd": null,
+        "extra": {
+          "status": "ocr_required",
+          "extractor": "pymupdf",
+          "ocr_supported": false,
+          "ocr_required": true,
+          "layout_preservation": "basic",
+          "extraction_timestamp": "2026-05-28T09:34:05.509953+00:00",
+          "total_page_count": 8,
+          "word_count": 0,
+          "image_count": 1,
+          "text_blocks": [],
+          "pdf_metadata": {
+            "format": "PDF 1.5",
+            "title": "Scanned Document",
+            "creator": "HardCopy",
+            "producer": "Lexmark X652de",
+            "creationDate": "D:20151112153907-06'00'",
+            "modDate": "D:20151112153907-06'00'"
+          }
+        }
+      }
+    },
+    {
+      "tool_name": "pymupdf",
+      "page_number": 7,
+      "extracted_text": "",
+      "tables": [],
+      "bounding_boxes": [],
+      "confidence_scores": [],
+      "metadata": {
+        "source_file": "scanned_2.pdf",
+        "latency_ms": null,
+        "cost_usd": null,
+        "extra": {
+          "status": "ocr_required",
+          "extractor": "pymupdf",
+          "ocr_supported": false,
+          "ocr_required": true,
+          "layout_preservation": "basic",
+          "extraction_timestamp": "2026-05-28T09:34:05.509953+00:00",
+          "total_page_count": 8,
+          "word_count": 0,
+          "image_count": 1,
+          "text_blocks": [],
+          "pdf_metadata": {
+            "format": "PDF 1.5",
+            "title": "Scanned Document",
+            "creator": "HardCopy",
+            "producer": "Lexmark X652de",
+            "creationDate": "D:20151112153907-06'00'",
+            "modDate": "D:20151112153907-06'00'"
+          }
+        }
+      }
+    },
+    {
+      "tool_name": "pymupdf",
+      "page_number": 8,
+      "extracted_text": "",
+      "tables": [],
+      "bounding_boxes": [],
+      "confidence_scores": [],
+      "metadata": {
+        "source_file": "scanned_2.pdf",
+        "latency_ms": null,
+        "cost_usd": null,
+        "extra": {
+          "status": "ocr_required",
+          "extractor": "pymupdf",
+          "ocr_supported": false,
+          "ocr_required": true,
+          "layout_preservation": "basic",
+          "extraction_timestamp": "2026-05-28T09:34:05.509953+00:00",
+          "total_page_count": 8,
+          "word_count": 0,
+          "image_count": 1,
+          "text_blocks": [],
+          "pdf_metadata": {
+            "format": "PDF 1.5",
+            "title": "Scanned Document",
+            "creator": "HardCopy",
+            "producer": "Lexmark X652de",
+            "creationDate": "D:20151112153907-06'00'",
+            "modDate": "D:20151112153907-06'00'"
+          }
+        }
+      }
+    }
+  ],
+  "total_pages": 8
+}

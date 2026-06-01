@@ -1,0 +1,65 @@
+{
+  "file name" : "scanned_2.pdf",
+  "number of pages" : 8,
+  "author" : null,
+  "title" : "Scanned Document",
+  "creation date" : "D:20151112153907-06'00'",
+  "modification date" : "D:20151112153907-06'00'",
+  "kids" : [ {
+    "type" : "image",
+    "pdfua_tag" : "Figure",
+    "id" : 1,
+    "page number" : 1,
+    "bounding box" : [ 0.0, 0.0, 612.0, 792.0 ],
+    "source" : "scanned_2_images/imageFile1.png"
+  }, {
+    "type" : "image",
+    "pdfua_tag" : "Figure",
+    "id" : 2,
+    "page number" : 2,
+    "bounding box" : [ 0.0, 0.0, 612.0, 792.0 ],
+    "source" : "scanned_2_images/imageFile2.png"
+  }, {
+    "type" : "image",
+    "pdfua_tag" : "Figure",
+    "id" : 3,
+    "page number" : 3,
+    "bounding box" : [ 0.0, 0.0, 612.0, 792.0 ],
+    "source" : "scanned_2_images/imageFile3.png"
+  }, {
+    "type" : "image",
+    "pdfua_tag" : "Figure",
+    "id" : 4,
+    "page number" : 4,
+    "bounding box" : [ 0.0, 0.0, 612.0, 792.0 ],
+    "source" : "scanned_2_images/imageFile4.png"
+  }, {
+    "type" : "image",
+    "pdfua_tag" : "Figure",
+    "id" : 5,
+    "page number" : 5,
+    "bounding box" : [ 0.0, 0.0, 612.0, 792.0 ],
+    "source" : "scanned_2_images/imageFile5.png"
+  }, {
+    "type" : "image",
+    "pdfua_tag" : "Figure",
+    "id" : 6,
+    "page number" : 6,
+    "bounding box" : [ 0.0, 0.0, 612.0, 792.0 ],
+    "source" : "scanned_2_images/imageFile6.png"
+  }, {
+    "type" : "image",
+    "pdfua_tag" : "Figure",
+    "id" : 7,
+    "page number" : 7,
+    "bounding box" : [ 0.0, 0.0, 612.0, 792.0 ],
+    "source" : "scanned_2_images/imageFile7.png"
+  }, {
+    "type" : "image",
+    "pdfua_tag" : "Figure",
+    "id" : 8,
+    "page number" : 8,
+    "bounding box" : [ 0.0, 0.0, 612.0, 792.0 ],
+    "source" : "scanned_2_images/imageFile8.png"
+  } ]
+}

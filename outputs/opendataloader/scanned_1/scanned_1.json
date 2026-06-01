@@ -1,0 +1,16 @@
+{
+  "file name" : "scanned_1.pdf",
+  "number of pages" : 1,
+  "author" : "Paperless 800-387-9001",
+  "title" : "Sample Scanned Image",
+  "creation date" : "Sat Oct 10 19:34:24 1998\n",
+  "modification date" : "D:20001003121656-04'00'",
+  "kids" : [ {
+    "type" : "image",
+    "pdfua_tag" : "Figure",
+    "id" : 1,
+    "page number" : 1,
+    "bounding box" : [ 0.0, 0.0, 610.0, 783.0 ],
+    "source" : "scanned_1_images/imageFile1.png"
+  } ]
+}

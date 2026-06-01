@@ -1,0 +1,208 @@
+{
+  "file name" : "scanned_3.pdf",
+  "number of pages" : 1,
+  "author" : null,
+  "title" : null,
+  "creation date" : "D:20230508083404+00'00'",
+  "modification date" : "D:20230508083404+00'00'",
+  "kids" : [ {
+    "type" : "image",
+    "pdfua_tag" : "Figure",
+    "id" : 1,
+    "page number" : 1,
+    "bounding box" : [ 0.0, 0.0, 222.0, 322.0 ],
+    "source" : "scanned_3_images/imageFile1.png"
+  }, {
+    "type" : "heading",
+    "pdfua_tag" : "H1",
+    "id" : 2,
+    "level" : "Doctitle",
+    "page number" : 1,
+    "bounding box" : [ 25.92, 241.674, 181.2, 254.88 ],
+    "heading level" : 1,
+    "font" : "GlyphLessFont",
+    "font size" : 13.2,
+    "text color" : "[0.0]",
+    "content" : "Mediterraan Restaurant"
+  }, {
+    "type" : "paragraph",
+    "pdfua_tag" : "P",
+    "id" : 3,
+    "page number" : 1,
+    "bounding box" : [ 76.08, 228.956, 131.76, 237.6 ],
+    "font" : "GlyphLessFont",
+    "font size" : 8.64,
+    "text color" : "[0.0]",
+    "content" : "Hoekenrode 5"
+  }, {
+    "type" : "paragraph",
+    "pdfua_tag" : "P",
+    "id" : 4,
+    "page number" : 1,
+    "bounding box" : [ 62.88, 217.196, 142.2, 225.36 ],
+    "font" : "GlyphLessFont",
+    "font size" : 8.16,
+    "text color" : "[0.0]",
+    "content" : "1102 BR ňMSlERDAM"
+  }, {
+    "type" : "paragraph",
+    "pdfua_tag" : "P",
+    "id" : 5,
+    "page number" : 1,
+    "bounding box" : [ 61.92, 205.676, 145.48, 213.6 ],
+    "font" : "GlyphLessFont",
+    "font size" : 7.92,
+    "text color" : "[0.0]",
+    "content" : "اً6ا 020 - 69آ3641"
+  }, {
+    "type" : "paragraph",
+    "pdfua_tag" : "P",
+    "id" : 6,
+    "page number" : 1,
+    "bounding box" : [ 4.56, 193.676, 41.48, 202.08 ],
+    "font" : "GlyphLessFont",
+    "font size" : 8.4,
+    "text color" : "[0.0]",
+    "content" : "Tafel 47"
+  }, {
+    "type" : "paragraph",
+    "pdfua_tag" : "P",
+    "id" : 7,
+    "page number" : 1,
+    "bounding box" : [ 4.56, 157.916, 93.88, 167.04 ],
+    "font" : "GlyphLessFont",
+    "font size" : 9.12,
+    "text color" : "[0.0]",
+    "content" : "2 X IPA Brand Large"
+  }, {
+    "type" : "paragraph",
+    "pdfua_tag" : "P",
+    "id" : 9,
+    "page number" : 1,
+    "bounding box" : [ 176.88, 146.396, 199.6, 167.04 ],
+    "font" : "GlyphLessFont",
+    "font size" : 8.88,
+    "text color" : "[0.0]",
+    "content" : "18)00 20,00"
+  }, {
+    "type" : "paragraph",
+    "pdfua_tag" : "P",
+    "id" : 8,
+    "page number" : 1,
+    "bounding box" : [ 5.28, 147.116, 103.8, 155.52 ],
+    "font" : "GlyphLessFont",
+    "font size" : 8.4,
+    "text color" : "[0.0]",
+    "content" : "1 X P Calzone el Paso"
+  }, {
+    "type" : "paragraph",
+    "pdfua_tag" : "P",
+    "id" : 10,
+    "page number" : 1,
+    "bounding box" : [ 4.56, 119.514, 43.56, 132.24 ],
+    "font" : "GlyphLessFont",
+    "font size" : 12.72,
+    "text color" : "[0.0]",
+    "content" : "اًotaaไ"
+  }, {
+    "type" : "paragraph",
+    "pdfua_tag" : "P",
+    "id" : 16,
+    "page number" : 1,
+    "bounding box" : [ 162.48, 119.754, 174.48, 132.24 ],
+    "font" : "GlyphLessFont",
+    "font size" : 12.48,
+    "text color" : "[0.0]",
+    "content" : "38"
+  }, {
+    "type" : "paragraph",
+    "pdfua_tag" : "P",
+    "id" : 11,
+    "page number" : 1,
+    "bounding box" : [ 4.56, 105.835, 41.36, 115.44 ],
+    "font" : "GlyphLessFont",
+    "font size" : 9.6,
+    "text color" : "[0.0]",
+    "content" : "Btw laag"
+  }, {
+    "type" : "paragraph",
+    "pdfua_tag" : "P",
+    "id" : 17,
+    "page number" : 1,
+    "bounding box" : [ 181.68, 94.556, 199.68, 115.44 ],
+    "font" : "GlyphLessFont",
+    "font size" : 9.12,
+    "text color" : "[0.0]",
+    "content" : "1,65 3,12"
+  }, {
+    "type" : "paragraph",
+    "pdfua_tag" : "P",
+    "id" : 12,
+    "page number" : 1,
+    "bounding box" : [ 4.56, 94.075, 41.88, 103.92 ],
+    "font" : "GlyphLessFont",
+    "font size" : 9.84,
+    "text color" : "[0.0]",
+    "content" : "Btw hoog"
+  }, {
+    "type" : "paragraph",
+    "pdfua_tag" : "P",
+    "id" : 18,
+    "page number" : 1,
+    "bounding box" : [ 162.48, 79.434, 174.48, 92.16 ],
+    "font" : "GlyphLessFont",
+    "font size" : 12.72,
+    "text color" : "[0.0]",
+    "content" : "38"
+  }, {
+    "type" : "paragraph",
+    "pdfua_tag" : "P",
+    "id" : 13,
+    "page number" : 1,
+    "bounding box" : [ 4.56, 79.194, 52.56, 91.92 ],
+    "font" : "GlyphLessFont",
+    "font size" : 12.72,
+    "text color" : "[0.0]",
+    "content" : "Contant"
+  }, {
+    "type" : "paragraph",
+    "pdfua_tag" : "P",
+    "id" : 14,
+    "page number" : 1,
+    "bounding box" : [ 4.56, 65.515, 108.04, 75.12 ],
+    "font" : "GlyphLessFont",
+    "font size" : 9.6,
+    "text color" : "[0.0]",
+    "content" : "20:31 19/04/23 2 Ahmet"
+  }, {
+    "type" : "paragraph",
+    "pdfua_tag" : "P",
+    "id" : 19,
+    "page number" : 1,
+    "bounding box" : [ 192.0, 66.956, 204.0, 74.88 ],
+    "font" : "GlyphLessFont",
+    "font size" : 7.92,
+    "text color" : "[0.0]",
+    "content" : "122"
+  }, {
+    "type" : "paragraph",
+    "pdfua_tag" : "P",
+    "id" : 15,
+    "page number" : 1,
+    "bounding box" : [ 4.56, 55.196, 35.2, 63.12 ],
+    "font" : "GlyphLessFont",
+    "font size" : 7.92,
+    "text color" : "[0.0]",
+    "content" : "Kassa 1"
+  }, {
+    "type" : "paragraph",
+    "pdfua_tag" : "P",
+    "id" : 20,
+    "page number" : 1,
+    "bounding box" : [ 57.12, 31.916, 151.0, 40.32 ],
+    "font" : "GlyphLessFont",
+    "font size" : 8.4,
+    "text color" : "[0.0]",
+    "content" : "Bedankt eti tot ziens"
+  } ]
+}

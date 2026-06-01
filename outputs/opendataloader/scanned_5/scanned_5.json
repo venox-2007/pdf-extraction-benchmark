@@ -1,0 +1,16 @@
+{
+  "file name" : "scanned_5.pdf",
+  "number of pages" : 1,
+  "author" : null,
+  "title" : null,
+  "creation date" : null,
+  "modification date" : "D:20260527101357Z",
+  "kids" : [ {
+    "type" : "image",
+    "pdfua_tag" : "Figure",
+    "id" : 1,
+    "page number" : 1,
+    "bounding box" : [ 0.0, 26.399, 595.0, 815.6 ],
+    "source" : "scanned_5_images/imageFile1.png"
+  } ]
+}

@@ -1,0 +1,3431 @@
+{
+  "pages": [
+    {
+      "tool_name": "opendataloader",
+      "page_number": 1,
+      "extracted_text": "Are Tools All We Need? Unveiling the Tool-Use Tax in LLM Agents\n\nKaituo Zhang1 Zhen Xiong2,3 Mingyu Zhong1 Zhimeng Jiang4 Zhouyuan Yuan5 Zhecheng Li5 Ying Lin1\n\n1University of Houston 2University of Southern California 3New York University 4Texas A&M University 5University of California, San Diego\n\narXiv:2605.00136v1[cs.AI]30Apr2026\n\nAbstract\n\nTool-augmented reasoning has become a popular direction for LLM-based agents, and it is widely assumed to improve reasoning and reliability. However, we demonstrate that this consensus does not always hold: in the presence of semantic distractors, tool-augmented reasoning does not necessarily outperform native CoT. To explain this performance gap, we propose a Factorized Intervention Framework that isolates the cost of prompt formatting, the overhead of the tool-calling protocol, and the actual gain from executing tools. Our analysis reveals a critical tradeoff: under semantic noise, the gains from tools often fail to offset the \"tooluse tax\", which is the performance degradation introduced by the tool-calling protocol itself. To address this, we introduce G-STEP, a lightweight inference-time gate to mitigate protocol-induced errors. While this yields partial recovery, our findings suggest that more substantial improvements still require strengthening the model\u2019s intrinsic reasoning and toolinteraction capabilities.\n\n1 Introduction\n\nIn recent years, augmenting large language models (LLMs) with external tools has become a central paradigm for extending reasoning and realworld task-solving capabilities. Function calling, search augmentation, and tool-augmented agents are widely regarded as effective ways to provide models with up-to-date information, precise computation, and access to external services (Zhang et al., 2026; Chen et al., 2023; Liu et al., 2025; Chen et al., 2025; Patil et al., 2025). Across recent progress in tool-use training and evaluation, a common assumption has emerged: tool use should improve performance and reliability.\n\nHowever, this assumption has mostly been established under relatively clean input conditions. In realistic settings, model inputs often contain semantically related but reasoning-irrelevant context:\n\ninformation that is topically relevant, linguistically natural, and superficially plausible, yet unhelpful or misleading for the target reasoning chain. Recent studies show that such distractors can substantially disrupt reasoning-path selection and final accuracy, and that noisy external information may even amplify failures in reasoning and search-augmented systems (Xiong et al., 2025; Yang et al., 2025; Lee et al., 2026; Pham et al., 2026). These findings suggest that semantic distractors are a particularly revealing stress test for tool-conditioned reasoning, because they simultaneously challenge evidence selection, tool invocation, and the integration of external results.\n\nAt the same time, existing evaluations provide limited insight into this failure mode. Tool-use benchmarks mainly measure whether models can successfully call tools, while recent work on reasoning and agent evaluation increasingly argues that final-answer accuracy alone is insufficient for diagnosing intermediate failures (Chen et al., 2025; Lee and Hockenmaier, 2025; Zhou et al., 2025; Hwang et al., 2025; Ou et al., 2025; Winston and Just, 2025). Yet these lines of work still stop short of explaining a basic question that arises in noisy semantic settings: why can native chain-of-thought (CoT) outperform a full tool-augmented protocol, even when tools are available in principle? This gap is especially important for deployment, since failures in tool-augmented systems may stem not only from missing capabilities, but also from the mechanics of tool invocation and interaction itself (Cheng et al., 2026; Wang et al., 2026c).\n\nIn this work, we study the CoT\u2013Tool gap under semantic distractors through four sequential research questions: whether the gap emerges, where the expected gains from tool use are lost, what mechanism explains when tool use helps or hurts, and whether such failures can be mitigated by lightweight inference-time control. To answer these questions, we construct two benchmark",
+      "tables": [],
+      "bounding_boxes": [
+        {
+          "x0": 91.27,
+          "y0": 747.247,
+          "x1": 503.494,
+          "y1": 765.911
+        },
+        {
+          "x0": 134.545,
+          "y0": 699.244,
+          "x1": 463.221,
+          "y1": 729.324
+        },
+        {
+          "x0": 99.681,
+          "y0": 658.119,
+          "x1": 495.596,
+          "y1": 687.128
+        },
+        {
+          "x0": 14.04,
+          "y0": 249.305,
+          "x1": 36.36,
+          "y1": 592.585
+        },
+        {
+          "x0": 157.758,
+          "y0": 606.947,
+          "x1": 202.243,
+          "y1": 622.501
+        },
+        {
+          "x0": 87.516,
+          "y0": 325.392,
+          "x1": 273.866,
+          "y1": 600.41
+        },
+        {
+          "x0": 70.866,
+          "y0": 302.303,
+          "x1": 153.68,
+          "y1": 317.857
+        },
+        {
+          "x0": 70.473,
+          "y0": 120.187,
+          "x1": 290.948,
+          "y1": 295.923
+        },
+        {
+          "x0": 70.866,
+          "y0": 65.991,
+          "x1": 291.042,
+          "y1": 119.783
+        },
+        {
+          "x0": 306.142,
+          "y0": 431.819,
+          "x1": 526.217,
+          "y1": 621.104
+        },
+        {
+          "x0": 305.411,
+          "y0": 174.384,
+          "x1": 526.321,
+          "y1": 431.415
+        },
+        {
+          "x0": 305.749,
+          "y0": 65.991,
+          "x1": 526.223,
+          "y1": 173.98
+        }
+      ],
+      "confidence_scores": [],
+      "metadata": {
+        "source_file": "native_2.pdf",
+        "latency_ms": null,
+        "cost_usd": null,
+        "extra": {
+          "status": "ok",
+          "schema": "kids"
+        }
+      }
+    },
+    {
+      "tool_name": "opendataloader",
+      "page_number": 2,
+      "extracted_text": "datasets, GSM8K-Sem-Distractor and HotPotQASem-Distractor, propose a factorized intervention framework that decomposes the gap into style cost (\u2206sty), function-calling protocol overhead (\u2206frc), and computation gain (\u2206cmp), introduce the capability overlap principle to explain why tool gains are often redundant with capabilities already present in native CoT, and validate this account with a lightweight G-STEP intervention. Rather than arguing that tools are broadly ineffective, our goal is to identify when tool augmentation breaks down under semantically noisy conditions and to explain why, complementing recent work on inference-time correction and robustness (Tie et al., 2025).\n\nWe summarize our contributions as follows:\n\n2 Methodology\n\nMost prior work evaluates models on clean benchmarks, whereas real-world inputs often contain semantically related noise. To better reflect this setting, we build a controllable augmentation pipeline that injects semantically relevant context into benchmark samples; we call the resulting data SemDistractor.\n\nWe consider four distractor types (examples in Appendix E): Thematic Background (TB), which adds topic-related but logically unhelpful background; Semantic Paraphrase (SP), which paraphrases evidence while preserving meaning; Parallel Entity Distractor (PED), which introduces semantically similar but entity-confounding hard\n\nnegatives; and Hedged Uncertainty (HU), which adds hedging cues such as \u201creportedly\u201d to simulate uncertain information sources.\n\nRather than treating semantic distractors as generic data augmentation, we use them as a controlled stress test to probe whether tool-conditioned reasoning remains beneficial under semantically relevant but logically unhelpful noise. This setting allows us to study not only whether tool use helps, but also when the protocol itself becomes a source of degradation.\n\n2.2 A Factorized Intervention Framework\n\nWe begin by comparing standard CoT and AgentFull on the semantic distractor benchmarks, and define their end-to-end performance gap as the difference in final-answer accuracy. The direction and magnitude of this gap are determined empirically. However, this comparison only captures the net accuracy difference and doesn\u2019t reveal which components of the agentic pipeline drive the observed change. To disentangle these effects, we introduce the factorized intervention framework in Figure 1.\n\nFigure 1 summarizes our seven-condition intervention framework. It consists of a primary decomposition chain from native reasoning to full tool-augmented reasoning: NoTool-CoT \u2192 NoTool-FCStyle \u2192 Agent-NoopTool \u2192 AgentFull. Each transition adds one component of the tool-use pipeline: NoTool-FCStyle isolates the cost of adopting the function-calling prompt format without tool access; Agent-NoopTool adds the tool-use interaction protocol while replacing tool outputs with a no-op stub, estimating protocol overhead before useful tool execution; and Agent-Full restores real tool execution, measuring the gain from actual tool logic.\n\nThe remaining conditions serve as diagnostic probes around Agent-Full. Agent-OracleCalc replaces tool outputs with the gold answer to bound computation-related losses; AgentOracleEvidence provides clean evidence to isolate distractor-sensitive evidence-selection failures; and Agent-Max1Turn restricts the agent to a single FC turn to assess whether additional turns help or mainly add protocol overhead. Detailed definitions of all seven conditions are provided in Appendix C.\n\n2.3 Gap Decomposition Metrics\n\nDegradation chain and \u2206 decomposition. We define a degradation chain over four conditions that share the same noisy context but differ in protocol",
+      "tables": [],
+      "bounding_boxes": [
+        {
+          "x0": 70.506,
+          "y0": 567.311,
+          "x1": 291.042,
+          "y1": 770.145
+        },
+        {
+          "x0": 81.775,
+          "y0": 553.498,
+          "x1": 274.026,
+          "y1": 566.643
+        },
+        {
+          "x0": 83.885,
+          "y0": 320.192,
+          "x1": 290.95,
+          "y1": 543.071
+        },
+        {
+          "x0": 70.866,
+          "y0": 294.499,
+          "x1": 155.879,
+          "y1": 310.053
+        },
+        {
+          "x0": 70.866,
+          "y0": 259.74,
+          "x1": 271.288,
+          "y1": 287.482
+        },
+        {
+          "x0": 70.866,
+          "y0": 160.444,
+          "x1": 290.949,
+          "y1": 255.539
+        },
+        {
+          "x0": 70.473,
+          "y0": 65.991,
+          "x1": 290.941,
+          "y1": 160.431
+        },
+        {
+          "x0": 306.142,
+          "y0": 729.901,
+          "x1": 524.415,
+          "y1": 770.538
+        },
+        {
+          "x0": 306.142,
+          "y0": 621.395,
+          "x1": 526.219,
+          "y1": 729.384
+        },
+        {
+          "x0": 306.142,
+          "y0": 597.963,
+          "x1": 509.139,
+          "y1": 612.156
+        },
+        {
+          "x0": 305.629,
+          "y0": 458.974,
+          "x1": 526.323,
+          "y1": 594.062
+        },
+        {
+          "x0": 306.142,
+          "y0": 269.172,
+          "x1": 526.225,
+          "y1": 458.457
+        },
+        {
+          "x0": 305.749,
+          "y0": 133.567,
+          "x1": 526.321,
+          "y1": 268.655
+        },
+        {
+          "x0": 306.142,
+          "y0": 110.135,
+          "x1": 460.975,
+          "y1": 124.328
+        },
+        {
+          "x0": 306.142,
+          "y0": 65.991,
+          "x1": 524.412,
+          "y1": 106.627
+        }
+      ],
+      "confidence_scores": [],
+      "metadata": {
+        "source_file": "native_2.pdf",
+        "latency_ms": null,
+        "cost_usd": null,
+        "extra": {
+          "status": "ok",
+          "schema": "kids"
+        }
+      }
+    },
+    {
+      "tool_name": "opendataloader",
+      "page_number": 3,
+      "extracted_text": "Environment Setup & Observation Tool-use Tax Decomposition Diagnosis, Explanation & Validation\n\nAgent-Full errors by first failure point\n\nCase Study\n\nPerturbed Benchmark\n\nFactorized Intervention Framework\n\nGenuine Gap: wrong @ Cot\n\n30.3%\n\n69.7% ProtocolInduced\n\n\u2206 : wrong @ FCStyle\n\nCoT Structure\n\nBase Dataset\n\nTool Call\n\nNoisy GSM8K example\n\n\u2206 : wrong @ NoopTool\n\n57.6%\n\nCoT\n\nNatalia sold 48 clips in April and half as many in May.\n\nGSM8K HotPotQA\n\nTool Call Protocol\n\n\u2206 : wrong @ Agent\n\nDistractor:\n\n12.1%\n\nAlex planned to sell 5 clips in June.\n\nProtocol-induced errors dominate.\n\nDistractor Types\n\nOracle Feedback\n\nFeedback\n\nQ: Total clips sold?\n\nThematic Background\n\nSemantic Paraphrase\n\nONLY w/ Tools\n\nLarge Overlap\n\n(tool-benefit \u2229 CoT-solved)\n\nParelle Entity Distractor\n\nHedged Uncertainty\n\nCoT/Tool-Use Gap\n\nAgent Tool-use Receipt\n\nAccuracy\n\nNative CoT\n\nCoT-Solved Cases\n\nAcc. overhead\n\n90.72\n\nRedundant tool-use paysunnecessary tax.\n\n\u0394\ud835\udc60\ud835\udc61\ud835\udc66\n\n86.76\n\nNative CoT w/o Tools\n\nAgent with Tools\n\ntax 76.60\n\nCoT (FCStyle)\n\nFocus on real sales \u00e0 Ignore the\n\nUsing calculator protocol \u00e0 Attends to\n\n\u0394\ud835\udc53\ud835\udc5f\ud835\udc50\n\nGate Mechanism Mitigation\n\ndistracting number 5 \u00e0 May = 48 \u00f7 2 = 24 \u00e0 Total = 48 + 24 = 72\n\ndistracting number 5 \u00e0 Tool interaction \u00e0 May = 48 \u00f7 2 = 24 \u00e0 Total = 48 + 24 + 5 =\n\nCoT + NoopTool\n\nProtocol-induced tax/ \u2206frc failure\n\n48.84\n\nG-STEP Gate\n\n\u0394cmp\n\nNativeCoTFCStyleNoopToolAgent\n\n\u00e0 Partially recoverable by extra FC steps\n\n77\n\nAgent-Full\n\nAgent\n\nGenuine capability gap\n\nCoT resolves the noisy instance\n\nTool-use introduces failure.\n\nContinue / Commit\n\n\u00e0 Not recoverable by gate; Needs stronger model / training\n\nperformance degradation\n\nFigure 1: Factorized intervention framework for diagnosing the CoT\u2013Tool gap under semantic distractors. The framework identifies when tool-augmented reasoning underperforms native CoT, decomposes the gap into FC-style formatting cost, function-calling protocol overhead, and real tool-execution gain, and explains the gap through capability overlap and recoverability analysis.\n\ncomplexity: CoT \u2212\u2212\u2212\u2192\u2206sty FCStyle \u2212\u2212\u2212\u2192\u2206frc NoopTool \u2212\u2212\u2212\u2212\u2192\u2206cmp Full\n\nwhich identifies where it first arises on the degradation chain. We therefore introduce a three-stage analytical protocol: (i) a trajectory-level failure taxonomy that identifies the dominant symptom of each failed trajectory, (ii) a sample-level attribution scheme that maps each failure to its earliest degradation point on the chain, and (iii) a capability-overlap analysis that measures whether tool-derived gains are redundant with the model\u2019s native reasoning ability.\n\n(1) Here, Acc(x) denotes Accuracy. \u2206sty \u225c Acc(FCStyle) \u2212 Acc(CoT) isolates the performance cost of strict FC-style prompt formatting in the absence of actual tool access. \u2206frc \u225c Acc(NoopTool) \u2212 Acc(FCStyle) measures the function-calling protocol overhead incurred before useful tool execution can provide any gain. Finally, \u2206cmp \u225c Acc(Full) \u2212 Acc(NoopTool) captures the net impact of executing real tool logic. Together, these components yield a strict additive decomposition of the total performance gap:\n\nTrajectory-Level Failure Taxonomy. For each incorrect Agent-Full trajectory, we assign a primary failure label under a fixed priority order:\n\nAcc(Full)\u2212Acc(CoT) = \u2206cmp +\u2206frc +\u2206sty (2)\n\nWe additionally define two auxiliary oracle probes for later bottleneck localization: \u2206oracle \u225c Acc(OracleCalc)\u2212Acc(Full), which upper-bounds computation-related losses, and \u2206context \u225c Acc(OracleEvid) \u2212 Acc(Full), which isolates distractor-sensitive evidence-selection losses.\n\nWe move from aggregate decomposition to finergrained diagnosis of individual failures through two complementary views: a trajectory-level view, which characterizes how a failure manifests in the execution trajectory, and a sample-level view,",
+      "tables": [],
+      "bounding_boxes": [
+        {
+          "x0": 77.536,
+          "y0": 757.365,
+          "x1": 515.454,
+          "y1": 771.3
+        },
+        {
+          "x0": 421.841,
+          "y0": 744.337,
+          "x1": 512.298,
+          "y1": 751.579
+        },
+        {
+          "x0": 150.45,
+          "y0": 734.416,
+          "x1": 168.954,
+          "y1": 751.39
+        },
+        {
+          "x0": 344.611,
+          "y0": 736.607,
+          "x1": 359.339,
+          "y1": 751.165
+        },
+        {
+          "x0": 78.976,
+          "y0": 734.076,
+          "x1": 112.782,
+          "y1": 751.163
+        },
+        {
+          "x0": 196.921,
+          "y0": 736.607,
+          "x1": 209.518,
+          "y1": 749.057
+        },
+        {
+          "x0": 125.223,
+          "y0": 737.352,
+          "x1": 138.626,
+          "y1": 748.991
+        },
+        {
+          "x0": 233.475,
+          "y0": 739.405,
+          "x1": 344.356,
+          "y1": 748.442
+        },
+        {
+          "x0": 447.547,
+          "y0": 733.792,
+          "x1": 510.416,
+          "y1": 741.034
+        },
+        {
+          "x0": 416.537,
+          "y0": 730.663,
+          "x1": 427.492,
+          "y1": 735.827
+        },
+        {
+          "x0": 394.416,
+          "y0": 714.97,
+          "x1": 416.425,
+          "y1": 734.911
+        },
+        {
+          "x0": 447.547,
+          "y0": 726.762,
+          "x1": 501.31,
+          "y1": 734.004
+        },
+        {
+          "x0": 310.841,
+          "y0": 725.855,
+          "x1": 344.755,
+          "y1": 733.097
+        },
+        {
+          "x0": 93.352,
+          "y0": 725.963,
+          "x1": 125.621,
+          "y1": 733.064
+        },
+        {
+          "x0": 302.386,
+          "y0": 726.058,
+          "x1": 308.527,
+          "y1": 732.2
+        },
+        {
+          "x0": 263.919,
+          "y0": 724.721,
+          "x1": 283.649,
+          "y1": 731.963
+        },
+        {
+          "x0": 256.539,
+          "y0": 724.849,
+          "x1": 262.377,
+          "y1": 730.686
+        },
+        {
+          "x0": 149.159,
+          "y0": 723.94,
+          "x1": 198.685,
+          "y1": 730.394
+        },
+        {
+          "x0": 258.179,
+          "y0": 715.691,
+          "x1": 281.083,
+          "y1": 728.39
+        },
+        {
+          "x0": 447.547,
+          "y0": 718.939,
+          "x1": 505.916,
+          "y1": 726.181
+        },
+        {
+          "x0": 85.482,
+          "y0": 714.746,
+          "x1": 94.484,
+          "y1": 725.998
+        },
+        {
+          "x0": 380.562,
+          "y0": 720.232,
+          "x1": 391.518,
+          "y1": 725.396
+        },
+        {
+          "x0": 244.281,
+          "y0": 707.29,
+          "x1": 261.289,
+          "y1": 724.298
+        },
+        {
+          "x0": 236.148,
+          "y0": 716.306,
+          "x1": 246.383,
+          "y1": 724.207
+        },
+        {
+          "x0": 149.159,
+          "y0": 714.703,
+          "x1": 206.295,
+          "y1": 724.165
+        },
+        {
+          "x0": 96.836,
+          "y0": 709.754,
+          "x1": 122.186,
+          "y1": 724.026
+        },
+        {
+          "x0": 280.628,
+          "y0": 705.943,
+          "x1": 297.635,
+          "y1": 722.951
+        },
+        {
+          "x0": 229.839,
+          "y0": 717.624,
+          "x1": 235.03,
+          "y1": 722.815
+        },
+        {
+          "x0": 300.512,
+          "y0": 710.588,
+          "x1": 310.4,
+          "y1": 719.838
+        },
+        {
+          "x0": 309.128,
+          "y0": 711.909,
+          "x1": 349.346,
+          "y1": 719.151
+        },
+        {
+          "x0": 447.547,
+          "y0": 710.775,
+          "x1": 499.569,
+          "y1": 718.017
+        },
+        {
+          "x0": 85.482,
+          "y0": 705.93,
+          "x1": 94.484,
+          "y1": 717.183
+        },
+        {
+          "x0": 149.159,
+          "y0": 708.859,
+          "x1": 173.891,
+          "y1": 715.314
+        },
+        {
+          "x0": 415.733,
+          "y0": 709.914,
+          "x1": 425.505,
+          "y1": 715.077
+        },
+        {
+          "x0": 258.179,
+          "y0": 700.498,
+          "x1": 281.083,
+          "y1": 712.063
+        },
+        {
+          "x0": 149.159,
+          "y0": 698.235,
+          "x1": 200.869,
+          "y1": 708.048
+        },
+        {
+          "x0": 300.512,
+          "y0": 697.519,
+          "x1": 310.4,
+          "y1": 707.852
+        },
+        {
+          "x0": 427.056,
+          "y0": 700.457,
+          "x1": 509.436,
+          "y1": 707.699
+        },
+        {
+          "x0": 81.88,
+          "y0": 699.788,
+          "x1": 119.722,
+          "y1": 706.243
+        },
+        {
+          "x0": 308.242,
+          "y0": 698.076,
+          "x1": 347.357,
+          "y1": 705.318
+        },
+        {
+          "x0": 256.93,
+          "y0": 695.103,
+          "x1": 264.105,
+          "y1": 702.278
+        },
+        {
+          "x0": 264.69,
+          "y0": 695.014,
+          "x1": 286.863,
+          "y1": 702.256
+        },
+        {
+          "x0": 149.159,
+          "y0": 692.759,
+          "x1": 191.801,
+          "y1": 699.213
+        },
+        {
+          "x0": 84.624,
+          "y0": 688.851,
+          "x1": 104.976,
+          "y1": 698.313
+        },
+        {
+          "x0": 116.703,
+          "y0": 688.851,
+          "x1": 136.256,
+          "y1": 698.313
+        },
+        {
+          "x0": 447.461,
+          "y0": 682.28,
+          "x1": 460.99,
+          "y1": 695.81
+        },
+        {
+          "x0": 378.012,
+          "y0": 685.825,
+          "x1": 417.083,
+          "y1": 692.925
+        },
+        {
+          "x0": 459.741,
+          "y0": 685.014,
+          "x1": 499.598,
+          "y1": 692.76
+        },
+        {
+          "x0": 442.164,
+          "y0": 677.869,
+          "x1": 514.806,
+          "y1": 685.769
+        },
+        {
+          "x0": 82.945,
+          "y0": 676.038,
+          "x1": 107.004,
+          "y1": 685.614
+        },
+        {
+          "x0": 117.093,
+          "y0": 676.271,
+          "x1": 136.286,
+          "y1": 684.813
+        },
+        {
+          "x0": 159.1,
+          "y0": 677.565,
+          "x1": 199.366,
+          "y1": 684.02
+        },
+        {
+          "x0": 262.751,
+          "y0": 674.776,
+          "x1": 334.969,
+          "y1": 683.812
+        },
+        {
+          "x0": 344.258,
+          "y0": 668.901,
+          "x1": 357.7,
+          "y1": 682.342
+        },
+        {
+          "x0": 147.968,
+          "y0": 653.556,
+          "x1": 175.181,
+          "y1": 681.676
+        },
+        {
+          "x0": 455.819,
+          "y0": 663.369,
+          "x1": 470.191,
+          "y1": 677.896
+        },
+        {
+          "x0": 485.451,
+          "y0": 663.488,
+          "x1": 498.435,
+          "y1": 676.611
+        },
+        {
+          "x0": 498.556,
+          "y0": 663.534,
+          "x1": 509.328,
+          "y1": 674.305
+        },
+        {
+          "x0": 444.735,
+          "y0": 663.282,
+          "x1": 455.375,
+          "y1": 673.922
+        },
+        {
+          "x0": 286.636,
+          "y0": 647.773,
+          "x1": 294.536,
+          "y1": 672.102
+        },
+        {
+          "x0": 137.939,
+          "y0": 656.434,
+          "x1": 154.621,
+          "y1": 670.121
+        },
+        {
+          "x0": 243.366,
+          "y0": 663.064,
+          "x1": 267.951,
+          "y1": 669.647
+        },
+        {
+          "x0": 400.45,
+          "y0": 654.644,
+          "x1": 430.589,
+          "y1": 668.434
+        },
+        {
+          "x0": 457.078,
+          "y0": 656.52,
+          "x1": 504.015,
+          "y1": 668.37
+        },
+        {
+          "x0": 299.762,
+          "y0": 659.11,
+          "x1": 310.392,
+          "y1": 664.342
+        },
+        {
+          "x0": 451.112,
+          "y0": 644.193,
+          "x1": 509.15,
+          "y1": 659.123
+        },
+        {
+          "x0": 241.945,
+          "y0": 650.822,
+          "x1": 253.33,
+          "y1": 657.469
+        },
+        {
+          "x0": 313.235,
+          "y0": 650.833,
+          "x1": 323.864,
+          "y1": 656.065
+        },
+        {
+          "x0": 84.528,
+          "y0": 646.707,
+          "x1": 136.477,
+          "y1": 653.807
+        },
+        {
+          "x0": 155.514,
+          "y0": 646.14,
+          "x1": 196.603,
+          "y1": 653.24
+        },
+        {
+          "x0": 300.954,
+          "y0": 642.556,
+          "x1": 347.712,
+          "y1": 649.21
+        },
+        {
+          "x0": 240.177,
+          "y0": 640.16,
+          "x1": 271.136,
+          "y1": 646.744
+        },
+        {
+          "x0": 80.617,
+          "y0": 629.591,
+          "x1": 125.764,
+          "y1": 643.409
+        },
+        {
+          "x0": 149.182,
+          "y0": 629.137,
+          "x1": 209.307,
+          "y1": 643.069
+        },
+        {
+          "x0": 241.008,
+          "y0": 627.918,
+          "x1": 252.828,
+          "y1": 634.565
+        },
+        {
+          "x0": 384.298,
+          "y0": 622.958,
+          "x1": 468.121,
+          "y1": 631.995
+        },
+        {
+          "x0": 80.617,
+          "y0": 606.46,
+          "x1": 137.763,
+          "y1": 630.71
+        },
+        {
+          "x0": 149.182,
+          "y0": 604.646,
+          "x1": 206.329,
+          "y1": 630.256
+        },
+        {
+          "x0": 238.494,
+          "y0": 617.143,
+          "x1": 272.802,
+          "y1": 623.726
+        },
+        {
+          "x0": 446.494,
+          "y0": 608.496,
+          "x1": 499.528,
+          "y1": 622.286
+        },
+        {
+          "x0": 324.42,
+          "y0": 617.044,
+          "x1": 335.05,
+          "y1": 622.276
+        },
+        {
+          "x0": 413.432,
+          "y0": 601.806,
+          "x1": 432.261,
+          "y1": 615.483
+        },
+        {
+          "x0": 257.898,
+          "y0": 605.468,
+          "x1": 271.624,
+          "y1": 612.115
+        },
+        {
+          "x0": 287.364,
+          "y0": 588.861,
+          "x1": 345.289,
+          "y1": 611.86
+        },
+        {
+          "x0": 447.005,
+          "y0": 597.867,
+          "x1": 499.287,
+          "y1": 610.12
+        },
+        {
+          "x0": 155.56,
+          "y0": 597.956,
+          "x1": 161.919,
+          "y1": 605.198
+        },
+        {
+          "x0": 200.693,
+          "y0": 596.41,
+          "x1": 208.063,
+          "y1": 603.78
+        },
+        {
+          "x0": 381.839,
+          "y0": 594.214,
+          "x1": 407.234,
+          "y1": 601.456
+        },
+        {
+          "x0": 415.167,
+          "y0": 593.069,
+          "x1": 431.392,
+          "y1": 601.329
+        },
+        {
+          "x0": 249.005,
+          "y0": 594.239,
+          "x1": 262.267,
+          "y1": 600.822
+        },
+        {
+          "x0": 445.835,
+          "y0": 589.447,
+          "x1": 499.356,
+          "y1": 596.547
+        },
+        {
+          "x0": 83.166,
+          "y0": 584.778,
+          "x1": 131.001,
+          "y1": 595.172
+        },
+        {
+          "x0": 503.545,
+          "y0": 587.679,
+          "x1": 510.916,
+          "y1": 595.049
+        },
+        {
+          "x0": 152.718,
+          "y0": 583.871,
+          "x1": 193.998,
+          "y1": 594.265
+        },
+        {
+          "x0": 408.008,
+          "y0": 579.247,
+          "x1": 432.926,
+          "y1": 593.066
+        },
+        {
+          "x0": 447.496,
+          "y0": 572.242,
+          "x1": 509.349,
+          "y1": 590.164
+        },
+        {
+          "x0": 251.957,
+          "y0": 574.819,
+          "x1": 336.148,
+          "y1": 586.623
+        },
+        {
+          "x0": 109.865,
+          "y0": 572.485,
+          "x1": 187.901,
+          "y1": 581.702
+        },
+        {
+          "x0": 70.866,
+          "y0": 508.516,
+          "x1": 524.41,
+          "y1": 556.385
+        },
+        {
+          "x0": 70.866,
+          "y0": 440.392,
+          "x1": 295.311,
+          "y1": 486.924
+        },
+        {
+          "x0": 305.749,
+          "y0": 351.836,
+          "x1": 526.225,
+          "y1": 486.924
+        },
+        {
+          "x0": 69.961,
+          "y0": 285.21,
+          "x1": 290.95,
+          "y1": 447.396
+        },
+        {
+          "x0": 306.142,
+          "y0": 301.336,
+          "x1": 526.217,
+          "y1": 341.972
+        },
+        {
+          "x0": 319.161,
+          "y0": 65.991,
+          "x1": 526.223,
+          "y1": 289.483
+        },
+        {
+          "x0": 76.321,
+          "y0": 255.674,
+          "x1": 289.865,
+          "y1": 276.227
+        },
+        {
+          "x0": 70.473,
+          "y0": 173.208,
+          "x1": 289.136,
+          "y1": 254.099
+        },
+        {
+          "x0": 70.866,
+          "y0": 137.009,
+          "x1": 258.852,
+          "y1": 164.751
+        },
+        {
+          "x0": 70.353,
+          "y0": 65.991,
+          "x1": 290.94,
+          "y1": 133.332
+        }
+      ],
+      "confidence_scores": [],
+      "metadata": {
+        "source_file": "native_2.pdf",
+        "latency_ms": null,
+        "cost_usd": null,
+        "extra": {
+          "status": "ok",
+          "schema": "kids"
+        }
+      }
+    },
+    {
+      "tool_name": "opendataloader",
+      "page_number": 4,
+      "extracted_text": "\u2022 Type F (Planning mismatch): the model follows a coherent but incorrect computation plan despite adequate evidence and functioning tools.\n\nThis taxonomy captures the observable symptom of a failed trajectory rather than its root cause.\n\nSample-Level Attribution. While Types A\u2013F characterize the surface symptom of a failed trajectory, they do not by themselves identify the principal source of degradation. We therefore further attribute each incorrect Agent-Full case to the earliest stage at which the sample becomes unsolved along the degradation chain in Eq. (1). This yields four mutually exclusive categories:\n\nThis attribution scheme complements the A\u2013 F taxonomy by separating failure symptom from degradation source. The former describes how an execution trace fails; the latter identifies where the failure is introduced in the sequence of controlled interventions.\n\nCapability Overlap Analysis. To quantify the extent to which tool-derived gains provide capability beyond the model\u2019s native reasoning path, we identify tool-benefited samples\u2014cases where Agent-Full succeeds but the corresponding NoopTool control fails\u2014and measure the fraction of such samples that are also solved by CoT. Let Full(x), NoopTool(x), and CoT(x) denote binary correctness indicators for sample x under the corresponding settings. We define\n\nBtool = {x | Full(x) = 1, NoopTool(x) = 0}, and compute the overlap ratio as\n\nOverlap = |{x \u2208 Btool | CoT(x) = 1}|\n\n.\n\n|Btool|\n\nA high overlap ratio indicates that many samples apparently helped by real tool execution are\n\nalso solvable through the model\u2019s native reasoning path, suggesting substantial overlap between realized tool gains and the model\u2019s internal capability. This quantity therefore serves as a diagnostic signal for whether tool use contributes unique external capability or primarily recovers performance already achievable without external calls.\n\n2.5 Gate-Augmented Inference\n\nBuilding on the analysis from Section 2.4, we hypothesize that for tasks dominated by protocolinduced failures, especially premature termination or under-computation within the FC loop, a lightweight gate may help mitigate these errors.\n\nGate Design. We introduce G-STEP, a lightweight binary gate inserted at the termination point of the FC loop. When the model attempts to produce a final answer with no further tool calls, G-STEP decides whether to continue tool-conditioned interaction or commit to the current answer. The gate is trained to capture protocol-induced failures using CoT-fixability as the primary supervision signal: cases where the FC agent fails but standard CoT succeeds are treated as instances where additional protocol-level intervention may still help. If the gate predicts continue, the system injects a continuation prompt and requires one additional tool-conditioned step before re-attempting the answer. We also evaluate a +CRITIC variant, inspired by CRITIC (Gou et al., 2024), which adds an explicit reflection step after calculator calls before the next tool action. This is motivated by our earlier finding that computation-chain errors dominate on GSM8K. Full details are provided in Appendix I.\n\n3 Result & Analysis\n\n3.1 Experiment Settings\n\nThis section summarizes the common experimental settings include the models, datasets, tool environments, and evaluation metrics. All prompts are provided in Appendix K.\n\nModels. We evaluate Qwen3-4B, Qwen3-32B, and GPT-4.1-mini as tool-enabled LLMs, covering open-source models at different scales and a closedsource counterpart. All models follow the same CoT, tool-augmented, and intervention protocols under a unified function-calling setup.\n\nDatasets Using the method in Section 2.1, we augment GSM8K (Cobbe et al., 2021) and",
+      "tables": [],
+      "bounding_boxes": [
+        {
+          "x0": 83.885,
+          "y0": 716.352,
+          "x1": 290.946,
+          "y1": 770.538
+        },
+        {
+          "x0": 70.866,
+          "y0": 681.819,
+          "x1": 289.136,
+          "y1": 708.514
+        },
+        {
+          "x0": 70.866,
+          "y0": 566.364,
+          "x1": 290.95,
+          "y1": 674.746
+        },
+        {
+          "x0": 83.885,
+          "y0": 411.926,
+          "x1": 290.946,
+          "y1": 558.919
+        },
+        {
+          "x0": 70.866,
+          "y0": 323.197,
+          "x1": 290.768,
+          "y1": 404.088
+        },
+        {
+          "x0": 70.473,
+          "y0": 180.643,
+          "x1": 290.946,
+          "y1": 316.124
+        },
+        {
+          "x0": 70.866,
+          "y0": 135.304,
+          "x1": 281.225,
+          "y1": 171.118
+        },
+        {
+          "x0": 92.625,
+          "y0": 107.235,
+          "x1": 263.147,
+          "y1": 127.788
+        },
+        {
+          "x0": 264.345,
+          "y0": 107.601,
+          "x1": 267.376,
+          "y1": 118.51
+        },
+        {
+          "x0": 190.182,
+          "y0": 92.372,
+          "x1": 216.308,
+          "y1": 111.3
+        },
+        {
+          "x0": 70.866,
+          "y0": 65.991,
+          "x1": 290.946,
+          "y1": 92.685
+        },
+        {
+          "x0": 305.804,
+          "y0": 675.705,
+          "x1": 526.314,
+          "y1": 770.145
+        },
+        {
+          "x0": 306.142,
+          "y0": 653.025,
+          "x1": 456.884,
+          "y1": 667.218
+        },
+        {
+          "x0": 306.142,
+          "y0": 582.007,
+          "x1": 526.219,
+          "y1": 649.348
+        },
+        {
+          "x0": 306.142,
+          "y0": 290.471,
+          "x1": 526.318,
+          "y1": 574.993
+        },
+        {
+          "x0": 306.142,
+          "y0": 266.054,
+          "x1": 415.735,
+          "y1": 281.608
+        },
+        {
+          "x0": 306.142,
+          "y0": 245.859,
+          "x1": 425.531,
+          "y1": 260.052
+        },
+        {
+          "x0": 305.804,
+          "y0": 188.39,
+          "x1": 526.222,
+          "y1": 242.182
+        },
+        {
+          "x0": 306.142,
+          "y0": 100.092,
+          "x1": 526.225,
+          "y1": 181.376
+        },
+        {
+          "x0": 305.749,
+          "y0": 65.991,
+          "x1": 525.772,
+          "y1": 93.078
+        }
+      ],
+      "confidence_scores": [],
+      "metadata": {
+        "source_file": "native_2.pdf",
+        "latency_ms": null,
+        "cost_usd": null,
+        "extra": {
+          "status": "ok",
+          "schema": "kids"
+        }
+      }
+    },
+    {
+      "tool_name": "opendataloader",
+      "page_number": 5,
+      "extracted_text": "HotpotQA (Yang et al., 2018) with GPT-4omini-generated distractors, yielding GSM8K-SemDistractor and HotpotQA-Sem-Distractor. For brevity, we refer to these two augmented benchmarks as GSM8K and HotpotQA in the rest of the paper, unless otherwise specified. Details are provided in Appendix F.\n\nTools & Metrics We use task-specific toolsets. For GSM8K-Sem-Distractor benchmark, the agent is equipped only with a calculator. For HotpotQASem-Distractor benchmark, the agent is equipped with search sentences, read sentences, compare values, and calculator.\n\nWe evaluate performance with Accuracy and Evidence-F1.\n\nModel Setting Base TB PED HU SP Overall\n\nGPT-4.1-MINI AF 75.40 76.00 76.60 77.80 77.20 76.60 GPT-4.1-MINI CoT 93.20 91.00 89.20 90.40 89.80 90.72\n\nQWEN3-4B AF 51.20 54.20 48.00 57.40 49.60 52.08 QWEN3-4B CoT 91.00 86.80 81.40 83.60 84.40 85.44\n\nQWEN3-32B AF 77.60 76.60 73.80 73.20 77.60 75.76 QWEN3-32B CoT 94.00 92.80 89.40 89.80 91.00 91.40\n\nTable 1: Accuracy (%) on GSM8K-Sem-Distractor. \u201cAF\u201d denotes Agent-Full. Bold values indicate the best performance.\n\nthree models: CoT substantially outperforms Agent-Full on GSM8K-Sem-Distractor. The overall gaps are 14.12, 33.36, and 15.64% for GPT-4.1mini, Qwen3-4B, and Qwen3-32B, respectively. This result indicates that, in the presence of semantic distractors, adding tool use and multi-step agent protocols does not automatically improve robustness and can instead lead to substantial degradation.\n\nAmong distractor variants, PED is consistently one of the most challenging settings, particularly for CoT and the Qwen models. This indicates that entity-level semantic confusion is especially disruptive to evidence selection and downstream reasoning. Other distractor types show milder and less\n\nconsistent effects, with only occasional small gains under Agent-Full for Qwen3-4B.\n\nOverall, the CoT\u2013Tool gap persists across models and distractor variants, indicating that toolaugmented reasoning can become vulnerable when semantic noise interacts with the tool-use protocol. We therefore turn to controlled interventions and mechanism-level analysis to explain where this degradation arises.\n\n3.3 Identify the CoT-Tool Gap from the Intervention Framework\n\nBased on the Factorized Intervention Framework, Table 2 reports overall Accuracy and EvidenceF1 across the seven experimental conditions. We analyze the average performance across all noisy variants. Detailed results for individual noise conditions are provided in Appendix L.\n\nThree observations emerge from Table 2. First, NoTool-CoT achieves the best non-oracle accuracy across all task\u2013model pairs, confirming that tool augmentation does not automatically improve robustness under semantic distractors. Second, the oracle probes suggest that the main bottleneck lies in the computation and tool-interaction chain rather than in evidence quality alone. For example, Agent-OracleCalc yields large gains over Agent-Full on Qwen3-4B, improving accuracy from 52.08% to 89.20% on GSM8K and from 72.32% to 93.05% on HotPotQA, whereas AgentOracleEvid changes performance only marginally in comparison. Third, the degradation is strongly task-dependent: on GSM8K, Agent-Full trails CoT by 14.12\u201333.36% across models, while on HotPotQA the gap is only 0.62\u20132.47%. This contrast suggests that tool-use tax is amplified in sequential computation tasks, where errors introduced by the function-calling protocol can propagate through the reasoning chain, but is milder in retrieval-oriented QA settings where partial evidence or parametric knowledge may help compensate for imperfect tool interaction.\n\nDecomposing the Performance Gap. Table 3 factorizes the aggregate CoT-to-Tool gap into its three components: \u2206cmp, \u2206frc, and \u2206sty.\n\nThis decomposition sharpens the counterintuitive finding: real tool execution can provide measurable gains, yet these gains may still be insufficient to offset the cost of entering the tool-use protocol. On GSM8K, \u2206cmp is consistently positive, but \u2206frc is the dominant negative component;",
+      "tables": [],
+      "bounding_boxes": [
+        {
+          "x0": 70.866,
+          "y0": 675.705,
+          "x1": 290.949,
+          "y1": 770.145
+        },
+        {
+          "x0": 70.473,
+          "y0": 584.203,
+          "x1": 291.042,
+          "y1": 665.487
+        },
+        {
+          "x0": 70.866,
+          "y0": 555.629,
+          "x1": 289.132,
+          "y1": 583.371
+        },
+        {
+          "x0": 70.353,
+          "y0": 444.204,
+          "x1": 290.95,
+          "y1": 544.594
+        },
+        {
+          "x0": 74.562,
+          "y0": 419.255,
+          "x1": 285.441,
+          "y1": 428.03
+        },
+        {
+          "x0": 74.73,
+          "y0": 394.926,
+          "x1": 282.196,
+          "y1": 413.929
+        },
+        {
+          "x0": 74.73,
+          "y0": 370.597,
+          "x1": 282.199,
+          "y1": 389.601
+        },
+        {
+          "x0": 74.73,
+          "y0": 346.269,
+          "x1": 282.199,
+          "y1": 365.272
+        },
+        {
+          "x0": 69.541,
+          "y0": 298.686,
+          "x1": 290.876,
+          "y1": 334.6
+        },
+        {
+          "x0": 81.775,
+          "y0": 270.049,
+          "x1": 289.132,
+          "y1": 283.194
+        },
+        {
+          "x0": 70.473,
+          "y0": 148.107,
+          "x1": 291.042,
+          "y1": 269.645
+        },
+        {
+          "x0": 70.866,
+          "y0": 65.991,
+          "x1": 290.946,
+          "y1": 146.882
+        },
+        {
+          "x0": 306.142,
+          "y0": 743.451,
+          "x1": 524.408,
+          "y1": 770.145
+        },
+        {
+          "x0": 306.142,
+          "y0": 648.021,
+          "x1": 526.224,
+          "y1": 742.461
+        },
+        {
+          "x0": 306.142,
+          "y0": 609.404,
+          "x1": 496.659,
+          "y1": 637.147
+        },
+        {
+          "x0": 305.804,
+          "y0": 523.675,
+          "x1": 526.224,
+          "y1": 604.566
+        },
+        {
+          "x0": 305.869,
+          "y0": 197.909,
+          "x1": 526.225,
+          "y1": 522.686
+        },
+        {
+          "x0": 306.142,
+          "y0": 147.05,
+          "x1": 524.415,
+          "y1": 188.507
+        },
+        {
+          "x0": 306.142,
+          "y0": 65.285,
+          "x1": 526.222,
+          "y1": 146.882
+        }
+      ],
+      "confidence_scores": [],
+      "metadata": {
+        "source_file": "native_2.pdf",
+        "latency_ms": null,
+        "cost_usd": null,
+        "extra": {
+          "status": "ok",
+          "schema": "kids"
+        }
+      }
+    },
+    {
+      "tool_name": "opendataloader",
+      "page_number": 6,
+      "extracted_text": "Condition GSM8K HotPotQA Qwen3-4B Qwen3-32B GPT-4.1-mini Qwen3-4B Qwen3-32B GPT-4.1-mini\n\nNoTool-CoT 85.44 91.40 90.72 74.79 84.15 87.06 NoTool-FCStyle 84.84 78.56 86.76 70.92 83.98 85.66 Agent-NoopTool 30.64 50.92 48.84 56.69 82.07 84.87 Agent-Full 52.08 75.76 76.60 72.32 83.03 86.44 Agent-Max1Turn 47.72 75.88 72.88 69.97 83.19 86.22 Agent-OracleCalc 89.20 93.40 82.24 93.05 90.70 91.71 Agent-OracleEvid 52.48 79.72 76.00 74.40 84.82 86.67\n\nTask Model Nw Gen. \u2206\u2212sty \u2206\u2212frc \u2206\u2212cmp Proto. GSM8K 4B 1198 20.6 11.4 58.7 9.3 79.4 GSM8K 32B 606 24.1 24.9 45.5 5.4 75.8 GSM8K GPT 585 30.3 12.1 44.6 13.0 69.7 HotPotQA 4B 494 77.3 8.5 7.1 7.1 22.7 HotPotQA 32B 303 73.3 7.6 13.2 5.9 26.7 HotPotQA GPT 242 62.8 28.5 2.9 5.8 37.2\n\nTable 4: Sample-level \u2206 attribution (%). \u201cProto.\u201d = \u2206\u2212sty +\u2206\u2212frc +\u2206\u2212cmp. Nw denotes the number of incorrect samples, and Gen. denotes the proportion of genuinely incorrect samples. Bold marks the largest attributable source in each row.\n\nfor Qwen3-4B, for example, the protocol penalty is more than twice the tool-execution gain. This indicates that the problem is not the absence of useful computation, but that protocol overhead can corrupt more performance than tool execution recovers. HotPotQA presents a milder regime, where protocol costs are smaller and more easily offset by tool gains, leading to a much smaller CoT\u2013Tool gap. Together, these results suggest that tool augmentation is not automatically beneficial: its value depends on whether realized tool gains are sufficiently complementary to overcome the surrounding protocol cost.\n\nrect Agent-Full prediction is attributed to its earliest failure point along Eq. (1). Table 4 summarizes the sample-level attribution, and Table 5 crosstabulates these sources with the A\u2013F failure taxonomy on GSM8K.\n\nBottleneck Localization. The oracle conditions show that computation quality\u2014rather than evidence noise\u2014is the primary limiting factor. Oracle computation yields large gains, whereas oracle evidence brings only modest improvements (Appendix A). This motivates a closer examination of how errors arise within individual execution traces, which we address next.\n\n3.4 Decompose the CoT-Tool Gap\n\ncaptures failure symptoms rather than their underlying sources. On GSM8K, \u2206\u2212frc is the dominant attribution for Types A, C, and F across all models, suggesting that apparent under-computation,\n\nWe next apply the diagnosis protocol from Section 2.4 to distinguish genuine capability gaps from protocol-induced degradation. Each incor-",
+      "tables": [],
+      "bounding_boxes": [
+        {
+          "x0": 70.866,
+          "y0": 739.812,
+          "x1": 524.406,
+          "y1": 767.895
+        },
+        {
+          "x0": 70.866,
+          "y0": 656.766,
+          "x1": 508.381,
+          "y1": 734.52
+        },
+        {
+          "x0": 70.557,
+          "y0": 455.023,
+          "x1": 526.066,
+          "y1": 644.061
+        },
+        {
+          "x0": 306.142,
+          "y0": 501.874,
+          "x1": 530.339,
+          "y1": 584.387
+        },
+        {
+          "x0": 305.315,
+          "y0": 430.241,
+          "x1": 524.761,
+          "y1": 490.065
+        },
+        {
+          "x0": 70.866,
+          "y0": 256.049,
+          "x1": 290.943,
+          "y1": 431.784
+        },
+        {
+          "x0": 306.142,
+          "y0": 339.141,
+          "x1": 526.225,
+          "y1": 406.483
+        },
+        {
+          "x0": 317.051,
+          "y0": 120.187,
+          "x1": 524.786,
+          "y1": 337.654
+        },
+        {
+          "x0": 70.473,
+          "y0": 137.439,
+          "x1": 290.941,
+          "y1": 245.821
+        },
+        {
+          "x0": 70.866,
+          "y0": 111.546,
+          "x1": 234.306,
+          "y1": 125.739
+        },
+        {
+          "x0": 306.142,
+          "y0": 65.991,
+          "x1": 526.223,
+          "y1": 119.783
+        },
+        {
+          "x0": 70.353,
+          "y0": 65.991,
+          "x1": 290.941,
+          "y1": 106.234
+        }
+      ],
+      "confidence_scores": [],
+      "metadata": {
+        "source_file": "native_2.pdf",
+        "latency_ms": null,
+        "cost_usd": null,
+        "extra": {
+          "status": "ok",
+          "schema": "kids"
+        }
+      }
+    },
+    {
+      "tool_name": "opendataloader",
+      "page_number": 7,
+      "extracted_text": "Model Type N Gen. \u2206\u2212sty \u2206\u2212frc \u2206\u2212cmp\n\nA Under-comp. 700 20.0 10.7 61.4 7.9 C Evid. drift 281 23.5 13.2 54.1 9.3 D Integr. fail 11 0.0 9.1 36.4 54.5 F Plan. mis. 195 19.5 11.8 56.4 12.3\n\n4B\n\nA Under-comp. 423 22.9 23.9 47.8 5.4 C Evid. drift 94 31.9 23.4 40.4 4.3 D Integr. fail 17 5.9 35.3 52.9 5.9 F Plan. mis. 54 25.9 35.2 37.0 1.9\n\n32B\n\nA Under-comp. 297 35.7 11.1 42.4 10.8 C Evid. drift 120 37.5 10.8 39.2 12.5 D Integr. fail 93 1.1 8.6 64.5 25.8 F Plan. mis. 63 27.0 25.4 42.9 4.8\n\nGPT\n\nTable 5: A\u2013F \u00d7 \u2206 cross-tabulation for GSM8K (row %). Bold marks the dominant attributable source in each row. Rare types B and E are omitted here for compactness.\n\nevidence drift, and planning mismatch often arise after entering the function-calling protocol rather than from intrinsic reasoning deficits. This pattern is not limited to the Qwen models: for GPT-4.1mini, \u2206\u2212frc is also the largest contributor to Types A, C, and F, and even accounts for most Type D errors. These results highlight why trajectory-level symptoms alone can be misleading: failures that appear to be planning or integration errors may instead be downstream effects of protocol-induced degradation.\n\nThis distinction is consistent with the oracle analysis (Appendix B): OracleCalc largely removes Types A and F, OracleEvid suppresses Type C, and Type D remains the main residual bottleneck once computation errors are corrected. Overall, A\u2013F categories describe how a trajectory fails, whereas the \u2206 attribution identifies where that failure is introduced along the degradation chain.\n\nThe attribution analysis localizes where the losses arise, but it does not yet explain why the positive computation gain \u2206cmp still fails to outweigh the protocol overhead in aggregate.\n\nThe Capability Overlap Principle. This leads to a natural question: if real tool execution does provide useful computation, why does it still fail to offset the protocol tax? We answer this through capability overlap: the fraction of tool-benefited samples that are also solved by the model\u2019s native CoT path.\n\nAs shown in Table 6, capability overlap is extremely high on GSM8K across all three models: 89.6% for Qwen3-4B, 94.0% for Qwen3-32B, and 95.4% for GPT-4.1-mini. In other words, most samples that appear to benefit from real tool execu-\n\nTask Model TB CoT Ovlp. (%)\n\n4B 673 603 89.6 32B 669 629 94.0 GPT 780 744 95.4\n\nGSM8K\n\n4B 332 292 88.0 32B 58 39 67.2 GPT 57 32 56.1\n\nHotPotQA\n\nAnalysis. The gate\u2019s effectiveness closely follows the task dichotomy revealed by the \u2206 attribution analysis in Table 4: it yields substantial gains on GSM8K, where protocol-induced errors dominate, but only marginal or no benefit on HotPotQA,\n\n1Baselines in Table 7 are re-evaluated on the gate test split and may differ slightly from the full-dataset values reported in Table 2.",
+      "tables": [],
+      "bounding_boxes": [
+        {
+          "x0": 80.878,
+          "y0": 755.202,
+          "x1": 278.623,
+          "y1": 767.977
+        },
+        {
+          "x0": 110.665,
+          "y0": 710.866,
+          "x1": 279.126,
+          "y1": 752.42
+        },
+        {
+          "x0": 80.878,
+          "y0": 726.348,
+          "x1": 91.342,
+          "y1": 737.153
+        },
+        {
+          "x0": 110.665,
+          "y0": 665.538,
+          "x1": 279.126,
+          "y1": 707.092
+        },
+        {
+          "x0": 80.878,
+          "y0": 681.02,
+          "x1": 95.825,
+          "y1": 691.825
+        },
+        {
+          "x0": 110.665,
+          "y0": 620.21,
+          "x1": 279.126,
+          "y1": 661.764
+        },
+        {
+          "x0": 80.878,
+          "y0": 635.692,
+          "x1": 97.816,
+          "y1": 646.497
+        },
+        {
+          "x0": 70.557,
+          "y0": 572.488,
+          "x1": 290.877,
+          "y1": 608.402
+        },
+        {
+          "x0": 70.473,
+          "y0": 401.379,
+          "x1": 290.942,
+          "y1": 550.016
+        },
+        {
+          "x0": 70.528,
+          "y0": 292.545,
+          "x1": 290.943,
+          "y1": 400.535
+        },
+        {
+          "x0": 70.473,
+          "y0": 237.909,
+          "x1": 290.95,
+          "y1": 291.701
+        },
+        {
+          "x0": 70.866,
+          "y0": 134.177,
+          "x1": 289.139,
+          "y1": 229.01
+        },
+        {
+          "x0": 70.866,
+          "y0": 65.991,
+          "x1": 290.949,
+          "y1": 133.332
+        },
+        {
+          "x0": 306.142,
+          "y0": 757.046,
+          "x1": 524.411,
+          "y1": 767.851
+        },
+        {
+          "x0": 367.178,
+          "y0": 719.29,
+          "x1": 524.413,
+          "y1": 751.614
+        },
+        {
+          "x0": 306.142,
+          "y0": 730.209,
+          "x1": 336.529,
+          "y1": 741.014
+        },
+        {
+          "x0": 367.178,
+          "y0": 687.011,
+          "x1": 524.413,
+          "y1": 719.335
+        },
+        {
+          "x0": 306.142,
+          "y0": 697.93,
+          "x1": 344.5,
+          "y1": 708.735
+        },
+        {
+          "x0": 305.783,
+          "y0": 183.528,
+          "x1": 526.217,
+          "y1": 674.425
+        },
+        {
+          "x0": 306.142,
+          "y0": 106.881,
+          "x1": 526.222,
+          "y1": 174.616
+        },
+        {
+          "x0": 306.142,
+          "y0": 66.536,
+          "x1": 524.414,
+          "y1": 98.313
+        }
+      ],
+      "confidence_scores": [],
+      "metadata": {
+        "source_file": "native_2.pdf",
+        "latency_ms": null,
+        "cost_usd": null,
+        "extra": {
+          "status": "ok",
+          "schema": "kids"
+        }
+      }
+    },
+    {
+      "tool_name": "opendataloader",
+      "page_number": 8,
+      "extracted_text": "Config Full Gate +CRITIC CoT Gap Cls. GSM-4B 50.64 69.12 74.88 82.64 -32.00 75.75 GSM-32B 73.28 77.04 77.44 91.20 -17.92 23.21 GSM-GPT 75.92 75.52 76.56 89.04 -13.12 4.88 Hot-4B 73.18 74.97 74.53 76.87 -3.69 48.51 Hot-32B 83.02 82.90 82.10 84.15 -1.13 Hot-GPT 86.37 85.81 87.04 87.15 -0.78 85.72\n\nTable 7: Gate effectiveness on held-out test splits. Gap = Full \u2013 CoT (pp). Cls. reports the fraction of the Full-to-CoT gap recovered by the better of Gate and +CRITIC. HotPotQA-32B and HotPotQA-GPT use contains-match; all others use exact match.\n\nwhere most errors reflect genuine capability gaps. The strongest recovery appears on GSM8K-4B, where G-STEP improves accuracy from 50.64% to 69.12%, and the +CRITIC variant further raises it to 74.88%, closing 75.75% of the Full-to-CoT gap. Gains are smaller on GSM8K-32B and HotPotQA4B, and disappear on HotPotQA-32B, where errors are largely genuine rather than protocol-induced. This pattern suggests that gate-based intervention is most useful when failures are dominated by \u2206\u2212frctype protocol errors, whereas settings dominated by genuine capability gaps require stronger model improvements rather than additional inference-time control. GPT-4.1-mini follows the same qualitative trend: +CRITIC slightly improves over Agent-Full on both tasks, but the gain is modest on GSM8K and largely reflects closure of an already small residual gap on HotPotQA. Detailed analysis is provided in Appendix I.7.\n\nRobustness Across Distractor Types. The effectiveness of gate-based control is broadly consistent across the four semantic distractor categories. In particular, the gains are more pronounced in fragile GSM8K settings and remain limited on HotPotQA, which is consistent with the protocol-vs-capability dichotomy in Table 4. Detailed variant-wise robustness results are provided in Appendix J.\n\n4 Related Work\n\nRecent research has explored tool augmentation and function calling as key directions for extending LLMs beyond language-only inference. ToolLLM (Qin et al., 2024) introduced large-scale tool-use data construction, training, and evaluation over real-world APIs, while later studies im-\n\nproved tool learning through high-quality synthetic data (Liu et al., 2025), structure-aware tool representation (Su et al., 2025), and token-level optimization with fine-grained error scoring (Huang et al., 2025). In parallel, recent benchmarks have shifted toward realistic and process-oriented evaluation, covering fine-grained tool-use abilities (Ye et al., 2024) and mobile-assistant function calling under multi-turn, imperfect, and shifting user instructions (Wang et al., 2025).\n\n4.2 Fine-Grained Diagnosis of Reasoning and Agent Failures\n\nRecent work increasingly argues that final-answer accuracy alone is insufficient for assessing reasoning quality. FineLogic (Zhou et al., 2025), Evaluating Step-by-step Reasoning Traces (Lee and Hockenmaier, 2025), Kim et al. (2025) all emphasize that intermediate reasoning traces reveal errors missed by outcome-only evaluation.\n\nA similar shift has emerged in LLM agent evaluation. AgentDiagnose (Ou et al., 2025), Zhang et al. (2025), AgentFail (Ma et al., 2026), and PaperArena (Wang et al., 2026a) move beyond end-task success toward trajectory-level diagnosis, failure attribution, and root-cause analysis, a trend further summarized by recent survey work on LLM agent trajectory analysis (Wang et al., 2026b).\n\n5 Conclusion\n\nIn this work, we studied the CoT\u2013Tool gap under semantic distractors and showed that tool-augmented reasoning does not necessarily outperform native CoT. We analyzed this gap through a Factorized Intervention Framework, which decomposes tool gains and protocol costs into interpretable components, and further introduced the Capability Overlap Principle: many apparent tool gains arise on samples already solvable by native CoT, while the tool-calling protocol incurs broad additional overhead. We also showed that this analysis is actionable: a lightweight G-STEP intervention can partially mitigate protocol-induced failures, but its limited effect suggests that inference-time patching alone is insufficient for more substantial improvement. Overall, our findings suggest that tool augmentation is not universally beneficial: its value depends on whether tools provide genuinely complementary capability rather than redundant gains with added protocol burden.",
+      "tables": [],
+      "bounding_boxes": [
+        {
+          "x0": 70.866,
+          "y0": 680.996,
+          "x1": 296.344,
+          "y1": 767.851
+        },
+        {
+          "x0": 70.557,
+          "y0": 609.124,
+          "x1": 290.876,
+          "y1": 668.948
+        },
+        {
+          "x0": 70.473,
+          "y0": 329.709,
+          "x1": 291.044,
+          "y1": 586.74
+        },
+        {
+          "x0": 70.473,
+          "y0": 212.58,
+          "x1": 290.949,
+          "y1": 320.963
+        },
+        {
+          "x0": 70.866,
+          "y0": 186.431,
+          "x1": 159.956,
+          "y1": 201.985
+        },
+        {
+          "x0": 70.866,
+          "y0": 151.344,
+          "x1": 280.593,
+          "y1": 179.087
+        },
+        {
+          "x0": 70.866,
+          "y0": 65.991,
+          "x1": 290.949,
+          "y1": 146.882
+        },
+        {
+          "x0": 306.142,
+          "y0": 635.057,
+          "x1": 526.218,
+          "y1": 770.145
+        },
+        {
+          "x0": 306.142,
+          "y0": 595.587,
+          "x1": 524.413,
+          "y1": 623.329
+        },
+        {
+          "x0": 306.142,
+          "y0": 495.819,
+          "x1": 526.222,
+          "y1": 590.26
+        },
+        {
+          "x0": 305.749,
+          "y0": 386.594,
+          "x1": 526.225,
+          "y1": 494.584
+        },
+        {
+          "x0": 306.142,
+          "y0": 358.936,
+          "x1": 381.209,
+          "y1": 374.49
+        },
+        {
+          "x0": 305.749,
+          "y0": 79.54,
+          "x1": 526.225,
+          "y1": 350.12
+        }
+      ],
+      "confidence_scores": [],
+      "metadata": {
+        "source_file": "native_2.pdf",
+        "latency_ms": null,
+        "cost_usd": null,
+        "extra": {
+          "status": "ok",
+          "schema": "kids"
+        }
+      }
+    },
+    {
+      "tool_name": "opendataloader",
+      "page_number": 9,
+      "extracted_text": "References\n\nChen Chen, Xinlong Hao, Weiwen Liu, Xu Huang, Xingshan Zeng, Shuai Yu, Dexun Li, Yuefeng Huang, Xiangcheng Liu, Wang Xinzhi, and Wu Liu. 2025. ACEBench: A comprehensive evaluation of LLM tool usage. In Findings of the Association for Computational Linguistics: EMNLP 2025, Suzhou, China. Association for Computational Linguistics.\n\nZhipeng Chen, Kun Zhou, Beichen Zhang, Zheng Gong, Wayne Xin Zhao, and Ji-Rong Wen. 2023. Chatcot: Tool-augmented chain-of-thought reasoning on chat-based large language models. Preprint, arXiv:2305.14323.\n\nJiali Cheng, Rui Pan, and Hadi Amiri. 2026. Investigating tool-memory conflicts in tool-augmented llms. Preprint, arXiv:2601.09760.\n\nKarl Cobbe, Vineet Kosaraju, Mohammad Bavarian, Mark Chen, Heewoo Jun, Lukasz Kaiser, Matthias Plappert, Jerry Tworek, Jacob Hilton, Reiichiro Nakano, Christopher Hesse, and John Schulman. 2021. Training verifiers to solve math word problems. Preprint, arXiv:2110.14168.\n\nZhibin Gou, Zhihong Shao, Yeyun Gong, Yelong Shen, Yujiu Yang, Nan Duan, and Weizhu Chen. 2024. Critic: Large language models can selfcorrect with tool-interactive critiquing. Preprint, arXiv:2305.11738.\n\nChengrui Huang, Shen Gao, Zhengliang Shi, Dongsheng Wang, and Shuo Shang. 2025. TTPA: Tokenlevel tool-use preference alignment training framework with fine-grained evaluation. In Findings of the Association for Computational Linguistics: EMNLP 2025, Suzhou, China. Association for Computational Linguistics.\n\nHyeon Hwang, Yewon Cho, Chanwoong Yoon, Yein Park, Minju Song, Kyungjae Lee, Gangwoo Kim, and Jaewoo Kang. 2025. Assessing llm reasoning steps via principal knowledge grounding. Preprint, arXiv:2511.00879.\n\nWonjoong Kim, Sangwu Park, Yeonjun In, Sein Kim, Dongha Lee, and Chanyoung Park. 2025. Beyond the final answer: Evaluating the reasoning trajectories of tool-augmented agents. Preprint, arXiv:2510.02837.\n\nJinu Lee and Julia Hockenmaier. 2025. Evaluating step-by-step reasoning traces: A survey. Preprint, arXiv:2502.12289.\n\nSeongyun Lee, Yongrae Jo, Minju Seo, Moontae Lee, and Minjoon Seo. 2026. Lost in the noise: How reasoning models fail with contextual distractors. Preprint, arXiv:2601.07226.\n\nWeiwen Liu, Xu Huang, Xingshan Zeng, Xinlong Hao, Shuai Yu, Dexun Li, Shuai Wang, Weinan Gan, Zhengying Liu, Yuanqing Yu, Zezhong Wang, Yuxian Wang, Wu Ning, Yutai Hou, Bin Wang, Chuhan Wu, Xinzhi Wang, Yong Liu, Yasheng Wang, and\n\n8 others. 2025. Toolace: Winning the points of llm function calling. Preprint, arXiv:2409.00920.\n\nXuyan Ma, Xiaofei Xie, Yawen Wang, Junjie Wang, Boyu Wu, Mingyang Li, and Qing Wang. 2026. Demystifying the lifecycle of failures in platform-orchestrated agentic workflows. Preprint, arXiv:2509.23735.\n\nTianyue Ou, Wanyao Guo, Apurva Gandhi, Graham Neubig, and Xiang Yue. 2025. AgentDiagnose: An open toolkit for diagnosing LLM agent trajectories. In Proceedings of the 2025 Conference on Empirical Methods in Natural Language Processing: System Demonstrations, Suzhou, China. Association for Computational Linguistics.\n\nShishir G Patil, Huanzhi Mao, Fanjia Yan, Charlie Cheng-Jie Ji, Vishnu Suresh, Ion Stoica, and Joseph E. Gonzalez. 2025. The berkeley function calling leaderboard (BFCL): From tool use to agentic evaluation of large language models. In Forty-second International Conference on Machine Learning.\n\nThinh Pham, Nguyen Nguyen, Pratibha Zunjare, Weiyuan Chen, Yu-Min Tseng, and Tu Vu. 2026. Sealqa: Raising the bar for reasoning in search-augmented language models. Preprint, arXiv:2506.01062.\n\nYujia Qin, Shihao Liang, Yining Ye, Kunlun Zhu, Lan Yan, Yaxi Lu, Yankai Lin, Xin Cong, Xiangru Tang, Bill Qian, Sihan Zhao, Lauren Hong, Runchu Tian, Ruobing Xie, Jie Zhou, Mark Gerstein, dahai li, Zhiyuan Liu, and Maosong Sun. 2024. ToolLLM: Facilitating large language models to master 16000+ real-world APIs. In The Twelfth International Conference on Learning Representations.\n\nYunyue Su, Zhang Jinshuai, Bowen Fang, Wen Ye, Jinghao Zhang, Bowen Song, Weiqiang Wang, Qiang Liu, and Liang Wang. 2025. Toolscaler: Scalable generative tool calling via structure-aware semantic tokenization. In Findings of the Association for Computational Linguistics: EMNLP 2025, Suzhou, China. Association for Computational Linguistics.\n\nGuiyao Tie, Zenghui Yuan, Zeli Zhao, Chaoran Hu, Tianhe Gu, Ruihang Zhang, Sizhe Zhang, Junran Wu, Xiaoyue Tu, Ming Jin, Qingsong Wen, Lixing Chen, Pan Zhou, and Lichao Sun. 2025. Can llms correct themselves? a benchmark of self-correction in llms. Preprint, arXiv:2510.16062.\n\nDaoyu Wang, Mingyue Cheng, Shuo Yu, Zirui Liu, Ze Guo, Xin Li, and Qi Liu. 2026a. Paperarena: An evaluation benchmark for tool-augmented agentic reasoning on scientific literature. Preprint, arXiv:2510.10909.\n\nJun Wang, Jiamu Zhou, Muning Wen, Xiaoyun Mo, Haoyu Zhang, Qiqiang Lin, Cheng Jin, Xihuai Wang, Weinan Zhang, Qiuying Peng, and Jun Wang. 2025. Hammerbench: Fine-grained function-calling evaluation in real mobile device scenarios. Preprint, arXiv:2412.16516.",
+      "tables": [],
+      "bounding_boxes": [
+        {
+          "x0": 70.866,
+          "y0": 755.988,
+          "x1": 126.41,
+          "y1": 771.542
+        },
+        {
+          "x0": 70.866,
+          "y0": 673.671,
+          "x1": 290.877,
+          "y1": 751.428
+        },
+        {
+          "x0": 70.866,
+          "y0": 609.642,
+          "x1": 290.875,
+          "y1": 665.482
+        },
+        {
+          "x0": 70.866,
+          "y0": 567.531,
+          "x1": 290.877,
+          "y1": 601.452
+        },
+        {
+          "x0": 70.866,
+          "y0": 492.543,
+          "x1": 290.875,
+          "y1": 559.341
+        },
+        {
+          "x0": 70.866,
+          "y0": 428.514,
+          "x1": 290.875,
+          "y1": 484.353
+        },
+        {
+          "x0": 70.866,
+          "y0": 342.567,
+          "x1": 290.789,
+          "y1": 420.324
+        },
+        {
+          "x0": 70.866,
+          "y0": 278.538,
+          "x1": 290.377,
+          "y1": 334.377
+        },
+        {
+          "x0": 70.866,
+          "y0": 225.467,
+          "x1": 290.877,
+          "y1": 270.348
+        },
+        {
+          "x0": 70.866,
+          "y0": 183.356,
+          "x1": 290.377,
+          "y1": 217.278
+        },
+        {
+          "x0": 70.866,
+          "y0": 130.286,
+          "x1": 290.875,
+          "y1": 175.167
+        },
+        {
+          "x0": 70.866,
+          "y0": 66.257,
+          "x1": 290.784,
+          "y1": 122.096
+        },
+        {
+          "x0": 317.051,
+          "y0": 746.307,
+          "x1": 524.414,
+          "y1": 769.27
+        },
+        {
+          "x0": 306.142,
+          "y0": 682.922,
+          "x1": 526.151,
+          "y1": 738.762
+        },
+        {
+          "x0": 306.142,
+          "y0": 597.62,
+          "x1": 526.151,
+          "y1": 675.377
+        },
+        {
+          "x0": 306.142,
+          "y0": 523.276,
+          "x1": 526.065,
+          "y1": 590.075
+        },
+        {
+          "x0": 306.142,
+          "y0": 459.892,
+          "x1": 526.151,
+          "y1": 515.731
+        },
+        {
+          "x0": 306.142,
+          "y0": 363.631,
+          "x1": 526.06,
+          "y1": 452.347
+        },
+        {
+          "x0": 306.142,
+          "y0": 278.328,
+          "x1": 526.153,
+          "y1": 356.086
+        },
+        {
+          "x0": 306.142,
+          "y0": 203.985,
+          "x1": 526.15,
+          "y1": 270.783
+        },
+        {
+          "x0": 306.142,
+          "y0": 140.6,
+          "x1": 526.059,
+          "y1": 196.44
+        },
+        {
+          "x0": 306.142,
+          "y0": 66.257,
+          "x1": 526.155,
+          "y1": 133.055
+        }
+      ],
+      "confidence_scores": [],
+      "metadata": {
+        "source_file": "native_2.pdf",
+        "latency_ms": null,
+        "cost_usd": null,
+        "extra": {
+          "status": "ok",
+          "schema": "kids"
+        }
+      }
+    },
+    {
+      "tool_name": "opendataloader",
+      "page_number": 10,
+      "extracted_text": "Junjie Wang, Yawen Wang, Mengzhuo Chen, Xiaofei Xie, Chunyang Chen, Fangwen Mu, Zhe Liu, and Qing Wang. 2026b. A survey for llm agent trajectory analysis: From failure attribution to enhancement.\n\nRuipeng Wang, Yuxin Chen, Yukai Wang, Chang Wu, Junfeng Fang, Xiaodong Cai, Qi Gu, Hui Su, An Zhang, Xiang Wang, Xunliang Cai, and Tat-Seng Chua. 2026c. Agentnoisebench: Benchmarking robustness of tool-using llm agents under noisy condition. Preprint, arXiv:2602.11348.\n\nCailin Winston and Ren\u00e9 Just. 2025. A taxonomy of failures in tool-augmented llms. In 2025 IEEE/ACM International Conference on Automation of Software Test (AST), pages 125\u2013135.\n\nZhen Xiong, Yujun Cai, Zhecheng Li, and Yiwei Wang. 2025. Mapping the minds of llms: A graph-based analysis of reasoning llm. Preprint, arXiv:2505.13890.\n\nMinglai Yang, Ethan Huang, Liang Zhang, Mihai Surdeanu, William Wang, and Liangming Pan. 2025. How is llm reasoning distracted by irrelevant context? an analysis using a controlled benchmark. Preprint, arXiv:2505.18761.\n\nZhilin Yang, Peng Qi, Saizheng Zhang, Yoshua Bengio, William W. Cohen, Ruslan Salakhutdinov, and Christopher D. Manning. 2018. Hotpotqa: A dataset for diverse, explainable multi-hop question answering. Preprint, arXiv:1809.09600.\n\nJunjie Ye, Guanyu Li, Songyang Gao, Caishuang Huang, Yilong Wu, Sixian Li, Xiaoran Fan, Shihan Dou, Tao Ji, Qi Zhang, Tao Gui, and Xuanjing Huang. 2024. Tooleyes: Fine-grained evaluation for tool learning capabilities of large language models in real-world scenarios. Preprint, arXiv:2401.00741.\n\nKaituo Zhang, Mingzhi Hu, Hoang Anh Duy Le, Fariha Kabir Torsha, Zhimeng Jiang, Minh Khai Bui, Chia-Yuan Chang, Yu-Neng Chuang, Zhen Xiong, Ying Lin, Guanchu Wang, and Na Zou. 2026. The llm data auditor: A metric-oriented survey on quality and trustworthiness in evaluating synthetic data. Preprint, arXiv:2601.17717.\n\nShaokun Zhang, Ming Yin, Jieyu Zhang, Jiale Liu, Zhiguang Han, Jingyang Zhang, Beibin Li, Chi Wang, Huazheng Wang, Yiran Chen, and Qingyun Wu. 2025. Which agent causes task failures and when? on automated failure attribution of LLM multiagent systems. In Forty-second International Conference on Machine Learning.\n\nYujun Zhou, Jiayi Ye, Zipeng Ling, Yufei Han, Yue Huang, Haomin Zhuang, Zhenwen Liang, Kehan Guo, Taicheng Guo, Xiangqi Wang, and Xiangliang Zhang. 2025. Dissecting logical reasoning in llms: A fine-grained evaluation and supervision study. Preprint, arXiv:2506.04810.\n\nA Bottleneck Localization: Oracle Bounds and Multi-Turn Utility.\n\nThe oracle conditions explicitly identify where the remaining performance potential resides (Table 8).\n\nTask Model \u2206oracle \u2206context \u2206turn GSM8K\n\n4B +37.1 +0.4 +4.4 32B +17.6 +4.0 \u22120.1\n\n4B +20.7 +2.1 +2.4 32B +7.7 +1.8 \u22120.2\n\nHotPot\n\nUnder Agent-Full, Type A is the dominant failure mode (58\u201370%), followed by Type C (16\u201324%) and Type F (9\u201316%). A surface reading would attribute these errors to insufficient computation and motivate larger reasoning budgets. The oracle conditions show a different picture. OracleCalc eliminates Types A and F while leaving Type C intact; OracleEvid eliminates Type C while leav-",
+      "tables": [],
+      "bounding_boxes": [
+        {
+          "x0": 70.866,
+          "y0": 724.389,
+          "x1": 289.48,
+          "y1": 769.27
+        },
+        {
+          "x0": 70.866,
+          "y0": 646.393,
+          "x1": 290.786,
+          "y1": 713.191
+        },
+        {
+          "x0": 70.866,
+          "y0": 590.314,
+          "x1": 289.136,
+          "y1": 635.195
+        },
+        {
+          "x0": 70.866,
+          "y0": 534.235,
+          "x1": 290.377,
+          "y1": 579.116
+        },
+        {
+          "x0": 70.866,
+          "y0": 467.198,
+          "x1": 290.875,
+          "y1": 523.037
+        },
+        {
+          "x0": 70.866,
+          "y0": 400.16,
+          "x1": 290.789,
+          "y1": 456.0
+        },
+        {
+          "x0": 70.866,
+          "y0": 322.164,
+          "x1": 290.88,
+          "y1": 388.962
+        },
+        {
+          "x0": 70.866,
+          "y0": 233.208,
+          "x1": 290.875,
+          "y1": 310.966
+        },
+        {
+          "x0": 70.866,
+          "y0": 144.253,
+          "x1": 290.792,
+          "y1": 222.011
+        },
+        {
+          "x0": 70.866,
+          "y0": 66.257,
+          "x1": 290.873,
+          "y1": 133.055
+        },
+        {
+          "x0": 306.142,
+          "y0": 742.04,
+          "x1": 489.487,
+          "y1": 771.542
+        },
+        {
+          "x0": 305.804,
+          "y0": 708.276,
+          "x1": 526.323,
+          "y1": 734.97
+        },
+        {
+          "x0": 339.016,
+          "y0": 662.93,
+          "x1": 491.038,
+          "y1": 694.156
+        },
+        {
+          "x0": 377.373,
+          "y0": 651.878,
+          "x1": 491.537,
+          "y1": 678.716
+        },
+        {
+          "x0": 377.373,
+          "y0": 631.953,
+          "x1": 491.537,
+          "y1": 658.791
+        },
+        {
+          "x0": 339.016,
+          "y0": 643.004,
+          "x1": 364.427,
+          "y1": 653.809
+        },
+        {
+          "x0": 305.804,
+          "y0": 174.511,
+          "x1": 526.219,
+          "y1": 625.676
+        },
+        {
+          "x0": 306.142,
+          "y0": 65.991,
+          "x1": 526.222,
+          "y1": 173.98
+        }
+      ],
+      "confidence_scores": [],
+      "metadata": {
+        "source_file": "native_2.pdf",
+        "latency_ms": null,
+        "cost_usd": null,
+        "extra": {
+          "status": "ok",
+          "schema": "kids"
+        }
+      }
+    },
+    {
+      "tool_name": "opendataloader",
+      "page_number": 11,
+      "extracted_text": "Agent-Full OracleCalc OracleEvid\n\nType 4B 32B 4B 32B 4B 32B A 58.4 69.8 0 0 77.8 78.3 C 23.5 15.5 34.1 23.0 0 0 D 0.9 2.8 65.6 73.9 2.4 7.1 F 16.3 8.9 0 0 18.9 11.6\n\nTable 9: A\u2013F failure distribution (%) under Agent-Full and two oracle conditions on GSM8K.\n\ning Types A and F intact. Meanwhile, Type D rises sharply under OracleCalc (66\u201374%), indicating that once computation is made reliable, the remaining bottleneck is integration: the agent fails to correctly consume and report tool outputs. This dissociation suggests that the A\u2013F categories capture structurally distinct failure mechanisms.\n\nC Detailed Condition Definitions\n\nThe seven experimental conditions differ in the specific component of the tool-use pipeline that is retained or intervened on.\n\nIn Agent-OracleCalc, the tool is still invoked, but directly returns the ground-truth answer, eliminating errors caused by malformed expressions or faulty tool use; the agent must still reason over the returned result and decide whether to output it. Agent-OracleEvidence provides an unperturbed, noise-free context to isolate the impact of distractors. Agent-Max1Turn does not impose a hard limit of one tool call; instead, it restricts the agent to a single protocol turn while still allowing multiple tool calls within that turn.\n\nAnd we provide the example in Figure 2.\n\nD Secondary Patterns in the Decomposition Analysis\n\nTwo secondary patterns further clarify these dynamics. First, the styling penalty is negligible for the 4B model on GSM8K (\u22120.60%) but moderate on HotPotQA (\u22123.87%), and becomes substantial for the 32B model on GSM8K (\u221212.84%). This highlights a task-dependent interaction with model scale: on GSM8K, the 32B model\u2019s stronger reasoning chain is more vulnerable to FC formatting disruption (\u221212.84% vs. \u22120.60% for 4B), whereas on HotPotQA, where answers are shorter factoid spans, both models show minimal style sensitivity (\u2264 3.87%), with the 32B model being nearly unaffected (\u22120.17%).\n\nSecond, the contrast in \u2206cmp across tasks is in-\n\nAlgorithm 1: Type-Guided Noisy Data Augmentation\n\nInput: Base datasets Dgsm8k and Dhotpotqa; distractor sentence number k; insertion positions P; distractor type set T ; LLM generator M = gpt-4o-mini\n\nOutput: Augmented noisy dataset Daug Daug \u2190 \u2205; foreach base sample x \u2208 Dgsm8k \u222a Dhotpotqa\n\ndo\n\nDetermine the topic tx and keyword set\n\nKx of x; Initialize distractor set \u2206x \u2190 \u2205; for i \u2190 1 to k do\n\nSelect distractor type \u03c4i \u2208 T ; Generate distractor di using M conditioned on (tx,Kx,\u03c4i); \u2206x \u2190 \u2206x \u222a {di};\n\nInsert \u2206x into x according to positions\n\nP to obtain x\u02dc;\n\nDaug \u2190 Daug \u222a {x\u02dc}; return Daug;\n\nformative: on GSM8K, tools provide substantial but largely redundant computational gains (+21 to +25%) given the models\u2019 intrinsic mathematical ability; on HotPotQA, tools offer smaller but more genuine information-acquisition utility, which helps explain the divergent net outcomes.\n\nE Sem-Distractor Example\n\nIn this section, we provide the examples of SemDistractor in Table 10.\n\nF The Details of Semantic Distractors Dataset\n\nF.1 The workflow of generating noisy dataset\n\nTo demonstrate the workflow more clearly, we give the pseudo-code in Algorithm 1.\n\nF.2 The Examples of Noisy Dataset\n\nIn this section, we present a set of examples from the generated noisy dataset, as illustrated in Figure 3. In our work, the real dataset contains 22 distractor sentences. Therefore, the noise distribution is independent of the position.",
+      "tables": [],
+      "bounding_boxes": [
+        {
+          "x0": 123.366,
+          "y0": 757.604,
+          "x1": 257.826,
+          "y1": 768.409
+        },
+        {
+          "x0": 98.684,
+          "y0": 697.055,
+          "x1": 261.317,
+          "y1": 753.187
+        },
+        {
+          "x0": 70.557,
+          "y0": 660.749,
+          "x1": 289.136,
+          "y1": 684.708
+        },
+        {
+          "x0": 70.866,
+          "y0": 543.581,
+          "x1": 290.95,
+          "y1": 638.021
+        },
+        {
+          "x0": 70.866,
+          "y0": 516.835,
+          "x1": 246.225,
+          "y1": 532.389
+        },
+        {
+          "x0": 70.528,
+          "y0": 468.428,
+          "x1": 289.135,
+          "y1": 508.671
+        },
+        {
+          "x0": 70.866,
+          "y0": 318.818,
+          "x1": 290.947,
+          "y1": 467.455
+        },
+        {
+          "x0": 81.775,
+          "y0": 304.701,
+          "x1": 260.815,
+          "y1": 317.846
+        },
+        {
+          "x0": 70.866,
+          "y0": 264.007,
+          "x1": 222.984,
+          "y1": 293.509
+        },
+        {
+          "x0": 70.528,
+          "y0": 72.7,
+          "x1": 290.948,
+          "y1": 255.843
+        },
+        {
+          "x0": 81.775,
+          "y0": 65.179,
+          "x1": 290.94,
+          "y1": 79.136
+        },
+        {
+          "x0": 311.204,
+          "y0": 741.115,
+          "x1": 497.141,
+          "y1": 768.202
+        },
+        {
+          "x0": 317.051,
+          "y0": 672.596,
+          "x1": 508.022,
+          "y1": 739.993
+        },
+        {
+          "x0": 317.051,
+          "y0": 624.202,
+          "x1": 507.548,
+          "y1": 672.247
+        },
+        {
+          "x0": 322.505,
+          "y0": 617.406,
+          "x1": 334.025,
+          "y1": 631.599
+        },
+        {
+          "x0": 333.813,
+          "y0": 606.036,
+          "x1": 506.238,
+          "y1": 619.745
+        },
+        {
+          "x0": 333.813,
+          "y0": 558.545,
+          "x1": 473.914,
+          "y1": 606.196
+        },
+        {
+          "x0": 349.67,
+          "y0": 504.348,
+          "x1": 485.34,
+          "y1": 565.548
+        },
+        {
+          "x0": 333.813,
+          "y0": 495.516,
+          "x1": 503.487,
+          "y1": 509.225
+        },
+        {
+          "x0": 339.268,
+          "y0": 475.123,
+          "x1": 400.96,
+          "y1": 495.676
+        },
+        {
+          "x0": 317.051,
+          "y0": 443.869,
+          "x1": 423.922,
+          "y1": 482.127
+        },
+        {
+          "x0": 305.749,
+          "y0": 339.532,
+          "x1": 526.217,
+          "y1": 420.423
+        },
+        {
+          "x0": 306.142,
+          "y0": 309.088,
+          "x1": 452.569,
+          "y1": 324.642
+        },
+        {
+          "x0": 306.142,
+          "y0": 271.584,
+          "x1": 526.217,
+          "y1": 298.278
+        },
+        {
+          "x0": 306.142,
+          "y0": 227.192,
+          "x1": 506.69,
+          "y1": 256.694
+        },
+        {
+          "x0": 306.142,
+          "y0": 202.582,
+          "x1": 522.295,
+          "y1": 216.775
+        },
+        {
+          "x0": 305.804,
+          "y0": 168.964,
+          "x1": 524.412,
+          "y1": 195.658
+        },
+        {
+          "x0": 306.142,
+          "y0": 140.257,
+          "x1": 475.539,
+          "y1": 154.45
+        },
+        {
+          "x0": 306.142,
+          "y0": 65.991,
+          "x1": 526.226,
+          "y1": 133.332
+        }
+      ],
+      "confidence_scores": [],
+      "metadata": {
+        "source_file": "native_2.pdf",
+        "latency_ms": null,
+        "cost_usd": null,
+        "extra": {
+          "status": "ok",
+          "schema": "kids"
+        }
+      }
+    },
+    {
+      "tool_name": "opendataloader",
+      "page_number": 12,
+      "extracted_text": "G Tool-calling Agent Implementation Details\n\nFor all evaluated models, including GPT-4.1-mini and the Qwen series, we adopt the same functioncalling(tool-calling) pipeline. GPT-4.1-mini is accessed through the OpenAI API, while Qwen models are served through vLLM. In both cases, the overall workflow remains the same:\n\nThis implementation therefore follows a unified and standard function-calling setup across different model families.\n\nH Why high overlap leads to smaller degradation on HotPotQA\n\nHotPotQA also exhibits substantial capability overlap. For Qwen3-4B, 88.0% of tool-benefited cases are also solved by CoT, indicating that retrieval often returns information already recoverable from the model\u2019s parametric knowledge. However, despite this overlap, the net degradation on HotPotQA remains much smaller than on GSM8K (Table 3). One likely reason is task structure. GSM8K requires multi-step sequential computation, where disrupting a single intermediate step can invalidate the entire reasoning chain. HotPotQA, by contrast, relies more on factoid retrieval and evidence aggregation, allowing the model to recover from imperfect tool interaction through partial evidence or parametric knowledge. Thus, overlap alone does not determine degradation severity; it interacts with the task\u2019s tolerance to protocol noise.",
+      "tables": [],
+      "bounding_boxes": [
+        {
+          "x0": 70.866,
+          "y0": 500.368,
+          "x1": 524.412,
+          "y1": 771.025
+        },
+        {
+          "x0": 70.866,
+          "y0": 419.462,
+          "x1": 525.655,
+          "y1": 491.242
+        },
+        {
+          "x0": 70.866,
+          "y0": 369.766,
+          "x1": 270.35,
+          "y1": 399.267
+        },
+        {
+          "x0": 70.866,
+          "y0": 281.848,
+          "x1": 290.948,
+          "y1": 362.739
+        },
+        {
+          "x0": 79.521,
+          "y0": 117.093,
+          "x1": 290.945,
+          "y1": 271.382
+        },
+        {
+          "x0": 70.866,
+          "y0": 65.991,
+          "x1": 289.138,
+          "y1": 106.234
+        },
+        {
+          "x0": 306.142,
+          "y0": 369.766,
+          "x1": 501.335,
+          "y1": 399.267
+        },
+        {
+          "x0": 306.142,
+          "y0": 65.991,
+          "x1": 526.318,
+          "y1": 295.923
+        }
+      ],
+      "confidence_scores": [],
+      "metadata": {
+        "source_file": "native_2.pdf",
+        "latency_ms": null,
+        "cost_usd": null,
+        "extra": {
+          "status": "ok",
+          "schema": "kids"
+        }
+      }
+    },
+    {
+      "tool_name": "opendataloader",
+      "page_number": 13,
+      "extracted_text": "Variant Type (Abbr.) Perturbation Mechanism Example from GSM8K Base The original, unmodified evidence\n\n\u201cNatalia sold clips to 48 of her friends in April, and then she sold half as many clips in May.\u201d\n\nsentence extracted directly from the dataset, serving as the ground truth.\n\nThematic Background (TB)\n\n\u201cClips are commonly sold in bulk during seasonal events.\u201d\n\nInjects domain-relevant background knowledge using keywords from the question, providing contextually related but logically useless information.\n\nSemantic Paraphrase (SP)\n\n\u201cIn April, Natalia\u2019s clip sales reached 48 units.\u201d\n\nRestates the original evidence to maintain semantic equivalence while altering the syntactic structure and vocabulary.\n\nParallel Entity Distractor (PED)\n\n\u201cMarcus sold clips to a different group of customers last summer.\u201d / \u201cSarah sold clips during a separate event.\u201d\n\nIntroduces an alternative entity (person or scenario) performing a similar action to serve as a hard negative distractor.\n\nHedged Uncertainty (HU)\n\nWraps the evidence in epistemic markers (e.g., reportedly, some say) to simulate an unreliable or unverified information source.\n\n\u201cNatalia reportedly sold clips to a number of friends in April.\u201d / \u201cSome say the May sales might be about half.\u201d\n\nTable 10: Summary of semantic noise variants used in our data augmentation pipeline.\n\nI G-STEP Design and Per-Configuration Analysis\n\nI.1 Stage 1: Data Collection\n\nThe initial stage aims to obtain the raw performance data necessary to construct training labels. For each question (including multiple noise variants), the target Large Language Model (LLM) is evaluated under two independent conditions:\n\nBoth conditions operate on the exact same question set, enabling a per-sample comparison to identify instances where the model possesses the intrinsic reasoning capacity to solve a problem (via CoT) but fails when utilizing the tool-use protocol.\n\nIn this work, the gate is trained on a disjoint question set (GSM8K: 250 train / 250 test; HotPotQA:\n\n178 train / 179 test), and performance metrics are reported strictly on the held-out test split.\n\nI.2 Stage 2: Label Construction and Feature Engineering\n\n(MD5 mapping to bin indices followed by L2 normalization). The reasoning text yields a 64-dimensional vector, and the last tool output yields a 32-dimensional vector.",
+      "tables": [],
+      "bounding_boxes": [
+        {
+          "x0": 75.847,
+          "y0": 739.086,
+          "x1": 393.401,
+          "y1": 767.686
+        },
+        {
+          "x0": 304.399,
+          "y0": 729.661,
+          "x1": 519.402,
+          "y1": 750.429
+        },
+        {
+          "x0": 167.445,
+          "y0": 719.699,
+          "x1": 294.44,
+          "y1": 740.466
+        },
+        {
+          "x0": 75.847,
+          "y0": 697.741,
+          "x1": 143.194,
+          "y1": 719.37
+        },
+        {
+          "x0": 304.399,
+          "y0": 708.242,
+          "x1": 514.177,
+          "y1": 719.047
+        },
+        {
+          "x0": 167.445,
+          "y0": 668.391,
+          "x1": 294.725,
+          "y1": 719.047
+        },
+        {
+          "x0": 75.552,
+          "y0": 646.433,
+          "x1": 157.456,
+          "y1": 668.062
+        },
+        {
+          "x0": 304.399,
+          "y0": 656.934,
+          "x1": 475.343,
+          "y1": 667.739
+        },
+        {
+          "x0": 167.122,
+          "y0": 627.046,
+          "x1": 283.766,
+          "y1": 667.739
+        },
+        {
+          "x0": 75.847,
+          "y0": 605.089,
+          "x1": 141.329,
+          "y1": 626.717
+        },
+        {
+          "x0": 304.399,
+          "y0": 605.627,
+          "x1": 506.134,
+          "y1": 626.394
+        },
+        {
+          "x0": 167.149,
+          "y0": 585.701,
+          "x1": 287.657,
+          "y1": 626.394
+        },
+        {
+          "x0": 75.552,
+          "y0": 563.744,
+          "x1": 153.299,
+          "y1": 585.372
+        },
+        {
+          "x0": 167.445,
+          "y0": 544.356,
+          "x1": 295.039,
+          "y1": 585.049
+        },
+        {
+          "x0": 304.076,
+          "y0": 564.282,
+          "x1": 504.081,
+          "y1": 585.049
+        },
+        {
+          "x0": 125.181,
+          "y0": 519.558,
+          "x1": 469.787,
+          "y1": 531.562
+        },
+        {
+          "x0": 70.866,
+          "y0": 469.861,
+          "x1": 286.394,
+          "y1": 499.363
+        },
+        {
+          "x0": 70.866,
+          "y0": 447.638,
+          "x1": 207.262,
+          "y1": 461.831
+        },
+        {
+          "x0": 70.528,
+          "y0": 375.284,
+          "x1": 289.139,
+          "y1": 442.626
+        },
+        {
+          "x0": 83.885,
+          "y0": 174.498,
+          "x1": 290.501,
+          "y1": 362.283
+        },
+        {
+          "x0": 70.866,
+          "y0": 93.762,
+          "x1": 290.95,
+          "y1": 161.104
+        },
+        {
+          "x0": 70.866,
+          "y0": 65.991,
+          "x1": 290.943,
+          "y1": 92.685
+        },
+        {
+          "x0": 305.324,
+          "y0": 471.272,
+          "x1": 524.405,
+          "y1": 497.966
+        },
+        {
+          "x0": 306.142,
+          "y0": 435.068,
+          "x1": 519.655,
+          "y1": 462.81
+        },
+        {
+          "x0": 305.804,
+          "y0": 243.77,
+          "x1": 526.314,
+          "y1": 431.785
+        },
+        {
+          "x0": 319.161,
+          "y0": 120.187,
+          "x1": 526.226,
+          "y1": 236.752
+        },
+        {
+          "x0": 327.6,
+          "y0": 65.991,
+          "x1": 524.412,
+          "y1": 119.783
+        }
+      ],
+      "confidence_scores": [],
+      "metadata": {
+        "source_file": "native_2.pdf",
+        "latency_ms": null,
+        "cost_usd": null,
+        "extra": {
+          "status": "ok",
+          "schema": "kids"
+        }
+      }
+    },
+    {
+      "tool_name": "opendataloader",
+      "page_number": 14,
+      "extracted_text": "The Examples of Noisy Dataset\n\nBase: Natalia sold clips to 48 of her friends in April, and then she sold half as many clips in May.\n\nThematic Background (TB) Sales can fluctuate from month to month. Tracking sales helps in understanding trends. Natalia sold clips to 48 of her friends in April, and then she sold half as many clips in May. Analyzing sales data can reveal patterns. Effective strategies can boost future sales.\n\nSemantic Paraphrase (SP)\n\nNatalia sold clips to 48 friends during April. The quantity of clips sold in May was half that of April. Natalia\u2019s May clip sales were half as many as in April.\n\nNatalia sold clips to 48 of her friends in April, and then she sold half as many clips in May. The clips Natalia sold in May were half the number sold in April. In May, Natalia\u2019s clip sales were reduced to half of April\u2019s total.\n\nParallel Entity Distractor (PED)\n\nIn a different region, Ethan sold clips to a different audience last autumn. Elsewhere, Sophia sold clips to unrelated buyers in a different timeframe.\n\nNatalia sold clips to 48 of her friends in April, and then she sold half as many clips in May. In a different case, Lucas sold clips to someone else in a nearby town. Elsewhere, Isabella sold clips to a different group during a separate event.\n\nHedged Uncertainty (HU)\n\nIt is likely that Natalia\u2019s total sales spanned both months. Some say the sales figures might not have been officially recorded.\n\nNatalia sold clips to 48 of her friends in April, and then she sold half as many clips in May. It is claimed that Natalia\u2019s total clip sales might have been substantial. Some say the combined sales in April and May were possibly noteworthy.\n\nQuestion: How many clips did Natalia sell altogether in April and May?\n\nLabels: evidence sentence ids: [2]. noise sentence ids: [0, 1, 3, 4]. final: 72.\n\nI.3 Stage 3: Gate Training\n\nA binary classifier is trained to predict the probability of continuation, P(continue | state), given the 120-dimensional feature vector.\n\n10\u22123 and L2 regularization (\u03b1 = 10\u22124). Early stopping is applied using a 10% validation\n\nsplit with a patience of 20 epochs.\n\nI.4 Stage 4: Gate-Augmented Inference\n\nDuring the online inference phase, the trained gate is deployed dynamically inside the function-calling",
+      "tables": [],
+      "bounding_boxes": [
+        {
+          "x0": 86.57,
+          "y0": 758.881,
+          "x1": 200.623,
+          "y1": 769.686
+        },
+        {
+          "x0": 78.338,
+          "y0": 727.838,
+          "x1": 475.909,
+          "y1": 754.925
+        },
+        {
+          "x0": 77.945,
+          "y0": 666.723,
+          "x1": 516.942,
+          "y1": 720.908
+        },
+        {
+          "x0": 78.338,
+          "y0": 645.6,
+          "x1": 200.64,
+          "y1": 659.793
+        },
+        {
+          "x0": 77.945,
+          "y0": 619.157,
+          "x1": 518.852,
+          "y1": 645.851
+        },
+        {
+          "x0": 78.338,
+          "y0": 578.509,
+          "x1": 516.938,
+          "y1": 618.752
+        },
+        {
+          "x0": 78.338,
+          "y0": 557.386,
+          "x1": 228.807,
+          "y1": 571.579
+        },
+        {
+          "x0": 78.338,
+          "y0": 530.943,
+          "x1": 518.845,
+          "y1": 557.637
+        },
+        {
+          "x0": 78.338,
+          "y0": 490.295,
+          "x1": 516.943,
+          "y1": 530.539
+        },
+        {
+          "x0": 78.338,
+          "y0": 469.173,
+          "x1": 198.927,
+          "y1": 483.366
+        },
+        {
+          "x0": 78.338,
+          "y0": 442.729,
+          "x1": 518.845,
+          "y1": 469.423
+        },
+        {
+          "x0": 77.945,
+          "y0": 402.082,
+          "x1": 516.943,
+          "y1": 442.325
+        },
+        {
+          "x0": 78.338,
+          "y0": 368.065,
+          "x1": 347.564,
+          "y1": 395.152
+        },
+        {
+          "x0": 78.338,
+          "y0": 334.048,
+          "x1": 374.018,
+          "y1": 361.135
+        },
+        {
+          "x0": 70.866,
+          "y0": 288.635,
+          "x1": 524.411,
+          "y1": 312.594
+        },
+        {
+          "x0": 70.866,
+          "y0": 253.243,
+          "x1": 200.412,
+          "y1": 267.436
+        },
+        {
+          "x0": 70.048,
+          "y0": 208.857,
+          "x1": 290.941,
+          "y1": 249.101
+        },
+        {
+          "x0": 83.885,
+          "y0": 93.089,
+          "x1": 290.95,
+          "y1": 197.827
+        },
+        {
+          "x0": 92.139,
+          "y0": 65.991,
+          "x1": 289.517,
+          "y1": 92.773
+        },
+        {
+          "x0": 327.96,
+          "y0": 253.898,
+          "x1": 476.727,
+          "y1": 267.043
+        },
+        {
+          "x0": 319.161,
+          "y0": 116.762,
+          "x1": 526.223,
+          "y1": 246.29
+        },
+        {
+          "x0": 306.142,
+          "y0": 96.361,
+          "x1": 496.32,
+          "y1": 110.554
+        },
+        {
+          "x0": 306.142,
+          "y0": 65.991,
+          "x1": 524.408,
+          "y1": 92.685
+        }
+      ],
+      "confidence_scores": [],
+      "metadata": {
+        "source_file": "native_2.pdf",
+        "latency_ms": null,
+        "cost_usd": null,
+        "extra": {
+          "status": "ok",
+          "schema": "kids"
+        }
+      }
+    },
+    {
+      "tool_name": "opendataloader",
+      "page_number": 15,
+      "extracted_text": "Priority Condition Label Rationale\n\nloop. When the model generates a final text without tool calls (attempting to submit), the gate evaluates the current state:\n\nTo ensure robustness, safety mechanisms including a maximum limit on extra turns (e.g., 3 extra turns), no-progress detection, and duplicate expression detection are implemented to prevent infinite generation loops.\n\nI.5 Training of Gate\n\nIn this section, we provide the pseudocode for the training workflow of the gate in Algorithm 2.\n\nI.6 Inference with Gate\n\nIn this section, we provide the pseudocode for the inference workflow with the gate in Algorithm 3.\n\nI.7 Per-Configuration Analysis of Gate Effectiveness\n\nThe gate\u2019s behavior varies substantially across task\u2013 model settings, in ways that closely match the decomposition-based attribution analysis.\n\nAlgorithm 2: Offline Training Pipeline for Gate Decision MLP\n\nInput: Baseline dataset Dbase,\n\nChain-of-Thought dataset Dcot\n\nOutput: Trained Gate Decision Model\n\nM\u2217gate\n\nX \u2190 ExtractFeatures(Dlabeled,d = 120); y \u2190 ExtractLabels(Dlabeled); Xnorm \u2190 StandardScaler(X);\n\nMgate \u2190 InitializeMLP(hidden_dims = [128,64]);\n\nM\u2217gate \u2190 TrainWithGroupKFold(Mgate,Xnorm,y,K = 5);\n\nreturn M\u2217gate",
+      "tables": [],
+      "bounding_boxes": [
+        {
+          "x0": 89.951,
+          "y0": 753.894,
+          "x1": 380.089,
+          "y1": 768.087
+        },
+        {
+          "x0": 105.703,
+          "y0": 654.227,
+          "x1": 507.136,
+          "y1": 748.667
+        },
+        {
+          "x0": 70.557,
+          "y0": 629.345,
+          "x1": 524.225,
+          "y1": 641.349
+        },
+        {
+          "x0": 70.866,
+          "y0": 567.51,
+          "x1": 289.132,
+          "y1": 607.754
+        },
+        {
+          "x0": 79.521,
+          "y0": 329.497,
+          "x1": 290.95,
+          "y1": 558.141
+        },
+        {
+          "x0": 70.866,
+          "y0": 252.786,
+          "x1": 290.947,
+          "y1": 320.128
+        },
+        {
+          "x0": 70.866,
+          "y0": 229.925,
+          "x1": 171.579,
+          "y1": 244.118
+        },
+        {
+          "x0": 70.866,
+          "y0": 199.554,
+          "x1": 289.139,
+          "y1": 226.248
+        },
+        {
+          "x0": 70.866,
+          "y0": 176.692,
+          "x1": 186.71,
+          "y1": 190.885
+        },
+        {
+          "x0": 70.866,
+          "y0": 146.322,
+          "x1": 289.139,
+          "y1": 173.016
+        },
+        {
+          "x0": 70.866,
+          "y0": 109.911,
+          "x1": 258.121,
+          "y1": 137.653
+        },
+        {
+          "x0": 70.528,
+          "y0": 65.991,
+          "x1": 290.772,
+          "y1": 106.234
+        },
+        {
+          "x0": 311.204,
+          "y0": 553.289,
+          "x1": 497.318,
+          "y1": 580.376
+        },
+        {
+          "x0": 317.051,
+          "y0": 533.473,
+          "x1": 451.062,
+          "y1": 554.419
+        },
+        {
+          "x0": 350.138,
+          "y0": 519.924,
+          "x1": 484.505,
+          "y1": 540.477
+        },
+        {
+          "x0": 317.051,
+          "y0": 513.128,
+          "x1": 487.604,
+          "y1": 527.321
+        },
+        {
+          "x0": 358.014,
+          "y0": 492.826,
+          "x1": 386.917,
+          "y1": 513.466
+        },
+        {
+          "x0": 316.505,
+          "y0": 234.346,
+          "x1": 507.415,
+          "y1": 492.771
+        },
+        {
+          "x0": 316.574,
+          "y0": 185.156,
+          "x1": 498.937,
+          "y1": 232.808
+        },
+        {
+          "x0": 317.051,
+          "y0": 160.557,
+          "x1": 496.75,
+          "y1": 187.251
+        },
+        {
+          "x0": 317.051,
+          "y0": 119.909,
+          "x1": 529.697,
+          "y1": 160.24
+        },
+        {
+          "x0": 317.051,
+          "y0": 94.043,
+          "x1": 378.615,
+          "y1": 114.989
+        }
+      ],
+      "confidence_scores": [],
+      "metadata": {
+        "source_file": "native_2.pdf",
+        "latency_ms": null,
+        "cost_usd": null,
+        "extra": {
+          "status": "ok",
+          "schema": "kids"
+        }
+      }
+    },
+    {
+      "tool_name": "opendataloader",
+      "page_number": 16,
+      "extracted_text": "Algorithm 3: Online Inference Pipeline with Gate-Controlled Tool Calling\n\nInput: Question q, Context c, Large Language Model MLLM, Trained Gate Model Mgate\n\nInput: System prompt Psys, Continue prompt Pcont, Probability threshold \u03c4 = 0.05 Output: Final answer A // Initialize conversation history with system and user prompts H \u2190 Psys \u2295 FormatUserPrompt(q,c); while True do\n\n// Generate response from the\n\nLLM r \u2190 MLLM(H); if HasToolCall(r) then\n\n// Execute tool and append\n\nobservation to the loop o \u2190 ExecuteTool(r.tool_call); H \u2190 H \u2295 r \u2295 o;\n\nelse\n\n// Model attempts to submit final answer without tool calls\n\npcont \u2190 Mgate(H,r) ;\n\n// Compute P(continue) if pcont \u2265 \u03c4 then\n\n// Continue the interaction by injecting the continue prompt\n\nH \u2190 H \u2295 r \u2295 Pcont; else\n\n// Accept the submission\n\nand halt A \u2190 ExtractFinalAnswer(r); return A;\n\nGSM8K-4B. GSM8K-4B is the most favorable setting for the gate, as it combines the largest per-\n\nformance gap (\u221232.00%) with the highest \u2206\u2212frc share (58.7% of all errors; Table 4). G-STEP\n\nalone improves accuracy from 50.64% to 69.12% (+18.48%). Adding CRITIC prompts further raises accuracy to 74.88%, closing 75.75% of the gap. This additional gain (+5.76%) supports our earlier finding that GSM8K errors are primarily computation-chain failures (Types A and F): explicit reflection helps the weaker model identify arithmetic mistakes and produce better corrective tool-use strategies.\n\nGSM8K-32B. GSM8K-32B provides a revealing contrast. Although protocol-induced errors remain prevalent overall (75.8%; Table 4), gap closure reaches only 23.21%. Two factors likely explain this. First, a much larger share of the 32B model\u2019s protocol-induced errors comes from \u2206\u2212sty (24.9% vs. 11.4% for 4B), i.e., format-sensitivity errors that additional tool turns cannot repair because the degradation occurs at the prompting stage rather than during iterative tool use. Second, even within the targeted \u2206\u2212frc errors, the 32B model appears less able to generate genuinely new corrective strategies in later turns. The minimal CRITIC gain (+0.40%) is consistent with this interpretation and with the observation in \u00a72.4 that larger models are more sensitive to rigid format constraints than to invocation mechanics.\n\nHotPotQA-4B. HotPotQA-4B presents a much narrower gap (\u22123.69%), and 77.3% of Agent-Full errors are genuine capability gaps (Table 4). The gate improves accuracy from 73.18% to 74.97%, a modest +1.79% gain. Although this corresponds to 48.51% gap closure, the absolute improvement is limited by the small protocol-induced error budget (22.7%). The CRITIC variant (74.53%) performs slightly worse than the base gate, suggesting that on retrieval-heavy tasks, direct tool re-engagement is more useful than interleaved verbal reflection.\n\nHotPotQA-32B. HotPotQA-32B is the most constrained setting: the gap is only \u22121.13%, and 73.3% of errors are genuine. Accordingly, the gate provides no measurable improvement (83.02% \u2192 82.90%), while CRITIC further reduces accuracy to 82.10%. This directly supports our decomposition: when most errors arise from a genuine inability to synthesize information across passages, additional tool turns offer little help. The bottleneck lies in un-",
+      "tables": [],
+      "bounding_boxes": [
+        {
+          "x0": 75.928,
+          "y0": 669.964,
+          "x1": 261.865,
+          "y1": 697.051
+        },
+        {
+          "x0": 81.775,
+          "y0": 620.797,
+          "x1": 264.913,
+          "y1": 668.842
+        },
+        {
+          "x0": 81.23,
+          "y0": 509.339,
+          "x1": 269.84,
+          "y1": 628.194
+        },
+        {
+          "x0": 97.992,
+          "y0": 497.578,
+          "x1": 256.174,
+          "y1": 508.618
+        },
+        {
+          "x0": 98.537,
+          "y0": 450.233,
+          "x1": 200.352,
+          "y1": 495.069
+        },
+        {
+          "x0": 114.754,
+          "y0": 438.473,
+          "x1": 256.572,
+          "y1": 449.513
+        },
+        {
+          "x0": 115.3,
+          "y0": 389.283,
+          "x1": 257.118,
+          "y1": 435.963
+        },
+        {
+          "x0": 98.537,
+          "y0": 381.49,
+          "x1": 115.501,
+          "y1": 395.683
+        },
+        {
+          "x0": 114.754,
+          "y0": 342.632,
+          "x1": 268.027,
+          "y1": 380.77
+        },
+        {
+          "x0": 115.3,
+          "y0": 320.541,
+          "x1": 217.248,
+          "y1": 341.094
+        },
+        {
+          "x0": 115.3,
+          "y0": 288.533,
+          "x1": 240.851,
+          "y1": 326.574
+        },
+        {
+          "x0": 131.516,
+          "y0": 242.878,
+          "x1": 268.425,
+          "y1": 294.566
+        },
+        {
+          "x0": 115.3,
+          "y0": 212.995,
+          "x1": 226.051,
+          "y1": 241.34
+        },
+        {
+          "x0": 131.516,
+          "y0": 201.235,
+          "x1": 262.425,
+          "y1": 212.275
+        },
+        {
+          "x0": 132.062,
+          "y0": 158.798,
+          "x1": 261.815,
+          "y1": 198.725
+        },
+        {
+          "x0": 306.142,
+          "y0": 743.451,
+          "x1": 526.219,
+          "y1": 770.538
+        },
+        {
+          "x0": 306.142,
+          "y0": 716.352,
+          "x1": 524.125,
+          "y1": 743.763
+        },
+        {
+          "x0": 305.782,
+          "y0": 594.409,
+          "x1": 526.318,
+          "y1": 715.948
+        },
+        {
+          "x0": 305.869,
+          "y0": 355.04,
+          "x1": 526.225,
+          "y1": 585.365
+        },
+        {
+          "x0": 305.76,
+          "y0": 196.966,
+          "x1": 524.415,
+          "y1": 345.996
+        },
+        {
+          "x0": 305.749,
+          "y0": 65.991,
+          "x1": 526.225,
+          "y1": 187.922
+        }
+      ],
+      "confidence_scores": [],
+      "metadata": {
+        "source_file": "native_2.pdf",
+        "latency_ms": null,
+        "cost_usd": null,
+        "extra": {
+          "status": "ok",
+          "schema": "kids"
+        }
+      }
+    },
+    {
+      "tool_name": "opendataloader",
+      "page_number": 17,
+      "extracted_text": "derlying reasoning capability rather than protocol execution.\n\nJ Variant-wise Robustness Under Semantic Distractors\n\nFigure 4 reports accuracy across the four semantic distractor categories (TB, SP, PED, HU) for Qwen3-4B and Qwen3-32B on GSM8K and HotPotQA. Across variants, GATE and GATE+CRITIC consistently improve over AGENTFULL, indicating that gate-based control mitigates part of the degradation introduced by semantic distractors. The effect is most pronounced in fragile GSM8K settings; for example, on GSM8K-4B under PED, accuracy increases from 44.4% to 70.4% with GATE+CRITIC. This suggests that dynamic routing is not only an average-case improvement, but also a robustness mechanism against semantically relevant noise.\n\nAt the same time, COT remains the strongest overall reference under distractors. Across variants, gated tool use narrows but does not eliminate the gap to COT, suggesting that multi-turn tool interaction remains more vulnerable to distractor amplification than internal reasoning. This limitation is especially visible on HotPotQA-32B, where all methods remain tightly clustered, indicating that when the dominant bottleneck is genuine information synthesis rather than protocol execution, robustness gains from gate-based control are inherently limited.\n\nOverall, the variant-wise results support the same qualitative conclusion as the main text: semantic distractors consistently expose the CoT\u2013 Tool gap, while gate-based control provides partial but not complete mitigation, with larger benefits in protocol-dominated settings than in capabilitydominated ones.\n\nK Prompt\n\nK.1 The Prompt for Generating Sem-Distractor\n\nIn this section, we provide the prompts for generating distractors in Figure 5, Figure 6, Figure 7 and Figure 8.\n\nK.2 The Prompt for Intervention Framework\n\nIn this section, we provide the prompts for Intervertion Framework in Figure 9 and Figure 10.\n\nK.3 The Prompt for Gate Mitigation In this section, we provide the prompts for Gate and Gate+Critic.\n\nThe Original Gate prompt is in Figure 11. The critic-style Gate prompt are in Figure 12,\n\nFigure 13, Figure 14 and Figure 15.\n\nThe difference between original gate prompt and critic gate is the critic-style prompt tends to perform explicit verbal reasoning first, and then decides whether to re-trigger the tool.\n\nL Results in Noisy Condition\n\nIn this section, we provide the full detailed results for GSM8K and HotPotQA across all conditions, variants, and metrics. The results are shown in Table 12, Table 13 and Table 14.\n\nLimitations\n\nThis document does not cover the content requirements for ACL or any other specific venue. Check the author instructions for information on maximum page lengths, the required \u201cLimitations\u201d section, and so on.",
+      "tables": [],
+      "bounding_boxes": [
+        {
+          "x0": 70.866,
+          "y0": 743.451,
+          "x1": 289.132,
+          "y1": 770.145
+        },
+        {
+          "x0": 70.866,
+          "y0": 700.006,
+          "x1": 249.513,
+          "y1": 729.508
+        },
+        {
+          "x0": 70.473,
+          "y0": 500.589,
+          "x1": 290.959,
+          "y1": 689.874
+        },
+        {
+          "x0": 70.866,
+          "y0": 336.636,
+          "x1": 290.949,
+          "y1": 498.822
+        },
+        {
+          "x0": 70.528,
+          "y0": 240.429,
+          "x1": 290.941,
+          "y1": 334.87
+        },
+        {
+          "x0": 70.866,
+          "y0": 210.932,
+          "x1": 131.084,
+          "y1": 226.486
+        },
+        {
+          "x0": 70.866,
+          "y0": 173.451,
+          "x1": 226.746,
+          "y1": 201.193
+        },
+        {
+          "x0": 70.866,
+          "y0": 126.826,
+          "x1": 290.948,
+          "y1": 167.069
+        },
+        {
+          "x0": 70.866,
+          "y0": 99.066,
+          "x1": 289.374,
+          "y1": 113.259
+        },
+        {
+          "x0": 70.866,
+          "y0": 65.991,
+          "x1": 290.949,
+          "y1": 92.685
+        },
+        {
+          "x0": 306.142,
+          "y0": 725.974,
+          "x1": 524.415,
+          "y1": 770.538
+        },
+        {
+          "x0": 317.051,
+          "y0": 698.876,
+          "x1": 525.777,
+          "y1": 725.57
+        },
+        {
+          "x0": 306.142,
+          "y0": 685.326,
+          "x1": 461.891,
+          "y1": 698.471
+        },
+        {
+          "x0": 306.142,
+          "y0": 631.13,
+          "x1": 526.217,
+          "y1": 684.922
+        },
+        {
+          "x0": 306.142,
+          "y0": 606.352,
+          "x1": 461.918,
+          "y1": 621.906
+        },
+        {
+          "x0": 305.804,
+          "y0": 545.803,
+          "x1": 525.772,
+          "y1": 599.596
+        },
+        {
+          "x0": 306.142,
+          "y0": 521.026,
+          "x1": 365.26,
+          "y1": 536.58
+        },
+        {
+          "x0": 305.804,
+          "y0": 446.928,
+          "x1": 526.222,
+          "y1": 514.27
+        }
+      ],
+      "confidence_scores": [],
+      "metadata": {
+        "source_file": "native_2.pdf",
+        "latency_ms": null,
+        "cost_usd": null,
+        "extra": {
+          "status": "ok",
+          "schema": "kids"
+        }
+      }
+    },
+    {
+      "tool_name": "opendataloader",
+      "page_number": 18,
+      "extracted_text": "Qwen3-4B Qwen3-32B Base TB PED HU SP Overall Base TB PED HU SP Overall\n\nCondition Metric\n\nAcc (%) 91.00 86.80 81.40 83.60 84.40 85.44 94.00 92.80 89.40 89.80 91.00 91.40 Ev-F1 (%) 89.78 89.72 89.99 78.15 19.44 73.41 92.48 93.35 95.24 85.89 35.00 80.39 AvgCalls 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00\n\nNoTool-CoT\n\nAcc (%) 85.80 85.80 82.20 86.60 83.80 84.84 80.00 80.40 75.40 76.40 80.60 78.56 Ev-F1 (%) 85.70 90.80 92.12 82.01 19.53 74.03 89.45 95.14 96.71 88.53 33.34 80.63\n\nNoTool-FCStyle\n\nAcc (%) 51.20 54.20 48.00 57.40 49.60 52.08 77.60 76.60 73.80 73.20 77.60 75.76 Ev-F1 (%) 84.78 87.81 88.77 83.11 19.45 72.78 89.01 93.02 95.26 87.42 30.03 78.95\n\nAgent-Full\n\nAcc (%) 87.20 92.60 91.40 88.80 86.00 89.20 94.40 91.80 95.00 93.00 92.80 93.40 Ev-F1 (%) 84.09 88.08 89.24 83.47 20.13 73.00 89.17 93.38 95.18 87.75 30.19 79.13 AvgCalls 1.20 1.28 1.34 1.37 1.55 1.35 1.00 1.02 1.02 1.03 1.10 1.03\n\nAgent-OracleCalc\n\nAcc (%) 50.00 53.00 53.00 53.20 53.20 52.48 78.80 79.80 80.00 80.00 80.00 79.72 Ev-F1 (%) 84.17 85.20 85.23 85.19 85.19 84.99 89.08 90.47 90.45 90.45 90.45 90.18 AvgCalls 1.28 1.24 1.24 1.24 1.24 1.25 1.02 1.03 1.03 1.03 1.03 1.03\n\nAgent-OracleEvid",
+      "tables": [],
+      "bounding_boxes": [
+        {
+          "x0": 190.6,
+          "y0": 732.553,
+          "x1": 524.41,
+          "y1": 759.899
+        },
+        {
+          "x0": 70.866,
+          "y0": 742.953,
+          "x1": 169.747,
+          "y1": 754.619
+        },
+        {
+          "x0": 143.864,
+          "y0": 694.199,
+          "x1": 521.116,
+          "y1": 726.922
+        },
+        {
+          "x0": 70.866,
+          "y0": 705.358,
+          "x1": 116.971,
+          "y1": 716.163
+        },
+        {
+          "x0": 143.864,
+          "y0": 666.804,
+          "x1": 521.116,
+          "y1": 688.568
+        },
+        {
+          "x0": 70.866,
+          "y0": 667.004,
+          "x1": 130.43,
+          "y1": 677.809
+        },
+        {
+          "x0": 143.864,
+          "y0": 617.491,
+          "x1": 518.875,
+          "y1": 666.65
+        },
+        {
+          "x0": 143.864,
+          "y0": 590.096,
+          "x1": 521.116,
+          "y1": 611.86
+        },
+        {
+          "x0": 70.866,
+          "y0": 590.295,
+          "x1": 110.22,
+          "y1": 601.1
+        },
+        {
+          "x0": 143.864,
+          "y0": 546.26,
+          "x1": 518.875,
+          "y1": 589.942
+        },
+        {
+          "x0": 143.864,
+          "y0": 507.906,
+          "x1": 521.116,
+          "y1": 540.629
+        },
+        {
+          "x0": 70.866,
+          "y0": 519.064,
+          "x1": 136.097,
+          "y1": 529.869
+        },
+        {
+          "x0": 143.864,
+          "y0": 469.552,
+          "x1": 521.116,
+          "y1": 502.275
+        },
+        {
+          "x0": 70.866,
+          "y0": 480.71,
+          "x1": 136.599,
+          "y1": 491.515
+        },
+        {
+          "x0": 70.557,
+          "y0": 77.979,
+          "x1": 524.406,
+          "y1": 457.266
+        }
+      ],
+      "confidence_scores": [],
+      "metadata": {
+        "source_file": "native_2.pdf",
+        "latency_ms": null,
+        "cost_usd": null,
+        "extra": {
+          "status": "ok",
+          "schema": "kids"
+        }
+      }
+    },
+    {
+      "tool_name": "opendataloader",
+      "page_number": 19,
+      "extracted_text": "Figure 4: Performance comparison of different reasoning strategies under semantic noise. The radar charts display the accuracy of Qwen3-4B, Qwen3-32B, and GPT-4.1-mini on GSM8K and HotPotQA. Each subplot contrasts four configurations (COT, AGENT-FULL, GATE, GATE+CRITIC) evaluated across a clean base set and four noisy variants (TB, PED, HU, SP).\n\nThe prompt used for generating Thematic Background (TB) filler\n\nPrompt: \"You are generating IN-DOMAIN background filler for a math word problem. These sentences should SOUND relevant to the same general topic/domain, but MUST NOT help solve the problem.\n\nReturn STRICT JSON ONLY: {{ \"topic\": \"<topic>\", \"before\": [<exactly {BEFORE_N} short sentences>], \"after\": [<exactly {AFTER_N} short sentences>] }}\n\nHARD RULES (must follow):\n\nOutput Input: Problem core (evidence-centric view): {Q_CORE_TEXT} Output:\n\nFigure 5: The prompt used for generating Thematic Background (TB) Distractor.",
+      "tables": [],
+      "bounding_boxes": [
+        {
+          "x0": 70.866,
+          "y0": 645.012,
+          "x1": 524.402,
+          "y1": 746.491
+        },
+        {
+          "x0": 70.617,
+          "y0": 588.016,
+          "x1": 524.761,
+          "y1": 635.886
+        },
+        {
+          "x0": 86.57,
+          "y0": 518.052,
+          "x1": 321.149,
+          "y1": 528.857
+        },
+        {
+          "x0": 78.338,
+          "y0": 473.46,
+          "x1": 516.933,
+          "y1": 514.096
+        },
+        {
+          "x0": 76.244,
+          "y0": 378.615,
+          "x1": 312.589,
+          "y1": 459.506
+        },
+        {
+          "x0": 78.338,
+          "y0": 351.517,
+          "x1": 211.265,
+          "y1": 364.662
+        },
+        {
+          "x0": 77.52,
+          "y0": 175.377,
+          "x1": 518.85,
+          "y1": 351.113
+        },
+        {
+          "x0": 77.945,
+          "y0": 127.953,
+          "x1": 364.779,
+          "y1": 168.512
+        },
+        {
+          "x0": 136.165,
+          "y0": 94.375,
+          "x1": 459.113,
+          "y1": 106.379
+        }
+      ],
+      "confidence_scores": [],
+      "metadata": {
+        "source_file": "native_2.pdf",
+        "latency_ms": null,
+        "cost_usd": null,
+        "extra": {
+          "status": "ok",
+          "schema": "kids"
+        }
+      }
+    },
+    {
+      "tool_name": "opendataloader",
+      "page_number": 20,
+      "extracted_text": "The prompt used for generating Parrallel Entity Distractor (PED)\n\nPrompt:\n\n\"You are generating TOPIC-RELATED distractors that must be LOGICALLY EXCLUDED from the problem. They should share surface-level domain words, but clearly refer to a different person/time/place/event.\n\nReturn STRICT JSON ONLY: {{ \"topic\": \"<topic>\", \"before\": [<exactly {BEFORE_N} short sentences>], \"after\": [<exactly {AFTER_N} short sentences>] }}\n\nHARD RULES (must follow):\n\nOutput Input: Problem core (evidence-centric view): {Q_CORE_TEXT} Output:\n\nFigure 6: The prompt used for generating Parrallel Entity Distractor (PED).",
+      "tables": [],
+      "bounding_boxes": [
+        {
+          "x0": 86.57,
+          "y0": 632.975,
+          "x1": 320.019,
+          "y1": 643.78
+        },
+        {
+          "x0": 78.338,
+          "y0": 614.826,
+          "x1": 117.523,
+          "y1": 629.019
+        },
+        {
+          "x0": 78.338,
+          "y0": 574.833,
+          "x1": 516.942,
+          "y1": 615.077
+        },
+        {
+          "x0": 76.244,
+          "y0": 479.989,
+          "x1": 312.589,
+          "y1": 560.88
+        },
+        {
+          "x0": 78.338,
+          "y0": 452.891,
+          "x1": 211.265,
+          "y1": 466.036
+        },
+        {
+          "x0": 77.52,
+          "y0": 276.751,
+          "x1": 518.297,
+          "y1": 452.487
+        },
+        {
+          "x0": 77.945,
+          "y0": 229.327,
+          "x1": 364.779,
+          "y1": 269.886
+        },
+        {
+          "x0": 147.029,
+          "y0": 195.749,
+          "x1": 448.248,
+          "y1": 207.753
+        }
+      ],
+      "confidence_scores": [],
+      "metadata": {
+        "source_file": "native_2.pdf",
+        "latency_ms": null,
+        "cost_usd": null,
+        "extra": {
+          "status": "ok",
+          "schema": "kids"
+        }
+      }
+    },
+    {
+      "tool_name": "opendataloader",
+      "page_number": 21,
+      "extracted_text": "The prompt used for generating Hedged Uncertainty(HU) Distractor\n\nPrompt: \"You are generating TOPIC-RELATED statements that sound like evidence but are epistemically UNCERTAIN. These should not create contradictions that make the problem unsolvable.\n\nReturn STRICT JSON ONLY: {{ \"topic\": \"<topic>\", \"before\": [<exactly {BEFORE_N} short sentences>], \"after\": [<exactly {AFTER_N} short sentences>] }}\n\nHARD RULES (must follow):\n\nOutput Input: Problem core (evidence-centric view): {Q_CORE_TEXT} Output:\n\nFigure 7: The prompt used for generating Hedged Uncertainty(HU) Distractor.",
+      "tables": [],
+      "bounding_boxes": [
+        {
+          "x0": 86.57,
+          "y0": 639.75,
+          "x1": 331.837,
+          "y1": 650.555
+        },
+        {
+          "x0": 78.338,
+          "y0": 595.157,
+          "x1": 517.32,
+          "y1": 635.794
+        },
+        {
+          "x0": 76.244,
+          "y0": 500.313,
+          "x1": 312.589,
+          "y1": 581.204
+        },
+        {
+          "x0": 78.338,
+          "y0": 473.215,
+          "x1": 211.265,
+          "y1": 486.36
+        },
+        {
+          "x0": 77.247,
+          "y0": 269.977,
+          "x1": 518.306,
+          "y1": 472.81
+        },
+        {
+          "x0": 77.945,
+          "y0": 222.552,
+          "x1": 364.779,
+          "y1": 263.112
+        },
+        {
+          "x0": 140.738,
+          "y0": 188.975,
+          "x1": 454.54,
+          "y1": 200.979
+        }
+      ],
+      "confidence_scores": [],
+      "metadata": {
+        "source_file": "native_2.pdf",
+        "latency_ms": null,
+        "cost_usd": null,
+        "extra": {
+          "status": "ok",
+          "schema": "kids"
+        }
+      }
+    },
+    {
+      "tool_name": "opendataloader",
+      "page_number": 22,
+      "extracted_text": "The prompt used for generating Semantic Paraphrase (SP) Distractor\n\nPrompt:\n\n\"You are generating SEMANTICS-PRESERVING PARAPHRASES of the EVIDENCE sentences in a word problem. Your output will be inserted BEFORE and AFTER the evidence as paraphrase fillers.\n\nReturn STRICT JSON ONLY: {{ \"topic\": \"<topic>\", \"before\": [<exactly {BEFORE_N} short sentences>], \"after\": [<exactly {AFTER_N} short sentences>] }}\n\nHARD RULES (must follow):\n\nOutput Input: Problem core (evidence-centric view): {Q_CORE_TEXT} Output:\n\nFigure 8: The prompt used for generating Semantic Paraphrase (SP) Distractor.",
+      "tables": [],
+      "bounding_boxes": [
+        {
+          "x0": 86.57,
+          "y0": 666.848,
+          "x1": 333.46,
+          "y1": 677.653
+        },
+        {
+          "x0": 78.338,
+          "y0": 648.699,
+          "x1": 117.523,
+          "y1": 662.892
+        },
+        {
+          "x0": 78.338,
+          "y0": 622.256,
+          "x1": 516.942,
+          "y1": 648.95
+        },
+        {
+          "x0": 76.244,
+          "y0": 527.411,
+          "x1": 312.589,
+          "y1": 608.302
+        },
+        {
+          "x0": 78.338,
+          "y0": 500.313,
+          "x1": 211.265,
+          "y1": 513.458
+        },
+        {
+          "x0": 77.52,
+          "y0": 242.878,
+          "x1": 517.546,
+          "y1": 499.909
+        },
+        {
+          "x0": 77.945,
+          "y0": 195.454,
+          "x1": 364.779,
+          "y1": 236.013
+        },
+        {
+          "x0": 139.836,
+          "y0": 161.876,
+          "x1": 455.441,
+          "y1": 173.88
+        }
+      ],
+      "confidence_scores": [],
+      "metadata": {
+        "source_file": "native_2.pdf",
+        "latency_ms": null,
+        "cost_usd": null,
+        "extra": {
+          "status": "ok",
+          "schema": "kids"
+        }
+      }
+    },
+    {
+      "tool_name": "opendataloader",
+      "page_number": 23,
+      "extracted_text": "The prompt used for NoTool-CoT\n\nPrompt: \"You are a careful math solver. Read the numbered information chunks below. Some chunks are noise\n\n\u2014 use only the relevant ones as evidence.\n\nRules:\n\nOutput Input: {NUMBERED_CHUNKS} Output:",
+      "tables": [],
+      "bounding_boxes": [
+        {
+          "x0": 86.57,
+          "y0": 584.756,
+          "x1": 208.379,
+          "y1": 595.561
+        },
+        {
+          "x0": 78.338,
+          "y0": 553.712,
+          "x1": 516.935,
+          "y1": 580.799
+        },
+        {
+          "x0": 76.156,
+          "y0": 540.163,
+          "x1": 258.327,
+          "y1": 553.308
+        },
+        {
+          "x0": 78.338,
+          "y0": 513.064,
+          "x1": 106.222,
+          "y1": 526.209
+        },
+        {
+          "x0": 77.52,
+          "y0": 391.121,
+          "x1": 516.942,
+          "y1": 512.66
+        },
+        {
+          "x0": 76.527,
+          "y0": 336.925,
+          "x1": 443.627,
+          "y1": 390.717
+        },
+        {
+          "x0": 77.945,
+          "y0": 289.5,
+          "x1": 230.182,
+          "y1": 330.06
+        },
+        {
+          "x0": 70.866,
+          "y0": 243.969,
+          "x1": 524.405,
+          "y1": 267.928
+        }
+      ],
+      "confidence_scores": [],
+      "metadata": {
+        "source_file": "native_2.pdf",
+        "latency_ms": null,
+        "cost_usd": null,
+        "extra": {
+          "status": "ok",
+          "schema": "kids"
+        }
+      }
+    },
+    {
+      "tool_name": "opendataloader",
+      "page_number": 24,
+      "extracted_text": "The prompt used for the tool-augmented solver\n\nPrompt: \"You are a math-solving agent with a \u2019calculate\u2019 function for arithmetic. You will see a question and numbered information chunks. Some chunks are noise \u2014 identify the real evidence.\n\nStrategy:\n\nAfter all calculations, respond with JSON: { \"evidence_ids\": [integer chunk indices that are real evidence], \"final_answer\": \"the numeric answer (just the number, no units)\", \"reasoning\": \"brief explanation of which chunks you used and why\" }\n\nCRITICAL RULES:\n\nOutput Input: {QUESTION}, {NUMBERED_CHUNKS} Output:",
+      "tables": [],
+      "bounding_boxes": [
+        {
+          "x0": 86.57,
+          "y0": 748.691,
+          "x1": 255.775,
+          "y1": 759.496
+        },
+        {
+          "x0": 78.338,
+          "y0": 704.099,
+          "x1": 516.94,
+          "y1": 744.735
+        },
+        {
+          "x0": 78.338,
+          "y0": 677.0,
+          "x1": 117.567,
+          "y1": 690.145
+        },
+        {
+          "x0": 77.52,
+          "y0": 609.254,
+          "x1": 518.305,
+          "y1": 676.596
+        },
+        {
+          "x0": 76.244,
+          "y0": 514.41,
+          "x1": 375.622,
+          "y1": 595.301
+        },
+        {
+          "x0": 78.338,
+          "y0": 487.312,
+          "x1": 168.513,
+          "y1": 500.457
+        },
+        {
+          "x0": 76.527,
+          "y0": 433.115,
+          "x1": 443.627,
+          "y1": 486.908
+        },
+        {
+          "x0": 77.945,
+          "y0": 385.691,
+          "x1": 300.535,
+          "y1": 426.25
+        },
+        {
+          "x0": 70.866,
+          "y0": 80.033,
+          "x1": 524.413,
+          "y1": 364.117
+        }
+      ],
+      "confidence_scores": [],
+      "metadata": {
+        "source_file": "native_2.pdf",
+        "latency_ms": null,
+        "cost_usd": null,
+        "extra": {
+          "status": "ok",
+          "schema": "kids"
+        }
+      }
+    },
+    {
+      "tool_name": "opendataloader",
+      "page_number": 25,
+      "extracted_text": "The prompt used for error correction in thesolver\n\nPrompt:\n\n\"Calculator returned: {prev_output}. Before calling calculate again, reason in words: which numbers from evidence do you need, and what is the correct step-by-step plan? Then call calculate with a CORRECTED expression (not the same one). Return final JSON after.\"\n\nOutput Input: Calculator returned: {prev_output} Output:",
+      "tables": [],
+      "bounding_boxes": [
+        {
+          "x0": 86.57,
+          "y0": 754.445,
+          "x1": 262.482,
+          "y1": 765.25
+        },
+        {
+          "x0": 78.338,
+          "y0": 736.296,
+          "x1": 117.523,
+          "y1": 750.489
+        },
+        {
+          "x0": 78.338,
+          "y0": 696.303,
+          "x1": 516.942,
+          "y1": 736.546
+        },
+        {
+          "x0": 77.945,
+          "y0": 648.879,
+          "x1": 262.059,
+          "y1": 689.438
+        },
+        {
+          "x0": 70.866,
+          "y0": 74.28,
+          "x1": 524.413,
+          "y1": 627.305
+        }
+      ],
+      "confidence_scores": [],
+      "metadata": {
+        "source_file": "native_2.pdf",
+        "latency_ms": null,
+        "cost_usd": null,
+        "extra": {
+          "status": "ok",
+          "schema": "kids"
+        }
+      }
+    },
+    {
+      "tool_name": "opendataloader",
+      "page_number": 26,
+      "extracted_text": "GSM8K HotPotQA Base TB PED HU SP Overall Base TB PED HU SP Overall\n\nCondition Metric\n\nAcc (%) 93.20 91.00 89.20 90.40 89.80 90.72 87.96 87.96 87.96 87.68 83.75 87.06 Ev-F1 (%) 90.99 94.44 95.62 86.86 25.91 78.76 49.47 52.26 53.10 50.07 22.48 45.48 AvgCalls 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00\n\nNoTool-CoT\n\nAcc (%) 88.20 85.20 86.20 87.60 86.60 86.76 86.55 84.59 86.27 85.15 85.71 85.66 Ev-F1 (%) 88.60 96.40 96.44 88.52 25.49 79.09 60.10 66.01 65.97 62.04 27.38 56.30 AvgCalls 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00\n\nNoTool-FCStyle\n\nAcc (%) 48.20 48.00 46.00 49.80 52.20 48.84 85.43 84.87 84.59 84.87 84.59 84.87 Ev-F1 (%) 89.42 95.78 96.39 88.28 24.80 78.93 55.77 65.32 65.05 58.82 23.74 53.74 AvgCalls 1.18 1.11 1.11 1.05 1.65 1.22 1.17 1.55 1.68 1.62 1.45 1.49\n\nAgent-NoopTool\n\nAcc (%) 75.40 76.00 76.60 77.80 77.20 76.60 87.11 85.99 87.11 86.55 85.43 86.44 Ev-F1 (%) 89.77 95.52 95.27 88.83 23.73 78.63 58.21 60.25 60.37 56.75 33.76 53.87 AvgCalls 1.30 1.29 1.32 1.21 2.15 1.45 1.17 1.45 1.59 1.67 1.69 1.51\n\nAgent-Full\n\nAcc (%) 72.00 74.20 70.80 73.60 73.80 72.88 86.55 85.99 85.71 85.99 86.83 86.22 Ev-F1 (%) 77.15 83.93 83.99 80.98 13.69 67.95 58.35 62.06 61.28 56.84 32.42 54.19 AvgCalls 1.22 1.23 1.20 1.13 2.10 1.37 1.00 1.00 1.00 1.00 1.00 1.00\n\nAgent-Max1Turn\n\nAcc (%) 84.20 85.40 82.60 82.60 76.40 82.24 91.88 92.16 91.04 92.72 90.76 91.71 Ev-F1 (%) 89.47 95.62 95.68 88.16 25.17 78.82 54.14 62.84 62.91 58.29 23.04 52.24\n\nAgent-OracleCalc",
+      "tables": [],
+      "bounding_boxes": [
+        {
+          "x0": 186.28,
+          "y0": 561.047,
+          "x1": 526.591,
+          "y1": 588.392
+        },
+        {
+          "x0": 70.866,
+          "y0": 571.446,
+          "x1": 166.466,
+          "y1": 583.112
+        },
+        {
+          "x0": 140.583,
+          "y0": 522.692,
+          "x1": 523.296,
+          "y1": 555.415
+        },
+        {
+          "x0": 70.866,
+          "y0": 533.851,
+          "x1": 116.971,
+          "y1": 544.656
+        },
+        {
+          "x0": 140.583,
+          "y0": 484.338,
+          "x1": 523.296,
+          "y1": 517.061
+        },
+        {
+          "x0": 70.866,
+          "y0": 495.497,
+          "x1": 130.43,
+          "y1": 506.302
+        },
+        {
+          "x0": 140.583,
+          "y0": 445.984,
+          "x1": 523.296,
+          "y1": 478.707
+        },
+        {
+          "x0": 70.866,
+          "y0": 457.143,
+          "x1": 131.909,
+          "y1": 467.948
+        },
+        {
+          "x0": 140.583,
+          "y0": 407.63,
+          "x1": 523.296,
+          "y1": 440.353
+        },
+        {
+          "x0": 70.866,
+          "y0": 418.788,
+          "x1": 110.22,
+          "y1": 429.593
+        },
+        {
+          "x0": 140.583,
+          "y0": 374.753,
+          "x1": 523.296,
+          "y1": 407.476
+        },
+        {
+          "x0": 70.866,
+          "y0": 385.912,
+          "x1": 133.711,
+          "y1": 396.717
+        },
+        {
+          "x0": 140.583,
+          "y0": 347.358,
+          "x1": 523.296,
+          "y1": 369.122
+        },
+        {
+          "x0": 70.866,
+          "y0": 347.558,
+          "x1": 136.097,
+          "y1": 358.363
+        },
+        {
+          "x0": 140.583,
+          "y0": 298.045,
+          "x1": 521.054,
+          "y1": 347.204
+        },
+        {
+          "x0": 70.557,
+          "y0": 249.486,
+          "x1": 526.147,
+          "y1": 285.759
+        }
+      ],
+      "confidence_scores": [],
+      "metadata": {
+        "source_file": "native_2.pdf",
+        "latency_ms": null,
+        "cost_usd": null,
+        "extra": {
+          "status": "ok",
+          "schema": "kids"
+        }
+      }
+    }
+  ],
+  "total_pages": 26
+}

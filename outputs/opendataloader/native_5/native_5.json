@@ -1,0 +1,406 @@
+{
+  "file name" : "native_5.pdf",
+  "number of pages" : 3,
+  "author" : "Nicolae Cocan",
+  "title" : null,
+  "creation date" : "D:20220208093127+02'00'",
+  "modification date" : "D:20220208093127+02'00'",
+  "kids" : [ {
+    "type" : "heading",
+    "pdfua_tag" : "H1",
+    "id" : 11,
+    "level" : "Doctitle",
+    "page number" : 1,
+    "bounding box" : [ 72.024, 650.86, 216.02, 684.628 ],
+    "heading level" : 1,
+    "font" : "Arial-BoldMT",
+    "font size" : 36.0,
+    "text color" : "[0.0]",
+    "content" : "notapino"
+  }, {
+    "type" : "paragraph",
+    "pdfua_tag" : "P",
+    "id" : 12,
+    "page number" : 1,
+    "bounding box" : [ 72.024, 605.222, 207.758, 637.177 ],
+    "font" : "ArialMT",
+    "font size" : 11.04,
+    "text color" : "[0.0]",
+    "content" : "Ria de Goa 1 Amadora, Lisbon, 2720-059"
+  }, {
+    "type" : "list",
+    "pdfua_tag" : "L",
+    "id" : 13,
+    "level" : "1",
+    "page number" : 1,
+    "bounding box" : [ 72.024, 174.342, 347.016, 593.857 ],
+    "numbering style" : "arabic numbers",
+    "number of list items" : 2,
+    "list items" : [ {
+      "type" : "list item",
+      "pdfua_tag" : "LI",
+      "page number" : 1,
+      "bounding box" : [ 72.024, 561.902, 173.117, 593.857 ],
+      "font" : "ArialMT",
+      "font size" : 11.04,
+      "text color" : "[0.0]",
+      "content" : "+351 21 474 1957 contact@notapino.pt",
+      "kids" : [ {
+        "type" : "paragraph",
+        "pdfua_tag" : "P",
+        "id" : 1,
+        "page number" : 1,
+        "bounding box" : [ 72.024, 436.592, 531.774, 528.787 ],
+        "font" : "ArialMT",
+        "font size" : 11.04,
+        "text color" : "[0.0]",
+        "content" : "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Leo integer malesuada nunc vel risus. Elit ut aliquam purus sit amet luctus. Nibh cras pulvinar mattis nunc sed blandit libero. Congue nisi vitae suscipit tellus mauris a diam. Iaculis eu non diam phasellus vestibulum lorem sed risus. Dictumst quisque sagittis purus sit amet. Neque gravida in fermentum et sollicitudin ac orci phasellus egestas. Tincidunt ornare massa eget egestas purus viverra. Id porta nibh venenatis cras sed felis eget. Porttitor rhoncus dolor purus non enim praesent elementum facilisis."
+      }, {
+        "type" : "paragraph",
+        "pdfua_tag" : "P",
+        "id" : 2,
+        "page number" : 1,
+        "bounding box" : [ 72.024, 350.052, 199.253, 403.627 ],
+        "font" : "ArialMT",
+        "font size" : 11.04,
+        "text color" : "[0.0]",
+        "content" : "Invoice number: NP#00183 Date: 24.06.2020 Due-date: 24.09.2020"
+      }, {
+        "type" : "paragraph",
+        "pdfua_tag" : "P",
+        "id" : 6,
+        "page number" : 1,
+        "bounding box" : [ 72.024, 310.122, 286.357, 317.663 ],
+        "font" : "Arial-BoldMT",
+        "font size" : 8.04,
+        "text color" : "[0.0]",
+        "content" : "Billing Shipping"
+      }, {
+        "type" : "paragraph",
+        "pdfua_tag" : "P",
+        "id" : 8,
+        "page number" : 1,
+        "bounding box" : [ 72.024, 283.018, 361.737, 297.989 ],
+        "font" : "Arial-BoldMT",
+        "font size" : 15.96,
+        "text color" : "[0.0]",
+        "content" : "Actoonda Actoonda"
+      }, {
+        "type" : "paragraph",
+        "pdfua_tag" : "P",
+        "id" : 9,
+        "page number" : 1,
+        "bounding box" : [ 72.024, 239.292, 393.448, 271.247 ],
+        "font" : "ArialMT",
+        "font size" : 11.04,
+        "text color" : "[0.0]",
+        "content" : "Rua Godinho 634 Rua Godinho 634 Matosinhos, Porto, 4450-147 Matosinhos, Porto, 4450-147"
+      } ]
+    }, {
+      "type" : "list item",
+      "pdfua_tag" : "LI",
+      "page number" : 1,
+      "bounding box" : [ 72.024, 174.342, 347.016, 206.327 ],
+      "font" : "ArialMT",
+      "font size" : 11.04,
+      "text color" : "[0.0]",
+      "content" : "+351 22 938 0548 +351 22 938 0548 office@actoonda.pt office@actoonda.pt",
+      "kids" : [ ]
+    } ]
+  }, {
+    "type" : "paragraph",
+    "pdfua_tag" : "P",
+    "id" : 14,
+    "page number" : 1,
+    "bounding box" : [ 72.024, 131.022, 321.216, 141.377 ],
+    "font" : "ArialMT",
+    "font size" : 11.04,
+    "text color" : "[0.0]",
+    "content" : "PT285637271 PT285637271"
+  }, {
+    "type" : "paragraph",
+    "pdfua_tag" : "P",
+    "id" : 10,
+    "page number" : 1,
+    "bounding box" : [ 474.34, 701.628, 539.968, 716.599 ],
+    "font" : "ArialMT",
+    "font size" : 15.96,
+    "text color" : "[0.0]",
+    "content" : "INVOICE"
+  }, {
+    "type" : "paragraph",
+    "pdfua_tag" : "P",
+    "id" : 15,
+    "page number" : 2,
+    "bounding box" : [ 72.024, 557.222, 531.774, 717.577 ],
+    "font" : "ArialMT",
+    "font size" : 11.04,
+    "text color" : "[0.0]",
+    "content" : "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Leo integer malesuada nunc vel risus. Elit ut aliquam purus sit amet luctus. Nibh cras pulvinar mattis nunc sed blandit libero. Congue nisi vitae suscipit tellus mauris a diam. Iaculis eu non diam phasellus vestibulum lorem sed risus. Dictumst quisque sagittis purus sit amet. Neque gravida in fermentum et sollicitudin ac orci phasellus egestas. Tincidunt ornare massa eget egestas purus viverra. Id porta nibh venenatis cras sed felis eget. Porttitor rhoncus dolor purus non enim praesent elementum facilisis. Tristique sollicitudin nibh sit amet. Mauris commodo quis imperdiet massa tincidunt. Tortor consequat id porta nibh venenatis cras sed felis eget. Ultrices gravida dictum fusce ut placerat orci nulla pellentesque dignissim. Egestas sed tempus urna et pharetra pharetra massa. Fermentum et sollicitudin ac orci phasellus egestas tellus rutrum tellus. Ultrices dui sapien eget mi proin. Sed ullamcorper morbi tincidunt ornare massa eget egestas. Sit amet massa vitae tortor condimentum lacinia."
+  }, {
+    "type" : "paragraph",
+    "pdfua_tag" : "P",
+    "id" : 16,
+    "page number" : 2,
+    "bounding box" : [ 72.024, 363.752, 531.774, 524.107 ],
+    "font" : "ArialMT",
+    "font size" : 11.04,
+    "text color" : "[0.0]",
+    "content" : "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Leo integer malesuada nunc vel risus. Elit ut aliquam purus sit amet luctus. Nibh cras pulvinar mattis nunc sed blandit libero. Congue nisi vitae suscipit tellus mauris a diam. Iaculis eu non diam phasellus vestibulum lorem sed risus. Dictumst quisque sagittis purus sit amet. Neque gravida in fermentum et sollicitudin ac orci phasellus egestas. Tincidunt ornare massa eget egestas purus viverra. Id porta nibh venenatis cras sed felis eget. Porttitor rhoncus dolor purus non enim praesent elementum facilisis. Tristique sollicitudin nibh sit amet. Mauris commodo quis imperdiet massa tincidunt. Tortor consequat id porta nibh venenatis cras sed felis eget. Ultrices gravida dictum fusce ut placerat orci nulla pellentesque dignissim. Egestas sed tempus urna et pharetra pharetra massa. Fermentum et sollicitudin ac orci phasellus egestas tellus rutrum tellus. Ultrices dui sapien eget mi proin. Sed ullamcorper morbi tincidunt ornare massa eget egestas. Sit amet massa vitae tortor condimentum lacinia."
+  }, {
+    "type" : "heading",
+    "pdfua_tag" : "H2",
+    "id" : 17,
+    "level" : "Subtitle",
+    "page number" : 2,
+    "bounding box" : [ 86.544, 319.25, 471.01, 330.506 ],
+    "heading level" : 2,
+    "font" : "Arial-BoldMT",
+    "font size" : 12.0,
+    "text color" : "[0.0]",
+    "content" : "# Product Amount [EUR]"
+  }, {
+    "type" : "list",
+    "pdfua_tag" : "L",
+    "id" : 18,
+    "level" : "2",
+    "page number" : 2,
+    "bounding box" : [ 92.424, 84.601, 432.574, 305.033 ],
+    "numbering style" : "arabic numbers",
+    "number of list items" : 6,
+    "next list id" : 20,
+    "list items" : [ {
+      "type" : "list item",
+      "pdfua_tag" : "LI",
+      "page number" : 2,
+      "bounding box" : [ 92.424, 277.827, 425.866, 305.033 ],
+      "font" : "ArialMT",
+      "font size" : 12.0,
+      "text color" : "[0.0]",
+      "content" : "1. Skid-Steer € 1000 822-79-9581 5 pcs. € 200",
+      "kids" : [ ]
+    }, {
+      "type" : "list item",
+      "pdfua_tag" : "LI",
+      "page number" : 2,
+      "bounding box" : [ 92.424, 236.427, 425.866, 263.633 ],
+      "font" : "ArialMT",
+      "font size" : 12.0,
+      "text color" : "[0.0]",
+      "content" : "2. Backhoe I € 1000 598-31-5899 5 pcs. € 500",
+      "kids" : [ ]
+    }, {
+      "type" : "list item",
+      "pdfua_tag" : "LI",
+      "page number" : 2,
+      "bounding box" : [ 92.424, 195.027, 425.866, 222.233 ],
+      "font" : "ArialMT",
+      "font size" : 12.0,
+      "text color" : "[0.0]",
+      "content" : "3. Dump Truck I € 3000 745-73-2437 2 pcs. € 1500",
+      "kids" : [ ]
+    }, {
+      "type" : "list item",
+      "pdfua_tag" : "LI",
+      "page number" : 2,
+      "bounding box" : [ 92.424, 153.597, 425.866, 180.803 ],
+      "font" : "ArialMT",
+      "font size" : 12.0,
+      "text color" : "[0.0]",
+      "content" : "4. Trencher I € 1200 813-54-6535 4 pcs. € 300",
+      "kids" : [ ]
+    }, {
+      "type" : "list item",
+      "pdfua_tag" : "LI",
+      "page number" : 2,
+      "bounding box" : [ 92.424, 112.197, 425.866, 139.403 ],
+      "font" : "ArialMT",
+      "font size" : 12.0,
+      "text color" : "[0.0]",
+      "content" : "5. Grader € 2000 113-98-4866 10 pcs. € 200",
+      "kids" : [ ]
+    }, {
+      "type" : "list item",
+      "pdfua_tag" : "LI",
+      "page number" : 2,
+      "bounding box" : [ 92.424, 84.601, 432.574, 98.007 ],
+      "font" : "ArialMT",
+      "font size" : 12.0,
+      "text color" : "[0.0]",
+      "content" : "6. Dump Truck II € 10000",
+      "kids" : [ ]
+    } ]
+  }, {
+    "type" : "list",
+    "pdfua_tag" : "L",
+    "id" : 20,
+    "level" : "2",
+    "page number" : 3,
+    "bounding box" : [ 85.704, 85.081, 432.574, 719.563 ],
+    "numbering style" : "arabic numbers",
+    "number of list items" : 16,
+    "previous list id" : 18,
+    "list items" : [ {
+      "type" : "list item",
+      "pdfua_tag" : "LI",
+      "id" : 19,
+      "page number" : 3,
+      "bounding box" : [ 113.18, 706.157, 328.646, 719.563 ],
+      "font" : "ArialMT",
+      "font size" : 12.0,
+      "text color" : "[0.0]",
+      "content" : "396-33-2044 5 pcs. € 2000",
+      "kids" : [ ]
+    }, {
+      "type" : "list item",
+      "pdfua_tag" : "LI",
+      "page number" : 3,
+      "bounding box" : [ 92.424, 664.757, 425.866, 691.963 ],
+      "font" : "ArialMT",
+      "font size" : 12.0,
+      "text color" : "[0.0]",
+      "content" : "7. Bulldozer I € 3750 511-90-9749 5 pcs. € 750",
+      "kids" : [ ]
+    }, {
+      "type" : "list item",
+      "pdfua_tag" : "LI",
+      "page number" : 3,
+      "bounding box" : [ 92.424, 623.357, 425.866, 650.563 ],
+      "font" : "ArialMT",
+      "font size" : 12.0,
+      "text color" : "[0.0]",
+      "content" : "8. Scraper I € 1000 307-74-6395 5 pcs. € 200",
+      "kids" : [ ]
+    }, {
+      "type" : "list item",
+      "pdfua_tag" : "LI",
+      "page number" : 3,
+      "bounding box" : [ 92.424, 581.957, 425.866, 609.163 ],
+      "font" : "ArialMT",
+      "font size" : 12.0,
+      "text color" : "[0.0]",
+      "content" : "9. Compactor I € 1000 411-71-1752 5 pcs. € 200",
+      "kids" : [ ]
+    }, {
+      "type" : "list item",
+      "pdfua_tag" : "LI",
+      "page number" : 3,
+      "bounding box" : [ 85.704, 540.557, 425.866, 567.763 ],
+      "font" : "ArialMT",
+      "font size" : 12.0,
+      "text color" : "[0.0]",
+      "content" : "10. Scraper II € 2500 595-54-0567 10 pcs. € 250",
+      "kids" : [ ]
+    }, {
+      "type" : "list item",
+      "pdfua_tag" : "LI",
+      "page number" : 3,
+      "bounding box" : [ 85.704, 499.127, 425.866, 526.333 ],
+      "font" : "ArialMT",
+      "font size" : 12.0,
+      "text color" : "[0.0]",
+      "content" : "11. Crawler I € 1400 573-48-1966 4 pcs. € 350",
+      "kids" : [ ]
+    }, {
+      "type" : "list item",
+      "pdfua_tag" : "LI",
+      "page number" : 3,
+      "bounding box" : [ 85.704, 457.727, 419.158, 484.933 ],
+      "font" : "ArialMT",
+      "font size" : 12.0,
+      "text color" : "[0.0]",
+      "content" : "12. Compactor II € 600 133-65-5977 2 pcs. € 300",
+      "kids" : [ ]
+    }, {
+      "type" : "list item",
+      "pdfua_tag" : "LI",
+      "page number" : 3,
+      "bounding box" : [ 85.704, 416.327, 425.866, 443.533 ],
+      "font" : "ArialMT",
+      "font size" : 12.0,
+      "text color" : "[0.0]",
+      "content" : "13. Crawler II € 1800 264-31-6025 4 pcs. € 450",
+      "kids" : [ ]
+    }, {
+      "type" : "list item",
+      "pdfua_tag" : "LI",
+      "page number" : 3,
+      "bounding box" : [ 85.704, 374.927, 425.866, 402.133 ],
+      "font" : "ArialMT",
+      "font size" : 12.0,
+      "text color" : "[0.0]",
+      "content" : "14. Backhoe II € 2400 641-82-4321 4 pcs. € 600",
+      "kids" : [ ]
+    }, {
+      "type" : "list item",
+      "pdfua_tag" : "LI",
+      "page number" : 3,
+      "bounding box" : [ 85.704, 333.507, 425.866, 360.713 ],
+      "font" : "ArialMT",
+      "font size" : 12.0,
+      "text color" : "[0.0]",
+      "content" : "15. Dragline € 3000 280-60-7659 6 pcs. € 500",
+      "kids" : [ ]
+    }, {
+      "type" : "list item",
+      "pdfua_tag" : "LI",
+      "page number" : 3,
+      "bounding box" : [ 85.704, 292.107, 425.866, 319.313 ],
+      "font" : "ArialMT",
+      "font size" : 12.0,
+      "text color" : "[0.0]",
+      "content" : "16. Trencher II € 3000 398-88-4914 5 pcs. € 600",
+      "kids" : [ ]
+    }, {
+      "type" : "list item",
+      "pdfua_tag" : "LI",
+      "page number" : 3,
+      "bounding box" : [ 85.704, 250.707, 425.866, 277.913 ],
+      "font" : "ArialMT",
+      "font size" : 12.0,
+      "text color" : "[0.0]",
+      "content" : "17. Backhoe III € 4000 777-92-0504 5 pcs. € 800",
+      "kids" : [ ]
+    }, {
+      "type" : "list item",
+      "pdfua_tag" : "LI",
+      "page number" : 3,
+      "bounding box" : [ 85.704, 209.307, 432.574, 236.513 ],
+      "font" : "ArialMT",
+      "font size" : 12.0,
+      "text color" : "[0.0]",
+      "content" : "18. Bulldozer II € 10000 118-37-9226 10 pcs. € 1000",
+      "kids" : [ ]
+    }, {
+      "type" : "list item",
+      "pdfua_tag" : "LI",
+      "page number" : 3,
+      "bounding box" : [ 85.704, 167.877, 425.866, 195.083 ],
+      "font" : "ArialMT",
+      "font size" : 12.0,
+      "text color" : "[0.0]",
+      "content" : "19. Crawler III € 2600 462-89-9620 4 pcs. € 650",
+      "kids" : [ ]
+    }, {
+      "type" : "list item",
+      "pdfua_tag" : "LI",
+      "page number" : 3,
+      "bounding box" : [ 85.704, 126.477, 425.866, 153.683 ],
+      "font" : "ArialMT",
+      "font size" : 12.0,
+      "text color" : "[0.0]",
+      "content" : "20. Bulldozer III € 2500 134-85-7410 2 pcs. € 1250",
+      "kids" : [ ]
+    }, {
+      "type" : "list item",
+      "pdfua_tag" : "LI",
+      "page number" : 3,
+      "bounding box" : [ 85.704, 85.081, 425.866, 112.283 ],
+      "font" : "ArialMT",
+      "font size" : 12.0,
+      "text color" : "[0.0]",
+      "content" : "21. Trencher III € 2700 317-76-2964 3 pcs. € 900",
+      "kids" : [ ]
+    } ]
+  } ]
+}

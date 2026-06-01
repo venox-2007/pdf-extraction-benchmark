@@ -21,6 +21,7 @@ from pdf_extraction_benchmark.classifiers.pdf_type_classifier import PdfTypeClas
 from pdf_extraction_benchmark.extractors.opendataloader.extractor import (  # noqa: E402
     OpendataloaderExtractor,
 )
+from pdf_extraction_benchmark.extractors.paddleocr.extractor import PaddleocrExtractor  # noqa: E402
 from pdf_extraction_benchmark.extractors.pymupdf.extractor import PymupdfExtractor  # noqa: E402
 from pdf_extraction_benchmark.parsers.unified_output_parser import UnifiedOutputParser  # noqa: E402
 from pdf_extraction_benchmark.utils.logger import configure_logging  # noqa: E402
@@ -37,11 +38,13 @@ RECOMMENDATIONS = {
 EXTRACTOR_OPTIONS = {
     "OpenDataLoader": OpendataloaderExtractor,
     "PyMuPDF": PymupdfExtractor,
+    "PaddleOCR": PaddleocrExtractor,
 }
 
 EXTRACTOR_CAPABILITIES = {
     "OpenDataLoader": {"ocr_supported": False},
     "PyMuPDF": {"ocr_supported": False},
+    "PaddleOCR": {"ocr_supported": True},
 }
 
 
@@ -183,7 +186,7 @@ def run() -> None:
         selected_extractors = st.multiselect(
             "Extractors",
             options=list(EXTRACTOR_OPTIONS.keys()),
-            default=["OpenDataLoader", "PyMuPDF"],
+            default=["OpenDataLoader", "PyMuPDF", "PaddleOCR"],
         )
         run_clicked = st.button("Run Extraction", type="primary", use_container_width=True)
 
@@ -367,11 +370,7 @@ def run() -> None:
 
     if st.session_state.comparison_rows:
         st.markdown("### Comparison Overview")
-        display_rows = [
-            {key: value for key, value in row.items() if key != "ocr_supported"}
-            for row in st.session_state.comparison_rows
-        ]
-        st.dataframe(display_rows, use_container_width=True)
+        st.dataframe(st.session_state.comparison_rows, use_container_width=True)
 
     if st.session_state.observations:
         st.markdown("### Benchmark Notes")

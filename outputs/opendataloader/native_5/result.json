@@ -1,0 +1,119 @@
+{
+  "pages": [
+    {
+      "tool_name": "opendataloader",
+      "page_number": 1,
+      "extracted_text": "notapino\n\nRia de Goa 1 Amadora, Lisbon, 2720-059\n\nPT285637271 PT285637271\n\nINVOICE",
+      "tables": [],
+      "bounding_boxes": [
+        {
+          "x0": 72.024,
+          "y0": 650.86,
+          "x1": 216.02,
+          "y1": 684.628
+        },
+        {
+          "x0": 72.024,
+          "y0": 605.222,
+          "x1": 207.758,
+          "y1": 637.177
+        },
+        {
+          "x0": 72.024,
+          "y0": 174.342,
+          "x1": 347.016,
+          "y1": 593.857
+        },
+        {
+          "x0": 72.024,
+          "y0": 131.022,
+          "x1": 321.216,
+          "y1": 141.377
+        },
+        {
+          "x0": 474.34,
+          "y0": 701.628,
+          "x1": 539.968,
+          "y1": 716.599
+        }
+      ],
+      "confidence_scores": [],
+      "metadata": {
+        "source_file": "native_5.pdf",
+        "latency_ms": null,
+        "cost_usd": null,
+        "extra": {
+          "status": "ok",
+          "schema": "kids"
+        }
+      }
+    },
+    {
+      "tool_name": "opendataloader",
+      "page_number": 2,
+      "extracted_text": "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Leo integer malesuada nunc vel risus. Elit ut aliquam purus sit amet luctus. Nibh cras pulvinar mattis nunc sed blandit libero. Congue nisi vitae suscipit tellus mauris a diam. Iaculis eu non diam phasellus vestibulum lorem sed risus. Dictumst quisque sagittis purus sit amet. Neque gravida in fermentum et sollicitudin ac orci phasellus egestas. Tincidunt ornare massa eget egestas purus viverra. Id porta nibh venenatis cras sed felis eget. Porttitor rhoncus dolor purus non enim praesent elementum facilisis. Tristique sollicitudin nibh sit amet. Mauris commodo quis imperdiet massa tincidunt. Tortor consequat id porta nibh venenatis cras sed felis eget. Ultrices gravida dictum fusce ut placerat orci nulla pellentesque dignissim. Egestas sed tempus urna et pharetra pharetra massa. Fermentum et sollicitudin ac orci phasellus egestas tellus rutrum tellus. Ultrices dui sapien eget mi proin. Sed ullamcorper morbi tincidunt ornare massa eget egestas. Sit amet massa vitae tortor condimentum lacinia.\n\nLorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Leo integer malesuada nunc vel risus. Elit ut aliquam purus sit amet luctus. Nibh cras pulvinar mattis nunc sed blandit libero. Congue nisi vitae suscipit tellus mauris a diam. Iaculis eu non diam phasellus vestibulum lorem sed risus. Dictumst quisque sagittis purus sit amet. Neque gravida in fermentum et sollicitudin ac orci phasellus egestas. Tincidunt ornare massa eget egestas purus viverra. Id porta nibh venenatis cras sed felis eget. Porttitor rhoncus dolor purus non enim praesent elementum facilisis. Tristique sollicitudin nibh sit amet. Mauris commodo quis imperdiet massa tincidunt. Tortor consequat id porta nibh venenatis cras sed felis eget. Ultrices gravida dictum fusce ut placerat orci nulla pellentesque dignissim. Egestas sed tempus urna et pharetra pharetra massa. Fermentum et sollicitudin ac orci phasellus egestas tellus rutrum tellus. Ultrices dui sapien eget mi proin. Sed ullamcorper morbi tincidunt ornare massa eget egestas. Sit amet massa vitae tortor condimentum lacinia.\n\n# Product Amount [EUR]",
+      "tables": [],
+      "bounding_boxes": [
+        {
+          "x0": 72.024,
+          "y0": 557.222,
+          "x1": 531.774,
+          "y1": 717.577
+        },
+        {
+          "x0": 72.024,
+          "y0": 363.752,
+          "x1": 531.774,
+          "y1": 524.107
+        },
+        {
+          "x0": 86.544,
+          "y0": 319.25,
+          "x1": 471.01,
+          "y1": 330.506
+        },
+        {
+          "x0": 92.424,
+          "y0": 84.601,
+          "x1": 432.574,
+          "y1": 305.033
+        }
+      ],
+      "confidence_scores": [],
+      "metadata": {
+        "source_file": "native_5.pdf",
+        "latency_ms": null,
+        "cost_usd": null,
+        "extra": {
+          "status": "ok",
+          "schema": "kids"
+        }
+      }
+    },
+    {
+      "tool_name": "opendataloader",
+      "page_number": 3,
+      "extracted_text": "",
+      "tables": [],
+      "bounding_boxes": [
+        {
+          "x0": 85.704,
+          "y0": 85.081,
+          "x1": 432.574,
+          "y1": 719.563
+        }
+      ],
+      "confidence_scores": [],
+      "metadata": {
+        "source_file": "native_5.pdf",
+        "latency_ms": null,
+        "cost_usd": null,
+        "extra": {
+          "status": "ok",
+          "schema": "kids"
+        }
+      }
+    }
+  ],
+  "total_pages": 3
+}
