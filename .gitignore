@@ -27,17 +27,28 @@ htmlcov/
 # Environment files
 .env
 
-# Local runtime outputs
-outputs/json/*
-outputs/markdown/*
-outputs/charts/*
-outputs/logs/*
-outputs/benchmarks/*
-!outputs/json/.gitkeep
-!outputs/markdown/.gitkeep
-!outputs/charts/.gitkeep
-!outputs/logs/.gitkeep
-!outputs/benchmarks/.gitkeep
+# Output/runtime artifacts
+/outputs/**
+!/outputs/
+!/outputs/.gitkeep
+
+# Keep curated benchmark summaries
+!/outputs/benchmark_results/
+!/outputs/benchmark_results/benchmark_observations.md
+!/outputs/benchmark_results/benchmark_summary.csv
+!/outputs/benchmark_results/benchmark_summary.json
+
+# Keep empty output directories
+!/outputs/benchmarks/
+!/outputs/benchmarks/.gitkeep
+!/outputs/charts/
+!/outputs/charts/.gitkeep
+!/outputs/json/
+!/outputs/json/.gitkeep
+!/outputs/logs/
+!/outputs/logs/.gitkeep
+!/outputs/markdown/
+!/outputs/markdown/.gitkeep
 
 # Processed/derived data
 data/processed/*
@@ -48,9 +59,3 @@ data/processed/*
 Thumbs.db
 .vscode/*.log
 .idea/
-
-outputs/*.json
-outputs/*.md
-outputs/*_images/
-!outputs/.gitkeep
-

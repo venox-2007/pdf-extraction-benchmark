@@ -1,0 +1,22 @@
+﻿{
+  "pages": [
+    {
+      "tool_name": "sample-extractor",
+      "page_number": 1,
+      "extracted_text": "This is a curated sample extraction output for documentation and tests.",
+      "tables": [],
+      "bounding_boxes": [],
+      "confidence_scores": [],
+      "metadata": {
+        "source_file": "sample.pdf",
+        "latency_ms": 12.5,
+        "cost_usd": null,
+        "extra": {
+          "status": "ok",
+          "pdf_type": "native"
+        }
+      }
+    }
+  ],
+  "total_pages": 1
+}
