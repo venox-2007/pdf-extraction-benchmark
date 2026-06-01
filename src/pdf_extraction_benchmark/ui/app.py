@@ -31,8 +31,8 @@ APP_SUBTITLE = "Clean PDF intelligence with multiple extraction backends"
 
 RECOMMENDATIONS = {
     "native": ["OpenDataLoader", "PyMuPDF", "Marker"],
+    "hybrid": ["PaddleOCR + PyMuPDF", "OpenDataLoader + OCR fallback"],
     "scanned": ["PaddleOCR", "Surya", "Tesseract (future)"],
-    "mixed": ["OpenDataLoader + OCR fallback", "Surya", "PaddleOCR"],
 }
 
 EXTRACTOR_OPTIONS = {
@@ -358,7 +358,10 @@ def run() -> None:
                 ),
                 "pdf_type": classification.pdf_type,
                 "classification_confidence": classification.confidence,
-                "classification_reason": classification.reason,
+                "classification_reasoning": classification.reasoning,
+                "avg_text_density": classification.avg_text_density,
+                "avg_image_ratio": classification.avg_image_ratio,
+                "text_pages": classification.text_pages,
                 "selected_extractors": selected_extractors,
             }
 
@@ -456,7 +459,19 @@ def run() -> None:
                     )
                     st.write(
                         f"**Classifier Reason:** "
-                        f"{st.session_state.last_meta.get('classification_reason', '')}"
+                        f"{st.session_state.last_meta.get('classification_reasoning', '')}"
+                    )
+                    st.write(
+                        f"**Text-rich Pages:** {st.session_state.last_meta.get('text_pages', 0)} / "
+                        f"{st.session_state.last_meta.get('total_pdf_pages', 0)}"
+                    )
+                    st.write(
+                        f"**Avg Text Density:** "
+                        f"{st.session_state.last_meta.get('avg_text_density', 0.0):.3f}"
+                    )
+                    st.write(
+                        f"**Avg Image Ratio:** "
+                        f"{st.session_state.last_meta.get('avg_image_ratio', 0.0):.3f}"
                     )
                     st.write(
                         f"**JSON Output:** "
