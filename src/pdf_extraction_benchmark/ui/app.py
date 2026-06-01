@@ -210,6 +210,8 @@ def run() -> None:
         elif not selected_extractors:
             st.warning("Please select at least one extractor.")
         else:
+            run_status = st.status("Running extraction...", expanded=True)
+            progress_bar = st.progress(0.0, text="Initializing extraction...")
             input_dir = project_root / "data" / "processed"
             input_dir.mkdir(parents=True, exist_ok=True)
             pdf_path = input_dir / uploaded.name
@@ -240,8 +242,17 @@ def run() -> None:
             per_extractor_text: dict[str, str] = {}
             comparison_rows: list[dict[str, object]] = []
             warnings: list[str] = []
+            total_extractors = max(1, len(selected_extractors))
 
-            for extractor_name in selected_extractors:
+            for idx, extractor_name in enumerate(selected_extractors, start=1):
+                progress_ratio = (idx - 1) / total_extractors
+                progress_bar.progress(
+                    progress_ratio,
+                    text=f"Running {extractor_name} ({idx}/{total_extractors})...",
+                )
+                run_status.write(
+                    f"Started `{extractor_name}` on `{uploaded.name}` ({idx}/{total_extractors})."
+                )
                 start = time.perf_counter()
                 extractor_slug = _extractor_slug(extractor_name)
                 extractor_output_dir = output_root_dir / extractor_slug / pdf_path.stem
@@ -323,6 +334,10 @@ def run() -> None:
                             "pdf_type": classification.pdf_type,
                         }
                     )
+                    run_status.write(
+                        f"Finished `{extractor_name}` in {elapsed:.2f}s "
+                        f"(status: {status}, text length: {len(all_text)})."
+                    )
                 except Exception as exc:
                     comparison_rows.append(
                         {
@@ -339,6 +354,7 @@ def run() -> None:
                         }
                     )
                     warnings.append(f"{extractor_name}: failed ({exc})")
+                    run_status.write(f"`{extractor_name}` failed: {exc}")
 
             st.session_state.last_results = per_extractor_results
             st.session_state.last_payload = per_extractor_payloads
@@ -368,12 +384,27 @@ def run() -> None:
             if warnings:
                 for warning in warnings:
                     st.warning(warning)
+                run_status.update(
+                    label="Extraction completed with warnings.",
+                    state="error",
+                    expanded=True,
+                )
             else:
                 st.success("Extraction completed for all selected extractors.")
+                run_status.update(
+                    label="Extraction completed successfully.",
+                    state="complete",
+                    expanded=False,
+                )
+            progress_bar.progress(1.0, text="Extraction run complete.")
 
     if st.session_state.comparison_rows:
         st.markdown("### Comparison Overview")
-        st.dataframe(st.session_state.comparison_rows, use_container_width=True)
+        display_rows = [
+            {key: value for key, value in row.items() if key != "ocr_supported"}
+            for row in st.session_state.comparison_rows
+        ]
+        st.dataframe(display_rows, use_container_width=True)
 
     if st.session_state.observations:
         st.markdown("### Benchmark Notes")
