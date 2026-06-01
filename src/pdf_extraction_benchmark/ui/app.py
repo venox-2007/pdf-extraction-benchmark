@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Any
 
 import fitz
+import pandas as pd
 import streamlit as st
 
 # Ensure local src package imports resolve when launching Streamlit directly.
@@ -59,8 +60,8 @@ def _inject_styles() -> None:
         """
         <style>
             .block-container {
-                padding-top: 1.4rem;
-                padding-bottom: 2rem;
+                padding-top: 1rem;
+                padding-bottom: 1.4rem;
                 max-width: 1050px;
             }
             h1, h2, h3 {
@@ -77,6 +78,34 @@ def _inject_styles() -> None:
                 border-radius: 10px;
                 padding: 0.8rem;
                 background: rgba(15, 23, 42, 0.25);
+            }
+            .summary-card {
+                border: 1px solid rgba(148, 163, 184, 0.22);
+                border-radius: 12px;
+                padding: 0.9rem 1rem;
+                background: rgba(15, 23, 42, 0.28);
+                margin-bottom: 0.8rem;
+            }
+            .summary-title {
+                font-size: 0.82rem;
+                text-transform: uppercase;
+                letter-spacing: 0.05em;
+                color: #9fb2d8;
+                margin-bottom: 0.3rem;
+            }
+            .summary-value {
+                font-size: 1.15rem;
+                font-weight: 700;
+                color: #e6edf9;
+            }
+            .doc-card-native {
+                border-left: 4px solid #3fb950;
+            }
+            .doc-card-hybrid {
+                border-left: 4px solid #f1c40f;
+            }
+            .doc-card-scanned {
+                border-left: 4px solid #58a6ff;
             }
         </style>
         """,
@@ -133,28 +162,162 @@ def _build_scanned_page_image_markdown(
     return "\n".join(lines).strip()
 
 
-def _build_comparison_observations(rows: list[dict[str, object]]) -> list[str]:
-    """Generate lightweight heuristic comparison notes."""
+def _build_comparison_observations(
+    rows: list[dict[str, object]],
+    classification: Any | None = None,
+) -> tuple[list[str], dict[str, str]]:
+    """Generate run-specific findings and a recommendation card payload."""
     notes: list[str] = []
-    if len(rows) < 2:
-        return notes
+    recommendation = {"primary": "-", "secondary": "-", "reason": "No extractor results available."}
+    if not rows:
+        return notes, recommendation
 
-    fastest = min(rows, key=lambda row: float(row["latency_seconds"]))
-    slowest = max(rows, key=lambda row: float(row["latency_seconds"]))
-    if float(slowest["latency_seconds"]) > 0:
-        ratio = float(fastest["latency_seconds"]) / float(slowest["latency_seconds"])
-        if ratio <= 0.7:
-            notes.append(f"{fastest['extractor']} extraction completed significantly faster.")
+    completed_rows = [row for row in rows if str(row.get("status", "")) != "failed"]
+    completed_rows = completed_rows if completed_rows else rows
+    usable_rows = [
+        row
+        for row in completed_rows
+        if str(row.get("status", "")).startswith("success") and int(row.get("text_length", 0)) > 0
+    ]
+    quality_rows = usable_rows if usable_rows else completed_rows
+    pdf_type = str(rows[0].get("pdf_type", "unknown")).lower()
+    classifier_reason = ""
+    if classification is not None:
+        classifier_reason = str(getattr(classification, "reasoning", "")).strip()
 
-    rich_format = max(rows, key=lambda row: int(row["markdown_length"]))
-    lean_text = max(rows, key=lambda row: int(row["text_length"]))
-    if rich_format["extractor"] != lean_text["extractor"]:
-        notes.append(f"{rich_format['extractor']} preserved richer markdown formatting.")
+    fastest = min(completed_rows, key=lambda row: float(row.get("latency_seconds", 0.0)))
+    most_text = max(quality_rows, key=lambda row: int(row.get("text_length", 0)))
+    richest_markdown = max(quality_rows, key=lambda row: int(row.get("markdown_length", 0)))
 
-    for row in rows:
-        if row["ocr_supported"] is False and row["ocr_required_pages"] > 0:
-            notes.append(f"{row['extractor']} detected low OCR capability on scan-like pages.")
-    return notes
+    ocr_required = pdf_type in {"scanned", "hybrid"} or any(
+        int(row.get("ocr_required_pages", 0)) > 0 for row in rows
+    )
+    notes.append(
+        "OCR-capable extraction is needed for this document."
+        if ocr_required
+        else "Direct text extraction is enough for this document."
+    )
+
+    fastest_name = str(fastest.get("extractor", "-"))
+    fastest_latency = float(fastest.get("latency_seconds", 0.0))
+    fastest_text_length = int(fastest.get("text_length", 0))
+    if fastest_text_length > 0:
+        notes.append(
+            f"{fastest_name} was fastest ({fastest_latency:.3f}s) with "
+            f"{fastest_text_length:,} chars extracted."
+        )
+    else:
+        notes.append(
+            f"{fastest_name} was fastest ({fastest_latency:.3f}s), "
+            "but produced no usable text."
+        )
+
+    most_text_name = str(most_text.get("extractor", "-"))
+    most_text_length = int(most_text.get("text_length", 0))
+    notes.append(f"{most_text_name} recovered the most usable text ({most_text_length:,} chars).")
+    if str(richest_markdown.get("extractor", "")) != most_text_name:
+        notes.append(
+            f"{richest_markdown['extractor']} produced the richest markdown "
+            f"({int(richest_markdown.get('markdown_length', 0)):,} chars)."
+        )
+
+    failed = [
+        str(row.get("extractor", ""))
+        for row in rows
+        if str(row.get("status", "")) == "failed"
+    ]
+    limited = [
+        str(row.get("extractor", ""))
+        for row in rows
+        if "limited" in str(row.get("status", ""))
+        or "empty" in str(row.get("status", ""))
+        or (
+            pdf_type == "scanned"
+            and not bool(row.get("ocr_supported"))
+            and int(row.get("text_length", 0))
+            < max(100, int(most_text.get("text_length", 0)) // 10)
+        )
+    ]
+    if failed:
+        notes.append(f"Failed extractor(s): {', '.join(failed)}.")
+    elif limited:
+        notes.append(f"Limited/low-text output: {', '.join(limited)}.")
+    else:
+        notes.append("All selected extractors completed successfully.")
+
+    ocr_rows = [row for row in quality_rows if bool(row.get("ocr_supported"))]
+    ocr_winner = max(ocr_rows, key=lambda row: int(row.get("text_length", 0))) if ocr_rows else None
+
+    if pdf_type == "scanned":
+        primary = (
+            str(ocr_winner.get("extractor"))
+            if ocr_winner
+            else str(most_text.get("extractor"))
+        )
+        secondary = (
+            str(fastest.get("extractor"))
+            if str(fastest.get("extractor")) != primary
+            else "-"
+        )
+        reason = (
+            f"Scanned PDF detected. `{primary}` recovered the most usable text for this run."
+            if primary != "-"
+            else "Scanned PDF detected. OCR-capable extractor is recommended."
+        )
+    elif pdf_type == "hybrid":
+        primary = str(most_text.get("extractor"))
+        secondary = (
+            str(ocr_winner.get("extractor"))
+            if ocr_winner
+            else str(fastest.get("extractor"))
+        )
+        if secondary == primary:
+            secondary = (
+                str(fastest.get("extractor"))
+                if str(fastest.get("extractor")) != primary
+                else "-"
+            )
+        reason = (
+            "Hybrid PDF detected with both text and image-heavy signals. "
+            f"Use `{primary}` as primary and `{secondary}` as secondary for OCR recovery."
+        )
+    else:
+        primary = str(most_text.get("extractor"))
+        secondary = (
+            str(fastest.get("extractor"))
+            if str(fastest.get("extractor")) != primary
+            else "-"
+        )
+        reason = (
+            "Native PDF detected with strong extractable text. "
+            f"`{primary}` gave the strongest text result on this run."
+        )
+
+    if classifier_reason:
+        reason = f"{reason} Classifier: {classifier_reason}"
+    recommendation = {"primary": primary, "secondary": secondary, "reason": reason}
+
+    return notes[:5], recommendation
+
+
+def _render_recommendation_card(recommendation: dict[str, str]) -> None:
+    """Render a concise recommendation card for this PDF run."""
+    if not recommendation:
+        return
+    st.markdown("### Recommended Pipeline")
+    st.markdown(
+        (
+            '<div class="summary-card">'
+            '<div class="summary-title">Primary</div>'
+            f'<div class="summary-value">{recommendation.get("primary", "-")}</div>'
+            '<div style="margin-top:0.7rem" class="summary-title">Secondary</div>'
+            f'<div class="summary-value">{recommendation.get("secondary", "-")}</div>'
+            '<div style="margin-top:0.7rem"><b>Reason:</b> '
+            f'{recommendation.get("reason", "-")}</div>'
+            "</div>"
+        ),
+        unsafe_allow_html=True,
+    )
 
 
 def _build_markdown_from_results(results: list[Any], extractor_name: str) -> str:
@@ -166,6 +329,80 @@ def _build_markdown_from_results(results: list[Any], extractor_name: str) -> str
             parts.append(page_text)
     return "\n\n".join(parts).strip()
 
+
+def _render_document_summary(meta: dict[str, Any]) -> None:
+    """Render document summary and classification card."""
+    pdf_type = str(meta.get("pdf_type", "unknown")).lower()
+    card_type = f"doc-card-{pdf_type}" if pdf_type in {"native", "hybrid", "scanned"} else ""
+    recommendations = ", ".join(RECOMMENDATIONS.get(pdf_type, []))
+    st.markdown("### Document Summary")
+    st.markdown(
+        (
+            f'<div class="summary-card {card_type}">'
+            f'<div class="summary-title">File</div>'
+            f'<div class="summary-value">{meta.get("file_name", "-")}</div>'
+            f'<div style="margin-top:0.7rem" class="summary-title">Document Type</div>'
+            f'<div class="summary-value">{str(meta.get("pdf_type", "unknown")).title()} PDF</div>'
+            f'<div style="margin-top:0.7rem"><b>Confidence:</b> '
+            f'{meta.get("classification_confidence", 0.0) * 100:.0f}%</div>'
+            f'<div style="margin-top:0.35rem"><b>Reason:</b> '
+            f'{meta.get("classification_reasoning", "-")}</div>'
+            f'<div style="margin-top:0.35rem"><b>Recommended Extractors:</b> '
+            f"{recommendations}</div>"
+            f"</div>"
+        ),
+        unsafe_allow_html=True,
+    )
+
+
+def _render_overview_cards(meta: dict[str, Any], comparison_rows: list[dict[str, Any]]) -> None:
+    """Render extraction overview metric cards."""
+    st.markdown("### Extraction Overview")
+    total_pages = meta.get("total_pdf_pages", 0)
+    processed_pages = 0
+    total_time = 0.0
+    selected = ", ".join(meta.get("selected_extractors", []))
+    if comparison_rows:
+        processed_pages = max(int(row.get("processed_pages", 0)) for row in comparison_rows)
+        total_time = sum(float(row.get("latency_seconds", 0.0)) for row in comparison_rows)
+    c1, c2, c3, c4 = st.columns(4)
+    c1.metric("Total Pages", str(total_pages))
+    c2.metric("Processed Pages", str(processed_pages))
+    c3.metric("Extraction Time", f"{total_time:.2f}s")
+    c4.metric("Selected Extractors", str(len(meta.get("selected_extractors", []))))
+    st.caption(f"Extractors: {selected}")
+
+
+def _format_comparison_rows(rows: list[dict[str, Any]]) -> pd.DataFrame:
+    """Format comparison rows with compact highlights and labels."""
+    if not rows:
+        return pd.DataFrame()
+    df = pd.DataFrame(rows)
+    fastest_idx = df["latency_seconds"].astype(float).idxmin()
+    text_idx = df["text_length"].astype(int).idxmax()
+    df["extractor"] = [
+        f"{name} (fastest)"
+        if idx == fastest_idx
+        else f"{name} (most text)"
+        if idx == text_idx
+        else name
+        for idx, name in enumerate(df["extractor"])
+    ]
+    df["status"] = df["status"].map(
+        lambda s: "success" if s == "success" else f"warning: {s}" if s else "warning: unknown"
+    )
+    display_cols = [
+        "extractor",
+        "latency_seconds",
+        "total_pages",
+        "processed_pages",
+        "text_length",
+        "markdown_length",
+        "ocr_required_pages",
+        "status",
+        "pdf_type",
+    ]
+    return df[display_cols]
 
 def run() -> None:
     """Render and run the streamlined extraction dashboard."""
@@ -202,6 +439,7 @@ def run() -> None:
         st.session_state.last_text = {}
         st.session_state.comparison_rows = []
         st.session_state.observations = []
+        st.session_state.recommendation = {}
         st.session_state.last_classification = None
 
     if run_clicked:
@@ -223,17 +461,11 @@ def run() -> None:
 
             recs = RECOMMENDATIONS.get(classification.pdf_type, [])
             rec_text = ", ".join(recs)
-            if classification.pdf_type == "scanned":
-                st.warning(
-                    f"Detected: Scanned PDF (confidence {classification.confidence:.2f}). "
-                    f"OCR extractor recommended: {rec_text}"
-                )
-            else:
-                st.info(
-                    f"Detected: {classification.pdf_type.title()} PDF "
-                    f"(confidence {classification.confidence:.2f}). "
-                    f"Recommended extractors: {rec_text}"
-                )
+            st.info(
+                f"Classification complete: {classification.pdf_type.title()} PDF "
+                f"(confidence {classification.confidence:.2f}). "
+                f"Recommended: {rec_text}"
+            )
 
             per_extractor_results: dict[str, list[Any]] = {}
             per_extractor_payloads: dict[str, dict[str, object]] = {}
@@ -336,7 +568,9 @@ def run() -> None:
                     )
                     run_status.write(
                         f"Finished `{extractor_name}` in {elapsed:.2f}s "
-                        f"(status: {status}, text length: {len(all_text)})."
+                        f"(status: {status}, "
+                        f"pages: {processed_page_count}/{classification.page_count}, "
+                        f"text length: {len(all_text)})."
                     )
                 except Exception as exc:
                     comparison_rows.append(
@@ -362,7 +596,12 @@ def run() -> None:
             st.session_state.last_paths = per_extractor_paths
             st.session_state.last_text = per_extractor_text
             st.session_state.comparison_rows = comparison_rows
-            st.session_state.observations = _build_comparison_observations(comparison_rows)
+            observations, recommendation = _build_comparison_observations(
+                comparison_rows,
+                st.session_state.last_classification,
+            )
+            st.session_state.observations = observations
+            st.session_state.recommendation = recommendation
             st.session_state.last_meta = {
                 "file_name": uploaded.name,
                 "file_size_kb": round(len(uploaded.getvalue()) / 1024, 2),
@@ -398,18 +637,23 @@ def run() -> None:
                 )
             progress_bar.progress(1.0, text="Extraction run complete.")
 
+    if st.session_state.last_meta:
+        _render_document_summary(st.session_state.last_meta)
+        _render_overview_cards(st.session_state.last_meta, st.session_state.comparison_rows)
+
     if st.session_state.comparison_rows:
         st.markdown("### Comparison Overview")
-        display_rows = [
-            {key: value for key, value in row.items() if key != "ocr_supported"}
-            for row in st.session_state.comparison_rows
-        ]
-        st.dataframe(display_rows, use_container_width=True)
+        display_df = _format_comparison_rows(st.session_state.comparison_rows)
+        st.dataframe(display_df, width="stretch")
 
     if st.session_state.observations:
-        st.markdown("### Benchmark Notes")
+        st.markdown("### Key Findings")
+        st.markdown('<div class="summary-card">', unsafe_allow_html=True)
         for note in st.session_state.observations:
             st.write(f"- {note}")
+        st.markdown("</div>", unsafe_allow_html=True)
+    if st.session_state.recommendation:
+        _render_recommendation_card(st.session_state.recommendation)
 
     extractor_results = st.session_state.last_results
     if extractor_results:

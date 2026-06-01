@@ -1,0 +1,588 @@
+{
+  "pages": [
+    {
+      "tool_name": "paddleocr",
+      "page_number": 1,
+      "extracted_text": "RESUME\nNane\nMauricio A.GONZALEZ\nBirth Date:\nDecember,4th1962\nMailing Address:\nlaboratory of Ccllular & Molecular Biotogy-ICC.University of Chile.\nLas Palmeras 3425NunoaSantiagoChile.Fax:5622186245\nCitizenship:\nChile.\nEDUCATION.\n1995-1997\nPostdoctoral Fellow.INTA.Cell Bilogy UnitUniversity of Chile\n1989-1994\nPh.D.Cellular & Molecular BiologyCatholic University of Chilc,Santiago\nThesis:Functional Organization and Subcellular Localization of Mip-90\nNovel Microtubule-Interacting Protein. LCMB,Univcrsity of Chile\n(Awarded\nwith the Prize to the best Doctoral Thesis by the Biological Society of\nChile).\nThesis Dircctor:Prof.Dr.R.B.Maccioni\n1982-1987\nLicenciature in BiologyFaculty of Mathematics and Basic Scicnces.Catholic\nUniversity of Valparaiso,Chile.\nFELLOWSHIPS\n1995\nICC INTERNATIONAL FELL.OW.CSIC Spain)-ICC Chile) Program.At the\nLaboratory of Biomedical Research.Spanish Research Council (CsiC)Madrid\n1992-1993\nFellow from the Program CSIC-ICC to work in the Universidad Autonoma\nCenter of Molecular Biology \"Scvcro Ochoa\",Madrid,Spain.\n1992\nFellowship from the ICC and the Iberoamerican Federation of Cell Biological\nSocieties.\nRESEARCHI EXPERIENCE.\n1991-Present\nASSOCIATE INVESTIGATOR.International Center for Cancer and\nDevelopmental Biology (ICC).Laboratory of Cellular & Molecular\nBiology\nLCMB.\n1996-Present\nAssistant Professor.INTA.University of Chile.\n1993-1995\nRescarch Associate in the FONDEF Project PI-10 for rescarch in Technological\napplications of knowledge:Project Cellular and molccular signals in\ndevclopment of the rainbow trout and applications to reproductive\nmanagment\".\nLaboratory of Cellular & Molecular Biology ICMB).\n1991-1993\nResearch Associate in Project CI*CT-91-0876 awarded to Prof.R.B.Maccioni,\nfrom the Directoratc General Xll of the Furopean Union.Monoclonal anti\nidiotypic antibodies as probes to investigate molccular signals involved\nin the\ncontrol of microtbule assembly.Laboratory of Cellular and Molecular\nBiology\nof the ICCChile.\n1992-1993\nAssistant Professor. Graduate Program in \"Structural Biology.Faculty of\nSciences.Metropolitan UniversitySantiago,Chile.\n1988\nResearch Assistant.NSF Project at the Cellular and Molecular Neurobiology\nUnitCatholic University of Chile.\nRESEARCH GRANTS AS A PRINCIPAL INVESTIGATOR\n1994-1996\nPrincipal Investigator in the FONDECYT 1904367 Projecl:Functions of\nMAPS\nisotypes and Mips proteins in transformed cell lines\"\n1994-1996\nPrincipal Investigator Project 93-130 RG/BlO/LA.of the Third World Acad.of\nScinces TWASIntracellular roles of MAPs in thc regulation of microtubule\nassembly\"\nSCIENTIFIC SOCIETIES:Regular Member of the Americal Society CellBiology ASCB and the\nSociety of Cell BiologySpain.\nSUMMARY OFRESEARCH ACTIVITY\nPublications as Full Papers:\n19\nPublications as Abstract\n31\n40010133",
+      "tables": [],
+      "bounding_boxes": [
+        {
+          "x0": 483.0,
+          "y0": 177.0,
+          "x1": 590.0,
+          "y1": 211.0
+        },
+        {
+          "x0": 157.0,
+          "y0": 222.0,
+          "x1": 231.0,
+          "y1": 255.0
+        },
+        {
+          "x0": 358.0,
+          "y0": 230.0,
+          "x1": 604.0,
+          "y1": 253.0
+        },
+        {
+          "x0": 163.0,
+          "y0": 253.0,
+          "x1": 273.0,
+          "y1": 272.0
+        },
+        {
+          "x0": 358.0,
+          "y0": 251.0,
+          "x1": 542.0,
+          "y1": 275.0
+        },
+        {
+          "x0": 157.0,
+          "y0": 272.0,
+          "x1": 331.0,
+          "y1": 300.0
+        },
+        {
+          "x0": 356.0,
+          "y0": 274.0,
+          "x1": 999.0,
+          "y1": 304.0
+        },
+        {
+          "x0": 356.0,
+          "y0": 296.0,
+          "x1": 953.0,
+          "y1": 326.0
+        },
+        {
+          "x0": 159.0,
+          "y0": 319.0,
+          "x1": 278.0,
+          "y1": 348.0
+        },
+        {
+          "x0": 356.0,
+          "y0": 323.0,
+          "x1": 414.0,
+          "y1": 347.0
+        },
+        {
+          "x0": 159.0,
+          "y0": 363.0,
+          "x1": 305.0,
+          "y1": 391.0
+        },
+        {
+          "x0": 163.0,
+          "y0": 393.0,
+          "x1": 259.0,
+          "y1": 412.0
+        },
+        {
+          "x0": 356.0,
+          "y0": 389.0,
+          "x1": 962.0,
+          "y1": 421.0
+        },
+        {
+          "x0": 161.0,
+          "y0": 416.0,
+          "x1": 259.0,
+          "y1": 435.0
+        },
+        {
+          "x0": 356.0,
+          "y0": 414.0,
+          "x1": 1066.0,
+          "y1": 446.0
+        },
+        {
+          "x0": 421.0,
+          "y0": 438.0,
+          "x1": 1079.0,
+          "y1": 468.0
+        },
+        {
+          "x0": 421.0,
+          "y0": 461.0,
+          "x1": 1080.0,
+          "y1": 493.0
+        },
+        {
+          "x0": 159.0,
+          "y0": 484.0,
+          "x1": 262.0,
+          "y1": 509.0
+        },
+        {
+          "x0": 420.0,
+          "y0": 486.0,
+          "x1": 1080.0,
+          "y1": 516.0
+        },
+        {
+          "x0": 159.0,
+          "y0": 507.0,
+          "x1": 225.0,
+          "y1": 532.0
+        },
+        {
+          "x0": 485.0,
+          "y0": 507.0,
+          "x1": 857.0,
+          "y1": 535.0
+        },
+        {
+          "x0": 161.0,
+          "y0": 530.0,
+          "x1": 260.0,
+          "y1": 554.0
+        },
+        {
+          "x0": 356.0,
+          "y0": 531.0,
+          "x1": 1079.0,
+          "y1": 561.0
+        },
+        {
+          "x0": 356.0,
+          "y0": 554.0,
+          "x1": 645.0,
+          "y1": 581.0
+        },
+        {
+          "x0": 161.0,
+          "y0": 600.0,
+          "x1": 328.0,
+          "y1": 624.0
+        },
+        {
+          "x0": 161.0,
+          "y0": 626.0,
+          "x1": 211.0,
+          "y1": 649.0
+        },
+        {
+          "x0": 358.0,
+          "y0": 623.0,
+          "x1": 1079.0,
+          "y1": 654.0
+        },
+        {
+          "x0": 354.0,
+          "y0": 647.0,
+          "x1": 1075.0,
+          "y1": 679.0
+        },
+        {
+          "x0": 159.0,
+          "y0": 670.0,
+          "x1": 260.0,
+          "y1": 695.0
+        },
+        {
+          "x0": 354.0,
+          "y0": 668.0,
+          "x1": 1038.0,
+          "y1": 704.0
+        },
+        {
+          "x0": 420.0,
+          "y0": 695.0,
+          "x1": 981.0,
+          "y1": 725.0
+        },
+        {
+          "x0": 159.0,
+          "y0": 716.0,
+          "x1": 211.0,
+          "y1": 742.0
+        },
+        {
+          "x0": 354.0,
+          "y0": 717.0,
+          "x1": 1055.0,
+          "y1": 747.0
+        },
+        {
+          "x0": 423.0,
+          "y0": 746.0,
+          "x1": 512.0,
+          "y1": 765.0
+        },
+        {
+          "x0": 159.0,
+          "y0": 784.0,
+          "x1": 445.0,
+          "y1": 812.0
+        },
+        {
+          "x0": 159.0,
+          "y0": 808.0,
+          "x1": 284.0,
+          "y1": 835.0
+        },
+        {
+          "x0": 356.0,
+          "y0": 810.0,
+          "x1": 1001.0,
+          "y1": 840.0
+        },
+        {
+          "x0": 420.0,
+          "y0": 835.0,
+          "x1": 1080.0,
+          "y1": 865.0
+        },
+        {
+          "x0": 157.0,
+          "y0": 854.0,
+          "x1": 236.0,
+          "y1": 883.0
+        },
+        {
+          "x0": 487.0,
+          "y0": 861.0,
+          "x1": 570.0,
+          "y1": 881.0
+        },
+        {
+          "x0": 159.0,
+          "y0": 877.0,
+          "x1": 284.0,
+          "y1": 907.0
+        },
+        {
+          "x0": 356.0,
+          "y0": 881.0,
+          "x1": 797.0,
+          "y1": 907.0
+        },
+        {
+          "x0": 159.0,
+          "y0": 900.0,
+          "x1": 261.0,
+          "y1": 928.0
+        },
+        {
+          "x0": 356.0,
+          "y0": 903.0,
+          "x1": 1079.0,
+          "y1": 933.0
+        },
+        {
+          "x0": 354.0,
+          "y0": 924.0,
+          "x1": 985.0,
+          "y1": 958.0
+        },
+        {
+          "x0": 420.0,
+          "y0": 951.0,
+          "x1": 1080.0,
+          "y1": 981.0
+        },
+        {
+          "x0": 161.0,
+          "y0": 975.0,
+          "x1": 280.0,
+          "y1": 995.0
+        },
+        {
+          "x0": 483.0,
+          "y0": 973.0,
+          "x1": 978.0,
+          "y1": 1002.0
+        },
+        {
+          "x0": 161.0,
+          "y0": 996.0,
+          "x1": 260.0,
+          "y1": 1021.0
+        },
+        {
+          "x0": 356.0,
+          "y0": 995.0,
+          "x1": 1079.0,
+          "y1": 1026.0
+        },
+        {
+          "x0": 354.0,
+          "y0": 1019.0,
+          "x1": 1036.0,
+          "y1": 1049.0
+        },
+        {
+          "x0": 420.0,
+          "y0": 1044.0,
+          "x1": 1080.0,
+          "y1": 1074.0
+        },
+        {
+          "x0": 158.0,
+          "y0": 1065.0,
+          "x1": 218.0,
+          "y1": 1089.0
+        },
+        {
+          "x0": 420.0,
+          "y0": 1066.0,
+          "x1": 1080.0,
+          "y1": 1096.0
+        },
+        {
+          "x0": 157.0,
+          "y0": 1085.0,
+          "x1": 236.0,
+          "y1": 1116.0
+        },
+        {
+          "x0": 418.0,
+          "y0": 1089.0,
+          "x1": 583.0,
+          "y1": 1116.0
+        },
+        {
+          "x0": 161.0,
+          "y0": 1114.0,
+          "x1": 257.0,
+          "y1": 1133.0
+        },
+        {
+          "x0": 352.0,
+          "y0": 1110.0,
+          "x1": 1029.0,
+          "y1": 1144.0
+        },
+        {
+          "x0": 420.0,
+          "y0": 1135.0,
+          "x1": 884.0,
+          "y1": 1165.0
+        },
+        {
+          "x0": 157.0,
+          "y0": 1152.0,
+          "x1": 212.0,
+          "y1": 1183.0
+        },
+        {
+          "x0": 352.0,
+          "y0": 1158.0,
+          "x1": 1050.0,
+          "y1": 1189.0
+        },
+        {
+          "x0": 420.0,
+          "y0": 1182.0,
+          "x1": 735.0,
+          "y1": 1209.0
+        },
+        {
+          "x0": 158.0,
+          "y0": 1224.0,
+          "x1": 751.0,
+          "y1": 1253.0
+        },
+        {
+          "x0": 159.0,
+          "y0": 1247.0,
+          "x1": 261.0,
+          "y1": 1276.0
+        },
+        {
+          "x0": 354.0,
+          "y0": 1251.0,
+          "x1": 1080.0,
+          "y1": 1281.0
+        },
+        {
+          "x0": 161.0,
+          "y0": 1277.0,
+          "x1": 225.0,
+          "y1": 1296.0
+        },
+        {
+          "x0": 416.0,
+          "y0": 1275.0,
+          "x1": 896.0,
+          "y1": 1303.0
+        },
+        {
+          "x0": 163.0,
+          "y0": 1300.0,
+          "x1": 259.0,
+          "y1": 1319.0
+        },
+        {
+          "x0": 352.0,
+          "y0": 1294.0,
+          "x1": 1082.0,
+          "y1": 1330.0
+        },
+        {
+          "x0": 352.0,
+          "y0": 1321.0,
+          "x1": 1063.0,
+          "y1": 1353.0
+        },
+        {
+          "x0": 418.0,
+          "y0": 1351.0,
+          "x1": 517.0,
+          "y1": 1370.0
+        },
+        {
+          "x0": 158.0,
+          "y0": 1389.0,
+          "x1": 1079.0,
+          "y1": 1423.0
+        },
+        {
+          "x0": 352.0,
+          "y0": 1415.0,
+          "x1": 636.0,
+          "y1": 1444.0
+        },
+        {
+          "x0": 158.0,
+          "y0": 1459.0,
+          "x1": 563.0,
+          "y1": 1488.0
+        },
+        {
+          "x0": 157.0,
+          "y0": 1482.0,
+          "x1": 409.0,
+          "y1": 1510.0
+        },
+        {
+          "x0": 813.0,
+          "y0": 1489.0,
+          "x1": 841.0,
+          "y1": 1512.0
+        },
+        {
+          "x0": 158.0,
+          "y0": 1507.0,
+          "x1": 395.0,
+          "y1": 1533.0
+        },
+        {
+          "x0": 809.0,
+          "y0": 1510.0,
+          "x1": 839.0,
+          "y1": 1535.0
+        },
+        {
+          "x0": 522.0,
+          "y0": 1607.0,
+          "x1": 629.0,
+          "y1": 1631.0
+        }
+      ],
+      "confidence_scores": [
+        0.995728075504303,
+        0.6842846870422363,
+        0.9574577808380127,
+        0.9442915320396423,
+        0.9575779438018799,
+        0.9659269452095032,
+        0.9139634370803833,
+        0.9460883140563965,
+        0.9892006516456604,
+        0.9824631214141846,
+        0.9901741147041321,
+        0.9848231077194214,
+        0.9475917220115662,
+        0.9866899847984314,
+        0.9493914842605591,
+        0.9543997645378113,
+        0.9354971647262573,
+        0.9851527810096741,
+        0.9339976906776428,
+        0.9150261282920837,
+        0.9451633095741272,
+        0.9926425218582153,
+        0.9466469883918762,
+        0.9342357516288757,
+        0.9968326687812805,
+        0.9976147413253784,
+        0.9014055728912354,
+        0.9428962469100952,
+        0.9916151762008667,
+        0.9475492835044861,
+        0.9128856062889099,
+        0.9927530288696289,
+        0.941498339176178,
+        0.9281288385391235,
+        0.9500153064727783,
+        0.9560326933860779,
+        0.943027913570404,
+        0.9186985492706299,
+        0.9898856282234192,
+        0.9242624044418335,
+        0.9606968760490417,
+        0.9717810750007629,
+        0.9909924268722534,
+        0.938493013381958,
+        0.954108715057373,
+        0.9567158222198486,
+        0.963509738445282,
+        0.916196346282959,
+        0.9923268556594849,
+        0.9429280757904053,
+        0.9337827563285828,
+        0.963092565536499,
+        0.9849502444267273,
+        0.9410183429718018,
+        0.9905171990394592,
+        0.9698379039764404,
+        0.9914333820343018,
+        0.9221088290214539,
+        0.9502022862434387,
+        0.9977138638496399,
+        0.9557976722717285,
+        0.9427448511123657,
+        0.9627941250801086,
+        0.9881197810173035,
+        0.9408290982246399,
+        0.8964787721633911,
+        0.959552526473999,
+        0.9578722715377808,
+        0.9495450854301453,
+        0.9431416988372803,
+        0.9253300428390503,
+        0.9217348694801331,
+        0.9470910429954529,
+        0.970963180065155,
+        0.9566255211830139,
+        0.9957557916641235,
+        0.9845385551452637,
+        0.9973959922790527,
+        0.997960090637207
+      ],
+      "metadata": {
+        "source_file": "scanned_5.pdf",
+        "latency_ms": 24181.553,
+        "cost_usd": null,
+        "extra": {
+          "status": "ok",
+          "extractor": "paddleocr",
+          "ocr_supported": true,
+          "ocr_used": true,
+          "ocr_required": false,
+          "layout_preservation": "ocr_boxes",
+          "extraction_timestamp": "2026-06-01T04:26:51.995672+00:00",
+          "total_page_count": 1,
+          "total_text_blocks": 79,
+          "average_confidence": 0.9544,
+          "document_average_confidence": 0.9544,
+          "document_total_text_blocks": 79,
+          "document_latency_ms": 24182.901
+        }
+      }
+    }
+  ],
+  "total_pages": 1
+}
