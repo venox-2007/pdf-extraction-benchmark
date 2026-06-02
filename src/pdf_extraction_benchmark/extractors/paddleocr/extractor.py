@@ -24,6 +24,8 @@ from pdf_extraction_benchmark.models.extraction_result import (
 )
 from pdf_extraction_benchmark.utils.logger import get_logger
 
+SUPPORTED_IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".tif", ".tiff"}
+
 
 class PaddleocrExtractor(BaseExtractor):
     """Extractor adapter for OCR-focused extraction using PaddleOCR."""
@@ -44,10 +46,14 @@ class PaddleocrExtractor(BaseExtractor):
         self._ocr = PaddleOCR(use_angle_cls=True, lang="en")
 
     def extract(self, pdf_path: Path) -> list[ExtractionResult]:
-        """Run page-wise OCR extraction for PDF files."""
+        """Run OCR extraction for PDF pages or a single image file."""
         pdf_path = pdf_path.resolve()
-        if not pdf_path.exists() or pdf_path.suffix.lower() != ".pdf":
-            raise FileNotFoundError(f"Invalid PDF path: {pdf_path}")
+        if not pdf_path.exists():
+            raise FileNotFoundError(f"Input file not found: {pdf_path}")
+        if pdf_path.suffix.lower() in SUPPORTED_IMAGE_EXTENSIONS:
+            return self._extract_image(pdf_path)
+        if pdf_path.suffix.lower() != ".pdf":
+            raise FileNotFoundError(f"Invalid PDF or image path: {pdf_path}")
 
         start = perf_counter()
         extraction_ts = datetime.now(UTC).isoformat()
@@ -161,9 +167,111 @@ class PaddleocrExtractor(BaseExtractor):
                 result.metadata.extra["document_latency_ms"] = elapsed_ms
         return results
 
+    def _extract_image(self, image_path: Path) -> list[ExtractionResult]:
+        """Run OCR directly on a supported image file as a one-page document."""
+        start = perf_counter()
+        extraction_ts = datetime.now(UTC).isoformat()
+        page_start = perf_counter()
+
+        try:
+            image = self._load_image_to_rgb(image_path)
+            ocr_lines = self._run_ocr(image)
+        except Exception as exc:  # pragma: no cover - runtime backend variability
+            page_latency_ms = round((perf_counter() - page_start) * 1000, 3)
+            self.logger.warning("PaddleOCR runtime failed on image %s: %s", image_path.name, exc)
+            return [
+                ExtractionResult(
+                    tool_name=self.tool_name,
+                    page_number=1,
+                    extracted_text="",
+                    tables=[],
+                    bounding_boxes=[],
+                    confidence_scores=[],
+                    metadata=ExtractionMetadata(
+                        source_file=image_path.name,
+                        latency_ms=page_latency_ms,
+                        extra={
+                            "status": "ocr_runtime_error",
+                            "extractor": self.tool_name,
+                            "input_type": "image",
+                            "ocr_supported": True,
+                            "ocr_used": True,
+                            "ocr_required": True,
+                            "layout_preservation": "ocr_boxes",
+                            "extraction_timestamp": extraction_ts,
+                            "total_page_count": 1,
+                            "total_text_blocks": 0,
+                            "average_confidence": 0.0,
+                            "error": str(exc),
+                        },
+                    ),
+                )
+            ]
+
+        page_texts: list[str] = []
+        page_confidences: list[float] = []
+        page_boxes: list[BoundingBox] = []
+
+        for line in ocr_lines:
+            bbox = self._to_bbox(line[0])
+            text, confidence = self._to_text_and_confidence(line[1])
+            if bbox is not None:
+                page_boxes.append(bbox)
+            if text:
+                page_texts.append(text)
+            if confidence is not None:
+                page_confidences.append(confidence)
+
+        page_conf_avg = (
+            round(sum(page_confidences) / len(page_confidences), 4)
+            if page_confidences
+            else 0.0
+        )
+        page_latency_ms = round((perf_counter() - page_start) * 1000, 3)
+        elapsed_ms = round((perf_counter() - start) * 1000, 3)
+
+        return [
+            ExtractionResult(
+                tool_name=self.tool_name,
+                page_number=1,
+                extracted_text="\n".join(page_texts).strip(),
+                tables=[],
+                bounding_boxes=page_boxes,
+                confidence_scores=page_confidences,
+                metadata=ExtractionMetadata(
+                    source_file=image_path.name,
+                    latency_ms=page_latency_ms,
+                    extra={
+                        "status": "ok" if page_texts else "no_text_detected",
+                        "extractor": self.tool_name,
+                        "input_type": "image",
+                        "ocr_supported": True,
+                        "ocr_used": True,
+                        "ocr_required": True,
+                        "layout_preservation": "ocr_boxes",
+                        "extraction_timestamp": extraction_ts,
+                        "total_page_count": 1,
+                        "total_text_blocks": len(page_texts),
+                        "average_confidence": page_conf_avg,
+                        "document_average_confidence": page_conf_avg,
+                        "document_total_text_blocks": len(page_texts),
+                        "document_latency_ms": elapsed_ms,
+                    },
+                ),
+            )
+        ]
+
     def _render_page_to_rgb(self, page: fitz.Page) -> np.ndarray:
         """Render PDF page to RGB image array for OCR."""
         pix = page.get_pixmap(matrix=fitz.Matrix(2.0, 2.0), alpha=False)
+        img = np.frombuffer(pix.samples, dtype=np.uint8)
+        return img.reshape(pix.height, pix.width, pix.n)
+
+    def _load_image_to_rgb(self, image_path: Path) -> np.ndarray:
+        """Load an image file into an RGB image array for OCR."""
+        pix = fitz.Pixmap(str(image_path))
+        if pix.alpha or pix.n != 3:
+            pix = fitz.Pixmap(fitz.csRGB, pix)
         img = np.frombuffer(pix.samples, dtype=np.uint8)
         return img.reshape(pix.height, pix.width, pix.n)
 

@@ -37,6 +37,12 @@ def _create_pdf(path: Path, pages: int) -> None:
         doc.save(path)
 
 
+def _create_png(path: Path) -> None:
+    pix = fitz.Pixmap(fitz.csRGB, fitz.IRect(0, 0, 120, 60), 0)
+    pix.clear_with(255)
+    pix.save(path)
+
+
 def test_paddleocr_extractor_returns_standardized_results(tmp_path: Path, monkeypatch) -> None:  # type: ignore[no-untyped-def]
     """Paddle extractor should emit page-wise ExtractionResult records."""
     monkeypatch.setattr(paddle_module, "PaddleOCR", _FakePaddleOCR)
@@ -57,6 +63,30 @@ def test_paddleocr_extractor_returns_standardized_results(tmp_path: Path, monkey
     assert results[0].metadata.extra["ocr_supported"] is True
     assert results[0].metadata.extra["ocr_used"] is True
     assert results[0].metadata.extra["total_text_blocks"] == 2
+
+
+def test_paddleocr_extractor_supports_image_input(tmp_path: Path, monkeypatch) -> None:  # type: ignore[no-untyped-def]
+    """Paddle extractor should OCR supported image files as one-page documents."""
+    monkeypatch.setattr(paddle_module, "PaddleOCR", _FakePaddleOCR)
+    image_path = tmp_path / "sample.png"
+    _create_png(image_path)
+
+    extractor = PaddleocrExtractor()
+    results = extractor.extract(image_path)
+
+    assert len(results) == 1
+    assert results[0].tool_name == "paddleocr"
+    assert results[0].page_number == 1
+    assert "hello" in results[0].extracted_text
+    assert "world" in results[0].extracted_text
+    assert len(results[0].bounding_boxes) == 2
+    assert len(results[0].confidence_scores) == 2
+    assert results[0].metadata is not None
+    assert results[0].metadata.source_file == "sample.png"
+    assert results[0].metadata.extra["input_type"] == "image"
+    assert results[0].metadata.extra["ocr_supported"] is True
+    assert results[0].metadata.extra["ocr_used"] is True
+    assert results[0].metadata.extra["total_page_count"] == 1
 
 
 def test_paddleocr_extractor_handles_missing_dependency(monkeypatch, tmp_path: Path) -> None:  # type: ignore[no-untyped-def]

@@ -24,16 +24,23 @@ from pdf_extraction_benchmark.extractors.opendataloader.extractor import (  # no
 )
 from pdf_extraction_benchmark.extractors.paddleocr.extractor import PaddleocrExtractor  # noqa: E402
 from pdf_extraction_benchmark.extractors.pymupdf.extractor import PymupdfExtractor  # noqa: E402
+from pdf_extraction_benchmark.models.extraction_result import (  # noqa: E402
+    ExtractionMetadata,
+    ExtractionResult,
+)
 from pdf_extraction_benchmark.parsers.unified_output_parser import UnifiedOutputParser  # noqa: E402
 from pdf_extraction_benchmark.utils.logger import configure_logging  # noqa: E402
 
 APP_NAME = "DocuVision AI"
 APP_SUBTITLE = "Clean PDF intelligence with multiple extraction backends"
+SUPPORTED_UPLOAD_TYPES = ["pdf", "png", "jpg", "jpeg", "tif", "tiff"]
+IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".tif", ".tiff"}
 
 RECOMMENDATIONS = {
     "native": ["OpenDataLoader", "PyMuPDF", "Marker"],
     "hybrid": ["PaddleOCR + PyMuPDF", "OpenDataLoader + OCR fallback"],
     "scanned": ["PaddleOCR", "Surya", "Tesseract (future)"],
+    "image": ["PaddleOCR"],
 }
 
 EXTRACTOR_OPTIONS = {
@@ -43,15 +50,65 @@ EXTRACTOR_OPTIONS = {
 }
 
 EXTRACTOR_CAPABILITIES = {
-    "OpenDataLoader": {"ocr_supported": False},
-    "PyMuPDF": {"ocr_supported": False},
-    "PaddleOCR": {"ocr_supported": True},
+    "OpenDataLoader": {"ocr_supported": False, "supports_pdf": True, "supports_image": False},
+    "PyMuPDF": {"ocr_supported": False, "supports_pdf": True, "supports_image": False},
+    "PaddleOCR": {"ocr_supported": True, "supports_pdf": True, "supports_image": True},
 }
 
 
 def _extractor_slug(extractor_name: str) -> str:
     """Convert extractor display name into output folder slug."""
     return extractor_name.lower().replace(" ", "")
+
+
+def _detect_input_type(input_path: Path) -> str:
+    """Return a display-friendly input type for supported uploads."""
+    if input_path.suffix.lower() == ".pdf":
+        return "PDF"
+    if input_path.suffix.lower() in IMAGE_EXTENSIONS:
+        return "Image"
+    return "Unsupported"
+
+
+def _build_unsupported_image_result(
+    extractor_name: str,
+    input_path: Path,
+) -> list[ExtractionResult]:
+    """Return a schema-compatible unsupported result for PDF-only extractors."""
+    return [
+        ExtractionResult(
+            tool_name=_extractor_slug(extractor_name),
+            page_number=1,
+            extracted_text="",
+            tables=[],
+            bounding_boxes=[],
+            confidence_scores=[],
+            metadata=ExtractionMetadata(
+                source_file=input_path.name,
+                extra={
+                    "status": "unsupported_for_image_input",
+                    "extractor": _extractor_slug(extractor_name),
+                    "input_type": "image",
+                    "ocr_supported": False,
+                    "ocr_used": False,
+                    "ocr_required": True,
+                    "total_page_count": 1,
+                    "reason": f"{extractor_name} supports PDF input only.",
+                },
+            ),
+        )
+    ]
+
+
+def _get_result_status(results: list[ExtractionResult]) -> str:
+    """Extract the first explicit result status, if available."""
+    for result in results:
+        if result.metadata is None:
+            continue
+        status = result.metadata.extra.get("status")
+        if isinstance(status, str) and status:
+            return status
+    return ""
 
 
 def _inject_styles() -> None:
@@ -189,7 +246,7 @@ def _build_comparison_observations(
     most_text = max(quality_rows, key=lambda row: int(row.get("text_length", 0)))
     richest_markdown = max(quality_rows, key=lambda row: int(row.get("markdown_length", 0)))
 
-    ocr_required = pdf_type in {"scanned", "hybrid"} or any(
+    ocr_required = pdf_type in {"image", "scanned", "hybrid"} or any(
         int(row.get("ocr_required_pages", 0)) > 0 for row in rows
     )
     notes.append(
@@ -264,6 +321,22 @@ def _build_comparison_observations(
             if primary != "-"
             else "Scanned PDF detected. OCR-capable extractor is recommended."
         )
+    elif pdf_type == "image":
+        primary = (
+            str(ocr_winner.get("extractor"))
+            if ocr_winner
+            else str(most_text.get("extractor"))
+        )
+        secondary = (
+            str(fastest.get("extractor"))
+            if str(fastest.get("extractor")) != primary
+            else "-"
+        )
+        reason = (
+            f"Image input detected. `{primary}` recovered the most usable OCR text."
+            if primary != "-"
+            else "Image input detected. OCR-capable extraction is recommended."
+        )
     elif pdf_type == "hybrid":
         primary = str(most_text.get("extractor"))
         secondary = (
@@ -335,14 +408,17 @@ def _render_document_summary(meta: dict[str, Any]) -> None:
     pdf_type = str(meta.get("pdf_type", "unknown")).lower()
     card_type = f"doc-card-{pdf_type}" if pdf_type in {"native", "hybrid", "scanned"} else ""
     recommendations = ", ".join(RECOMMENDATIONS.get(pdf_type, []))
+    input_type = str(meta.get("input_type", "PDF"))
     st.markdown("### Document Summary")
     st.markdown(
         (
             f'<div class="summary-card {card_type}">'
             f'<div class="summary-title">File</div>'
             f'<div class="summary-value">{meta.get("file_name", "-")}</div>'
+            f'<div style="margin-top:0.7rem" class="summary-title">Input Type</div>'
+            f'<div class="summary-value">{input_type}</div>'
             f'<div style="margin-top:0.7rem" class="summary-title">Document Type</div>'
-            f'<div class="summary-value">{str(meta.get("pdf_type", "unknown")).title()} PDF</div>'
+            f'<div class="summary-value">{str(meta.get("pdf_type", "unknown")).title()}</div>'
             f'<div style="margin-top:0.7rem"><b>Confidence:</b> '
             f'{meta.get("classification_confidence", 0.0) * 100:.0f}%</div>'
             f'<div style="margin-top:0.35rem"><b>Reason:</b> '
@@ -419,7 +495,7 @@ def run() -> None:
 
     with st.sidebar:
         st.header("Extraction")
-        uploaded = st.file_uploader("Upload PDF", type=["pdf"])
+        uploaded = st.file_uploader("Upload Document", type=SUPPORTED_UPLOAD_TYPES)
         selected_extractors = st.multiselect(
             "Extractors",
             options=list(EXTRACTOR_OPTIONS.keys()),
@@ -444,7 +520,7 @@ def run() -> None:
 
     if run_clicked:
         if uploaded is None:
-            st.warning("Please upload a PDF before running extraction.")
+            st.warning("Please upload a document before running extraction.")
         elif not selected_extractors:
             st.warning("Please select at least one extractor.")
         else:
@@ -452,18 +528,40 @@ def run() -> None:
             progress_bar = st.progress(0.0, text="Initializing extraction...")
             input_dir = project_root / "data" / "processed"
             input_dir.mkdir(parents=True, exist_ok=True)
-            pdf_path = input_dir / uploaded.name
-            pdf_path.write_bytes(uploaded.getvalue())
+            input_path = input_dir / uploaded.name
+            input_path.write_bytes(uploaded.getvalue())
+            input_type = _detect_input_type(input_path)
+            is_image_input = input_type == "Image"
 
-            classifier = PdfTypeClassifier()
-            classification = classifier.classify(pdf_path)
+            classification = None
+            if input_type == "PDF":
+                classifier = PdfTypeClassifier()
+                classification = classifier.classify(input_path)
+                pdf_type = classification.pdf_type
+                page_count = classification.page_count
+                classification_confidence = classification.confidence
+                classification_reasoning = classification.reasoning
+                image_heavy_pages = classification.image_heavy_pages
+                text_pages = classification.text_pages
+                avg_text_density = classification.avg_text_density
+                avg_image_ratio = classification.avg_image_ratio
+            else:
+                pdf_type = "image"
+                page_count = 1
+                classification_confidence = 1.0
+                classification_reasoning = "Image input detected; route to OCR-capable extractors."
+                image_heavy_pages = 1
+                text_pages = 0
+                avg_text_density = 0.0
+                avg_image_ratio = 1.0
             st.session_state.last_classification = classification
 
-            recs = RECOMMENDATIONS.get(classification.pdf_type, [])
+            recs = RECOMMENDATIONS.get(pdf_type, [])
             rec_text = ", ".join(recs)
             st.info(
-                f"Classification complete: {classification.pdf_type.title()} PDF "
-                f"(confidence {classification.confidence:.2f}). "
+                f"Input detected: {input_type}. "
+                f"Classification: {pdf_type.title()} "
+                f"(confidence {classification_confidence:.2f}). "
                 f"Recommended: {rec_text}"
             )
 
@@ -487,33 +585,41 @@ def run() -> None:
                 )
                 start = time.perf_counter()
                 extractor_slug = _extractor_slug(extractor_name)
-                extractor_output_dir = output_root_dir / extractor_slug / pdf_path.stem
+                extractor_output_dir = output_root_dir / extractor_slug / input_path.stem
                 extractor_output_dir.mkdir(parents=True, exist_ok=True)
 
                 try:
-                    extractor_cls = EXTRACTOR_OPTIONS[extractor_name]
-                    extractor = extractor_cls()
-                    if extractor_name == "OpenDataLoader":
-                        results = extractor.extract(
-                            pdf_path=pdf_path,
-                            output_dir=extractor_output_dir,
-                        )
+                    capabilities = EXTRACTOR_CAPABILITIES[extractor_name]
+                    if is_image_input and not capabilities["supports_image"]:
+                        results = _build_unsupported_image_result(extractor_name, input_path)
                     else:
-                        results = extractor.extract(pdf_path=pdf_path)
+                        extractor_cls = EXTRACTOR_OPTIONS[extractor_name]
+                        extractor = extractor_cls()
+                        if extractor_name == "OpenDataLoader":
+                            results = extractor.extract(
+                                pdf_path=input_path,
+                                output_dir=extractor_output_dir,
+                            )
+                        else:
+                            results = extractor.extract(pdf_path=input_path)
                     elapsed = time.perf_counter() - start
 
                     payload = UnifiedOutputParser().to_json_payload(results)
 
-                    md_source = extractor_output_dir / f"{pdf_path.stem}.md"
-                    if extractor_name == "OpenDataLoader" and md_source.exists():
+                    md_source = extractor_output_dir / f"{input_path.stem}.md"
+                    if (
+                        extractor_name == "OpenDataLoader"
+                        and input_type == "PDF"
+                        and md_source.exists()
+                    ):
                         markdown_text = _read_text_safely(md_source)
                     else:
                         markdown_text = _build_markdown_from_results(results, extractor_name)
 
                     has_markdown_images = bool(re.search(r"!\[[^\]]*\]\([^)]+\)", markdown_text))
-                    if classification.pdf_type == "scanned" and not has_markdown_images:
+                    if input_type == "PDF" and pdf_type == "scanned" and not has_markdown_images:
                         image_section = _build_scanned_page_image_markdown(
-                            pdf_path=pdf_path,
+                            pdf_path=input_path,
                             markdown_root_dir=output_markdown_dir,
                             extractor_slug=extractor_slug,
                         )
@@ -529,18 +635,22 @@ def run() -> None:
                     all_text = "\n\n".join(result.extracted_text for result in results)
                     no_text_output = not all_text.strip()
                     extracted_result_count = len(results)
-                    processed_page_count = (
-                        classification.page_count if extracted_result_count > 0 else 0
-                    )
+                    processed_page_count = page_count if extracted_result_count > 0 else 0
                     ocr_required_pages = sum(
                         1
                         for result in results
                         if result.metadata and result.metadata.extra.get("ocr_required") is True
                     )
-                    ocr_supported = EXTRACTOR_CAPABILITIES[extractor_name]["ocr_supported"]
-                    status = "success" if not no_text_output else "empty_text_output"
-                    if classification.pdf_type == "scanned" and no_text_output:
+                    ocr_supported = bool(capabilities["ocr_supported"])
+                    status = _get_result_status(results)
+                    if status == "ok":
+                        status = "success"
+                    elif not status:
+                        status = "success" if not no_text_output else "empty_text_output"
+                    if pdf_type == "scanned" and no_text_output and status == "empty_text_output":
                         status = "limited_for_scanned_pdf"
+                    if status == "unsupported_for_image_input":
+                        processed_page_count = 0
                     if status != "success":
                         warnings.append(f"{extractor_name}: {status.replace('_', ' ')}")
 
@@ -556,20 +666,20 @@ def run() -> None:
                         {
                             "extractor": extractor_name,
                             "latency_seconds": round(elapsed, 3),
-                            "total_pages": classification.page_count,
+                            "total_pages": page_count,
                             "processed_pages": processed_page_count,
                             "text_length": len(all_text),
                             "markdown_length": len(markdown_text),
                             "ocr_supported": ocr_supported,
                             "ocr_required_pages": ocr_required_pages,
                             "status": status,
-                            "pdf_type": classification.pdf_type,
+                            "pdf_type": pdf_type,
                         }
                     )
                     run_status.write(
                         f"Finished `{extractor_name}` in {elapsed:.2f}s "
                         f"(status: {status}, "
-                        f"pages: {processed_page_count}/{classification.page_count}, "
+                        f"pages: {processed_page_count}/{page_count}, "
                         f"text length: {len(all_text)})."
                     )
                 except Exception as exc:
@@ -577,14 +687,14 @@ def run() -> None:
                         {
                             "extractor": extractor_name,
                             "latency_seconds": round(time.perf_counter() - start, 3),
-                            "total_pages": classification.page_count,
+                            "total_pages": page_count,
                             "processed_pages": 0,
                             "text_length": 0,
                             "markdown_length": 0,
                             "ocr_supported": False,
                             "ocr_required_pages": 0,
                             "status": "failed",
-                            "pdf_type": classification.pdf_type,
+                            "pdf_type": pdf_type,
                         }
                     )
                     warnings.append(f"{extractor_name}: failed ({exc})")
@@ -605,18 +715,19 @@ def run() -> None:
             st.session_state.last_meta = {
                 "file_name": uploaded.name,
                 "file_size_kb": round(len(uploaded.getvalue()) / 1024, 2),
-                "total_pdf_pages": classification.page_count,
-                "image_heavy_pages": classification.image_heavy_pages,
+                "input_type": input_type,
+                "total_pdf_pages": page_count,
+                "image_heavy_pages": image_heavy_pages,
                 "ocr_image_only_pages": max(
                     0,
-                    classification.page_count - classification.text_pages,
+                    page_count - text_pages,
                 ),
-                "pdf_type": classification.pdf_type,
-                "classification_confidence": classification.confidence,
-                "classification_reasoning": classification.reasoning,
-                "avg_text_density": classification.avg_text_density,
-                "avg_image_ratio": classification.avg_image_ratio,
-                "text_pages": classification.text_pages,
+                "pdf_type": pdf_type,
+                "classification_confidence": classification_confidence,
+                "classification_reasoning": classification_reasoning,
+                "avg_text_density": avg_text_density,
+                "avg_image_ratio": avg_image_ratio,
+                "text_pages": text_pages,
                 "selected_extractors": selected_extractors,
             }
 
