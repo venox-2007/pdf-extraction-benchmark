@@ -1,15 +1,15 @@
-"""Benchmark package."""
+"""FUNSD benchmark package."""
 
 from __future__ import annotations
 
 from pdf_extraction_benchmark.benchmarks.funsd.benchmark import (
     FunsdBenchmarkPipeline,
-    FunsdBenchmarkSummary,
     FunsdDocumentResult,
+    FunsdBenchmarkSummary,
 )
 
 __all__ = [
     "FunsdBenchmarkPipeline",
-    "FunsdBenchmarkSummary",
     "FunsdDocumentResult",
+    "FunsdBenchmarkSummary",
 ]
