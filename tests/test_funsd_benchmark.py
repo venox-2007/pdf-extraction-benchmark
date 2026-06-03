@@ -65,6 +65,7 @@ def test_run_writes_outputs(tmp_path: Path) -> None:
     pipeline = FunsdBenchmarkPipeline(
         dataset_dir=tmp_path,
         output_dir=tmp_path / "out",
+        chart_dir=tmp_path / "charts",
         ocr_runner=lambda _path: "Hello world",
     )
     summary = pipeline.run()
@@ -72,9 +73,14 @@ def test_run_writes_outputs(tmp_path: Path) -> None:
     assert summary.total_documents == 1
     assert summary.average_cer == 0.0
     assert summary.average_wer == 0.0
+    assert "cer" in summary.metric_statistics
+    assert summary.top_10_best[0].document_id == "doc1"
     assert (tmp_path / "out" / "funsd_results.csv").exists()
     assert (tmp_path / "out" / "funsd_summary.json").exists()
     assert (tmp_path / "out" / "benchmark_observations.md").exists()
+    assert (tmp_path / "charts" / "cer_distribution.png").exists()
+    assert (tmp_path / "charts" / "wer_distribution.png").exists()
+    assert (tmp_path / "charts" / "f1_distribution.png").exists()
 
 
 def test_metrics_match_edit_distance() -> None:
