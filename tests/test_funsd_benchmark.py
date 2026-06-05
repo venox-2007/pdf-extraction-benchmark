@@ -7,6 +7,10 @@ from pathlib import Path
 
 from pdf_extraction_benchmark.benchmarks.funsd.analysis import FunsdComparisonAnalyzer
 from pdf_extraction_benchmark.benchmarks.funsd.benchmark import FunsdBenchmarkPipeline
+from pdf_extraction_benchmark.benchmarks.funsd.entity import (
+    evaluate_entity_document,
+    parse_funsd_entities,
+)
 from pdf_extraction_benchmark.benchmarks.funsd.metrics import (
     token_f1,
     token_overlap_accuracy,
@@ -78,6 +82,9 @@ def test_run_writes_outputs(tmp_path: Path) -> None:
     assert (tmp_path / "out" / "funsd_results.csv").exists()
     assert (tmp_path / "out" / "funsd_summary.json").exists()
     assert (tmp_path / "out" / "benchmark_observations.md").exists()
+    assert (tmp_path / "out" / "entity_results.csv").exists()
+    assert (tmp_path / "out" / "entity_summary.json").exists()
+    assert (tmp_path / "out" / "entity_observations.md").exists()
     assert (tmp_path / "charts" / "cer_distribution.png").exists()
     assert (tmp_path / "charts" / "wer_distribution.png").exists()
     assert (tmp_path / "charts" / "f1_distribution.png").exists()
@@ -115,3 +122,63 @@ def test_analyzer_writes_report(tmp_path: Path) -> None:
     assert payload["sample_size"] == 1
     assert (tmp_path / "out" / "comparison_report.md").exists()
     assert (tmp_path / "out" / "benchmark_observations.md").exists()
+
+
+def test_entity_parser_and_evaluation(tmp_path: Path) -> None:
+    """Ensure entity parsing and matching work on a linked QA pair."""
+    annotation_path = tmp_path / "sample.json"
+    annotation_path.write_text(
+        json.dumps(
+            {
+                "form": [
+                    {
+                        "id": 1,
+                        "label": "question",
+                        "text": "Name:",
+                        "box": [10, 10, 80, 30],
+                        "words": [{"text": "Name:"}],
+                        "linking": [[1, 2]],
+                    },
+                    {
+                        "id": 2,
+                        "label": "answer",
+                        "text": "Alice",
+                        "box": [90, 10, 150, 30],
+                        "words": [{"text": "Alice"}],
+                        "linking": [[1, 2]],
+                    },
+                ]
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    entities = parse_funsd_entities(annotation_path)
+    assert len(entities) == 1
+    assert entities[0].combined_text == "Name: Alice"
+
+    raw_ocr_result = [
+        [
+            [
+                [[10, 10], [80, 10], [80, 30], [10, 30]],
+                ("Name:", 0.99),
+            ],
+            [
+                [[90, 10], [150, 10], [150, 30], [90, 30]],
+                ("Alice", 0.99),
+            ],
+        ]
+    ]
+
+    result = evaluate_entity_document(
+        document_id="sample",
+        image_path=tmp_path / "sample.png",
+        annotation_path=annotation_path,
+        raw_ocr_result=raw_ocr_result,
+        cer=0.1,
+        wer=0.1,
+    )
+
+    assert result.entity_count == 1
+    assert result.predicted_entity_count > 0
+    assert result.entity_f1 >= 0.0

@@ -9,6 +9,12 @@ from pdf_extraction_benchmark.benchmarks.funsd.benchmark import (
     MetricStatistics,
     RankedDocument,
 )
+from pdf_extraction_benchmark.benchmarks.funsd.entity import (
+    EntityExample,
+    FunsdEntityResult,
+    FunsdEntitySummary,
+    RankedEntityDocument,
+)
 
 __all__ = [
     "FunsdBenchmarkPipeline",
@@ -16,4 +22,8 @@ __all__ = [
     "FunsdBenchmarkSummary",
     "MetricStatistics",
     "RankedDocument",
+    "EntityExample",
+    "FunsdEntityResult",
+    "FunsdEntitySummary",
+    "RankedEntityDocument",
 ]

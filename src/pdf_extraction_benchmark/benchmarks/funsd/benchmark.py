@@ -18,6 +18,14 @@ try:
 except ImportError:  # pragma: no cover - optional runtime dependency
     PaddleOCR = None  # type: ignore[assignment]
 
+from pdf_extraction_benchmark.benchmarks.funsd.entity import (
+    FunsdEntityResult,
+    build_entity_observations_markdown,
+    build_entity_summary,
+    entity_results_payload,
+    evaluate_entity_document,
+    extract_ocr_lines,
+)
 from pdf_extraction_benchmark.benchmarks.funsd.metrics import (
     character_error_rate,
     token_f1,
@@ -115,6 +123,7 @@ class FunsdBenchmarkPipeline:
         output_dir: Path | str | None = None,
         chart_dir: Path | str | None = None,
         ocr_runner: Callable[[Path], str] | None = None,
+        ocr_line_runner: Callable[[Path], object] | None = None,
     ) -> None:
         self.project_root = Path(__file__).resolve().parents[4]
         self.dataset_dir = (
@@ -133,6 +142,7 @@ class FunsdBenchmarkPipeline:
             else self.project_root / "outputs" / "charts" / "funsd"
         )
         self._ocr_runner = ocr_runner
+        self._ocr_line_runner = ocr_line_runner
         self._ocr_engine: PaddleOCR | None = None
 
     def run(self, sample_size: int | None = None) -> FunsdBenchmarkSummary:
@@ -141,13 +151,17 @@ class FunsdBenchmarkPipeline:
         if sample_size is not None:
             documents = documents[:sample_size]
 
-        results = [
-            self._evaluate_document(image_path, annotation_path)
-            for image_path, annotation_path in documents
-        ]
+        results: list[FunsdDocumentResult] = []
+        entity_results: list[FunsdEntityResult] = []
+        for image_path, annotation_path in documents:
+            document_result, entity_result = self._evaluate_document(image_path, annotation_path)
+            results.append(document_result)
+            entity_results.append(entity_result)
         chart_paths = self._generate_charts(results)
         summary = self._build_summary(results, chart_paths)
         self._write_outputs(results, summary)
+        entity_summary = build_entity_summary(entity_results, self.dataset_dir, self.output_dir)
+        self._write_entity_outputs(entity_results, entity_summary)
         return summary
 
     def _collect_documents(self) -> list[tuple[Path, Path]]:
@@ -174,9 +188,13 @@ class FunsdBenchmarkPipeline:
             )
         return documents
 
-    def _evaluate_document(self, image_path: Path, annotation_path: Path) -> FunsdDocumentResult:
+    def _evaluate_document(
+        self,
+        image_path: Path,
+        annotation_path: Path,
+    ) -> tuple[FunsdDocumentResult, FunsdEntityResult]:
         ground_truth_text = self._extract_ground_truth_text(annotation_path)
-        prediction_text = self._extract_prediction_text(image_path)
+        prediction_text, raw_ocr_result = self._extract_prediction_artifacts(image_path)
         normalized_prediction = self.normalize_text(prediction_text)
         normalized_ground_truth = self.normalize_text(ground_truth_text)
 
@@ -200,7 +218,7 @@ class FunsdBenchmarkPipeline:
             overlap_accuracy,
         )
 
-        return FunsdDocumentResult(
+        document_result = FunsdDocumentResult(
             document_id=image_path.stem,
             image_path=str(image_path),
             annotation_path=str(annotation_path),
@@ -220,10 +238,36 @@ class FunsdBenchmarkPipeline:
             failure_patterns=" | ".join(failure_patterns),
             status="ok",
         )
+        entity_result = evaluate_entity_document(
+            document_id=image_path.stem,
+            image_path=image_path,
+            annotation_path=annotation_path,
+            raw_ocr_result=raw_ocr_result,
+            cer=cer,
+            wer=wer,
+        )
+        return document_result, entity_result
 
-    def _extract_prediction_text(self, image_path: Path) -> str:
+    def _extract_prediction_artifacts(self, image_path: Path) -> tuple[str, object]:
+        if self._ocr_line_runner is not None:
+            raw_result = self._ocr_line_runner(image_path)
+            prediction_text = self._extract_text_from_raw_result(raw_result)
+            if self._ocr_runner is not None:
+                prediction_text = self._ocr_runner(image_path)
+            return prediction_text, raw_result
+
         if self._ocr_runner is not None:
-            return self._ocr_runner(image_path)
+            prediction_text = self._ocr_runner(image_path)
+            dummy_result = [
+                [
+                    [0.0, 0.0],
+                    [1.0, 0.0],
+                    [1.0, 1.0],
+                    [0.0, 1.0],
+                ],
+                (prediction_text, 1.0),
+            ]
+            return prediction_text, dummy_result
 
         if PaddleOCR is None:
             raise RuntimeError(
@@ -236,38 +280,18 @@ class FunsdBenchmarkPipeline:
             os.environ.setdefault("FLAGS_enable_pir_in_executor", "0")
             self._ocr_engine = PaddleOCR(use_angle_cls=True, lang="en", show_log=False)
 
-        result = self._ocr_engine.ocr(str(image_path), cls=True)
-        lines = self._flatten_ocr_result(result)
-        texts = [normalized for text in lines if (normalized := self.normalize_text(text))]
+        raw_result = self._ocr_engine.ocr(str(image_path), cls=True)
+        prediction_text = self._extract_text_from_raw_result(raw_result)
+        return prediction_text, raw_result
+
+    def _extract_text_from_raw_result(self, raw_result: object) -> str:
+        lines = extract_ocr_lines(raw_result)
+        texts = []
+        for line in lines:
+            normalized = self.normalize_text(line.text)
+            if normalized:
+                texts.append(normalized)
         return "\n".join(texts)
-
-    def _flatten_ocr_result(self, result: object) -> list[str]:
-        if result is None:
-            return []
-        if isinstance(result, list):
-            if self._looks_like_ocr_line(result):
-                text = self._extract_ocr_text(result)
-                return [text] if text else []
-
-            lines: list[str] = []
-            for item in result:
-                lines.extend(self._flatten_ocr_result(item))
-            return lines
-        return []
-
-    def _looks_like_ocr_line(self, value: object) -> bool:
-        if not isinstance(value, list) or len(value) != 2:
-            return False
-        if not isinstance(value[1], (list, tuple)) or len(value[1]) < 1:
-            return False
-        return isinstance(value[1][0], str)
-
-    def _extract_ocr_text(self, line: list[object]) -> str:
-        line_data = line[1]
-        if not isinstance(line_data, (list, tuple)) or not line_data:
-            return ""
-        text = line_data[0]
-        return text if isinstance(text, str) else ""
 
     def _extract_ground_truth_text(self, annotation_path: Path) -> str:
         with annotation_path.open("r", encoding="utf-8") as handle:
@@ -568,6 +592,31 @@ class FunsdBenchmarkPipeline:
         observations_path = self.output_dir / "benchmark_observations.md"
         observations_path.write_text(
             self._build_observations_markdown(results, summary),
+            encoding="utf-8",
+        )
+
+    def _write_entity_outputs(
+        self,
+        results: list[FunsdEntityResult],
+        summary: object,
+    ) -> None:
+        entity_results_path = self.output_dir / "entity_results.csv"
+        with entity_results_path.open("w", newline="", encoding="utf-8") as handle:
+            fieldnames = list(asdict(results[0]).keys()) if results else []
+            writer = csv.DictWriter(handle, fieldnames=fieldnames)
+            if results:
+                writer.writeheader()
+                for result in results:
+                    writer.writerow(asdict(result))
+
+        entity_summary_path = self.output_dir / "entity_summary.json"
+        summary_payload = asdict(summary)
+        summary_payload["documents"] = entity_results_payload(results)
+        entity_summary_path.write_text(json.dumps(summary_payload, indent=2), encoding="utf-8")
+
+        entity_observations_path = self.output_dir / "entity_observations.md"
+        entity_observations_path.write_text(
+            build_entity_observations_markdown(results, summary),
             encoding="utf-8",
         )
 

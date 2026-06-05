@@ -17,31 +17,6 @@
 | Token F1 | 0.628433 | 0.669320 | 0.110092 | 0.875817 | 0.153323 |
 | Token Overlap Accuracy | 0.475024 | 0.502992 | 0.058252 | 0.779070 | 0.152375 |
 
-## 10-Document Error Analysis
-
-- Sample reviewed: 5 best-performing and 5 worst-performing documents.
-- Main finding: the highest errors come from a mix of OCR mistakes and FUNSD's form/layout structure, not from OCR alone.
-- Most problematic documents are dense forms or tables where reading order, field grouping, and numeric fields interact.
-
-### Error Cause Breakdown
-
-- OCR mistakes: 2 of 10 documents
-- Layout effects: 3 of 10 documents
-- Form structure effects: 5 of 10 documents
-- Annotation mismatch: not clearly observed in the sample
-
-### Estimated Contribution
-
-- OCR mistakes: ~40%
-- Layout effects: ~30%
-- Form structure effects: ~30%
-
-### CER/WER Interpretation for FUNSD
-
-- CER and WER remain useful for comparing OCR systems, but they are not pure OCR-quality measures on FUNSD.
-- Because FUNSD contains form-style documents, these metrics also penalize reading-order changes, field reordering, and grouped labels/values.
-- Token precision/recall/F1 should be read alongside CER/WER to separate content capture from layout sensitivity.
-
 ## Distributions
 
 - CER chart: `outputs\charts\funsd\cer_distribution.png`
