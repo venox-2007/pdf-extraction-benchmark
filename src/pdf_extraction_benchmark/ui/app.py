@@ -55,10 +55,23 @@ EXTRACTOR_CAPABILITIES = {
     "PaddleOCR": {"ocr_supported": True, "supports_pdf": True, "supports_image": True},
 }
 
+PADDLEOCR_LANGUAGE_OPTIONS = {
+    "English": "english",
+    "Multilingual (Hindi/Marathi/Devanagari)": "multilingual",
+}
+
 
 def _extractor_slug(extractor_name: str) -> str:
     """Convert extractor display name into output folder slug."""
     return extractor_name.lower().replace(" ", "")
+
+
+def _paddleocr_language_label(language_mode: str) -> str:
+    """Convert a PaddleOCR language mode into a UI label."""
+    for label, value in PADDLEOCR_LANGUAGE_OPTIONS.items():
+        if value == language_mode:
+            return label
+    return "English"
 
 
 def _detect_input_type(input_path: Path) -> str:
@@ -98,6 +111,14 @@ def _build_unsupported_image_result(
             ),
         )
     ]
+
+
+def _create_extractor(extractor_name: str, paddleocr_language_mode: str) -> Any:
+    """Instantiate the selected extractor with any UI-provided configuration."""
+    extractor_cls = EXTRACTOR_OPTIONS[extractor_name]
+    if extractor_name == "PaddleOCR":
+        return extractor_cls(language_mode=paddleocr_language_mode)
+    return extractor_cls()
 
 
 def _get_result_status(results: list[ExtractionResult]) -> str:
@@ -501,6 +522,13 @@ def run() -> None:
             options=list(EXTRACTOR_OPTIONS.keys()),
             default=["OpenDataLoader", "PyMuPDF", "PaddleOCR"],
         )
+        paddleocr_language_label = st.selectbox(
+            "PaddleOCR Language",
+            options=list(PADDLEOCR_LANGUAGE_OPTIONS.keys()),
+            index=0,
+            help="Choose English or multilingual OCR for PaddleOCR runs.",
+        )
+        paddleocr_language_mode = PADDLEOCR_LANGUAGE_OPTIONS[paddleocr_language_label]
         run_clicked = st.button("Run Extraction", type="primary", use_container_width=True)
 
     st.title(APP_NAME)
@@ -564,6 +592,12 @@ def run() -> None:
                 f"(confidence {classification_confidence:.2f}). "
                 f"Recommended: {rec_text}"
             )
+            if "PaddleOCR" in selected_extractors:
+                st.caption(
+                    "PaddleOCR Language Mode: "
+                    f"{_paddleocr_language_label(paddleocr_language_mode)} "
+                    f"(`{paddleocr_language_mode}`)"
+                )
 
             per_extractor_results: dict[str, list[Any]] = {}
             per_extractor_payloads: dict[str, dict[str, object]] = {}
@@ -593,8 +627,7 @@ def run() -> None:
                     if is_image_input and not capabilities["supports_image"]:
                         results = _build_unsupported_image_result(extractor_name, input_path)
                     else:
-                        extractor_cls = EXTRACTOR_OPTIONS[extractor_name]
-                        extractor = extractor_cls()
+                        extractor = _create_extractor(extractor_name, paddleocr_language_mode)
                         if extractor_name == "OpenDataLoader":
                             results = extractor.extract(
                                 pdf_path=input_path,
@@ -839,6 +872,30 @@ def run() -> None:
                         f"**Detected Type:** "
                         f"{st.session_state.last_meta.get('pdf_type', 'unknown')}"
                     )
+                    if extractor_name == "PaddleOCR":
+                        ocr_metadata = None
+                        if extractor_results.get(extractor_name):
+                            ocr_metadata = extractor_results[extractor_name][0].metadata
+                        ocr_mode = (
+                            str(ocr_metadata.extra.get("ocr_language_mode"))
+                            if ocr_metadata is not None
+                            else paddleocr_language_mode
+                        )
+                        st.write(
+                            "**PaddleOCR Language Mode:** "
+                            f"{_paddleocr_language_label(str(ocr_mode))} "
+                            f"(`{ocr_mode}`)"
+                        )
+                        if ocr_metadata is not None:
+                            metadata_extra = ocr_metadata.extra
+                            st.write(
+                                "**OCR Model:** "
+                                f"{metadata_extra.get('ocr_model_name', '')}"
+                            )
+                            st.write(
+                                "**OCR Language:** "
+                                f"{metadata_extra.get('ocr_language', '')}"
+                            )
                     st.write(
                         "**Classifier Confidence:** "
                         f"{st.session_state.last_meta.get('classification_confidence', 0.0):.2f}"

@@ -3,18 +3,24 @@
 from __future__ import annotations
 
 import os
+from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
 from time import perf_counter
-from typing import Any
+from typing import Any, Literal
+from urllib.parse import urlparse
 
 import fitz
 import numpy as np
 
 try:
     from paddleocr import PaddleOCR
+    from paddleocr.paddleocr import SUPPORT_OCR_MODEL_VERSION, get_model_config, parse_lang
 except ImportError:  # pragma: no cover - optional runtime dependency
     PaddleOCR = None  # type: ignore[assignment]
+    SUPPORT_OCR_MODEL_VERSION = []  # type: ignore[assignment]
+    get_model_config = None  # type: ignore[assignment]
+    parse_lang = None  # type: ignore[assignment]
 
 from pdf_extraction_benchmark.interfaces.base_extractor import BaseExtractor
 from pdf_extraction_benchmark.models.extraction_result import (
@@ -25,6 +31,25 @@ from pdf_extraction_benchmark.models.extraction_result import (
 from pdf_extraction_benchmark.utils.logger import get_logger
 
 SUPPORTED_IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".tif", ".tiff"}
+PREFERRED_OCR_VERSIONS = ("PP-OCRv5", "PP-OCRv4")
+PaddleOcrLanguageMode = Literal["english", "multilingual"]
+
+
+@dataclass(frozen=True)
+class PaddleOcrRuntimeConfig:
+    """Resolved PaddleOCR runtime settings."""
+
+    language_mode: PaddleOcrLanguageMode
+    ocr_version: str
+    lang: str
+    det_lang: str
+    det_model_name: str
+    rec_model_name: str
+
+
+def _model_name_from_url(model_url: str) -> str:
+    """Derive the model name from an official PaddleOCR download URL."""
+    return Path(urlparse(model_url).path).name.removesuffix(".tar")
 
 
 class PaddleocrExtractor(BaseExtractor):
@@ -32,18 +57,72 @@ class PaddleocrExtractor(BaseExtractor):
 
     tool_name = "paddleocr"
 
-    def __init__(self) -> None:
+    def __init__(self, language_mode: PaddleOcrLanguageMode = "english") -> None:
         """Initialize logger and OCR engine."""
         self.logger = get_logger(__name__)
         if PaddleOCR is None:
             raise RuntimeError(
                 "PaddleOCR is not installed. Install with: pip install paddleocr paddlepaddle"
             )
+        if parse_lang is None or get_model_config is None:  # pragma: no cover - defensive
+            raise RuntimeError("PaddleOCR runtime helpers are unavailable.")
         # Runtime compatibility flags for certain Windows CPU Paddle builds.
         os.environ.setdefault("FLAGS_use_mkldnn", "0")
         os.environ.setdefault("FLAGS_enable_pir_api", "0")
         os.environ.setdefault("FLAGS_enable_pir_in_executor", "0")
-        self._ocr = PaddleOCR(use_angle_cls=True, lang="en")
+        self.language_mode = language_mode
+        self._ocr_config = self._resolve_runtime_config(language_mode)
+        self._ocr = PaddleOCR(
+            use_angle_cls=True,
+            show_log=False,
+            ocr_version=self._ocr_config.ocr_version,
+            lang=self._ocr_config.lang,
+        )
+
+    def _resolve_runtime_config(
+        self, language_mode: PaddleOcrLanguageMode
+    ) -> PaddleOcrRuntimeConfig:
+        """Resolve the best OCR version and model names for the selected mode."""
+        selected_lang = "en" if language_mode == "english" else "devanagari"
+        rec_lang, det_lang = parse_lang(selected_lang)
+        supported_versions = tuple(str(version) for version in SUPPORT_OCR_MODEL_VERSION)
+        for candidate_version in PREFERRED_OCR_VERSIONS:
+            if candidate_version not in supported_versions:
+                continue
+            det_model_config = get_model_config("OCR", candidate_version, "det", det_lang)
+            rec_model_config = get_model_config("OCR", candidate_version, "rec", rec_lang)
+            return PaddleOcrRuntimeConfig(
+                language_mode=language_mode,
+                ocr_version=candidate_version,
+                lang=selected_lang,
+                det_lang=det_lang,
+                det_model_name=_model_name_from_url(det_model_config["url"]),
+                rec_model_name=_model_name_from_url(rec_model_config["url"]),
+            )
+        raise RuntimeError("No supported PaddleOCR version found. Expected PP-OCRv4 or newer.")
+
+    def _model_metadata(self) -> dict[str, str]:
+        """Return metadata describing the active PaddleOCR runtime configuration."""
+        return {
+            "ocr_language_mode": self._ocr_config.language_mode,
+            "ocr_language": self._ocr_config.lang,
+            "ocr_version": self._ocr_config.ocr_version,
+            "ocr_detection_language": self._ocr_config.det_lang,
+            "ocr_detection_model_name": self._ocr_config.det_model_name,
+            "ocr_recognition_model_name": self._ocr_config.rec_model_name,
+            "ocr_model_name": self._ocr_config.rec_model_name,
+        }
+
+    def _base_extra_metadata(self) -> dict[str, Any]:
+        """Build metadata shared by all OCR outputs."""
+        return {
+            "extractor": self.tool_name,
+            "ocr_supported": True,
+            "ocr_used": True,
+            "ocr_required": True,
+            "layout_preservation": "ocr_boxes",
+            **self._model_metadata(),
+        }
 
     def extract(self, pdf_path: Path) -> list[ExtractionResult]:
         """Run OCR extraction for PDF pages or a single image file."""
@@ -92,11 +171,7 @@ class PaddleocrExtractor(BaseExtractor):
                                 latency_ms=page_latency_ms,
                                 extra={
                                     "status": "ocr_runtime_error",
-                                    "extractor": self.tool_name,
-                                    "ocr_supported": True,
-                                    "ocr_used": True,
-                                    "ocr_required": True,
-                                    "layout_preservation": "ocr_boxes",
+                                    **self._base_extra_metadata(),
                                     "extraction_timestamp": extraction_ts,
                                     "total_page_count": total_pages,
                                     "total_text_blocks": 0,
@@ -144,11 +219,8 @@ class PaddleocrExtractor(BaseExtractor):
                             latency_ms=page_latency_ms,
                             extra={
                                 "status": "ok" if page_texts else "no_text_detected",
-                                "extractor": self.tool_name,
-                                "ocr_supported": True,
-                                "ocr_used": True,
+                                **self._base_extra_metadata(),
                                 "ocr_required": False,
-                                "layout_preservation": "ocr_boxes",
                                 "extraction_timestamp": extraction_ts,
                                 "total_page_count": total_pages,
                                 "total_text_blocks": len(page_texts),
@@ -192,12 +264,8 @@ class PaddleocrExtractor(BaseExtractor):
                         latency_ms=page_latency_ms,
                         extra={
                             "status": "ocr_runtime_error",
-                            "extractor": self.tool_name,
                             "input_type": "image",
-                            "ocr_supported": True,
-                            "ocr_used": True,
-                            "ocr_required": True,
-                            "layout_preservation": "ocr_boxes",
+                            **self._base_extra_metadata(),
                             "extraction_timestamp": extraction_ts,
                             "total_page_count": 1,
                             "total_text_blocks": 0,
@@ -243,12 +311,8 @@ class PaddleocrExtractor(BaseExtractor):
                     latency_ms=page_latency_ms,
                     extra={
                         "status": "ok" if page_texts else "no_text_detected",
-                        "extractor": self.tool_name,
                         "input_type": "image",
-                        "ocr_supported": True,
-                        "ocr_used": True,
-                        "ocr_required": True,
-                        "layout_preservation": "ocr_boxes",
+                        **self._base_extra_metadata(),
                         "extraction_timestamp": extraction_ts,
                         "total_page_count": 1,
                         "total_text_blocks": len(page_texts),

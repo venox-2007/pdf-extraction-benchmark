@@ -13,8 +13,10 @@ from pdf_extraction_benchmark.extractors.paddleocr.extractor import PaddleocrExt
 class _FakePaddleOCR:
     """Small fake OCR engine for deterministic extractor tests."""
 
+    last_init_kwargs: dict[str, object] | None = None
+
     def __init__(self, **_: object) -> None:
-        pass
+        self.__class__.last_init_kwargs = dict(_)
 
     def predict(self, _image: object, **_: object) -> list[object]:
         return [
@@ -49,7 +51,7 @@ def test_paddleocr_extractor_returns_standardized_results(tmp_path: Path, monkey
     pdf_path = tmp_path / "sample.pdf"
     _create_pdf(pdf_path, pages=2)
 
-    extractor = PaddleocrExtractor()
+    extractor = PaddleocrExtractor(language_mode="english")
     results = extractor.extract(pdf_path)
 
     assert len(results) == 2
@@ -63,6 +65,11 @@ def test_paddleocr_extractor_returns_standardized_results(tmp_path: Path, monkey
     assert results[0].metadata.extra["ocr_supported"] is True
     assert results[0].metadata.extra["ocr_used"] is True
     assert results[0].metadata.extra["total_text_blocks"] == 2
+    assert results[0].metadata.extra["ocr_language_mode"] == "english"
+    assert results[0].metadata.extra["ocr_language"] == "en"
+    assert results[0].metadata.extra["ocr_model_name"].endswith("_rec_infer")
+    assert _FakePaddleOCR.last_init_kwargs is not None
+    assert _FakePaddleOCR.last_init_kwargs["lang"] == "en"
 
 
 def test_paddleocr_extractor_supports_image_input(tmp_path: Path, monkeypatch) -> None:  # type: ignore[no-untyped-def]
@@ -71,7 +78,7 @@ def test_paddleocr_extractor_supports_image_input(tmp_path: Path, monkeypatch) -
     image_path = tmp_path / "sample.png"
     _create_png(image_path)
 
-    extractor = PaddleocrExtractor()
+    extractor = PaddleocrExtractor(language_mode="multilingual")
     results = extractor.extract(image_path)
 
     assert len(results) == 1
@@ -87,6 +94,11 @@ def test_paddleocr_extractor_supports_image_input(tmp_path: Path, monkeypatch) -
     assert results[0].metadata.extra["ocr_supported"] is True
     assert results[0].metadata.extra["ocr_used"] is True
     assert results[0].metadata.extra["total_page_count"] == 1
+    assert results[0].metadata.extra["ocr_language_mode"] == "multilingual"
+    assert results[0].metadata.extra["ocr_language"] == "devanagari"
+    assert "devanagari" in results[0].metadata.extra["ocr_recognition_model_name"]
+    assert _FakePaddleOCR.last_init_kwargs is not None
+    assert _FakePaddleOCR.last_init_kwargs["lang"] == "devanagari"
 
 
 def test_paddleocr_extractor_handles_missing_dependency(monkeypatch, tmp_path: Path) -> None:  # type: ignore[no-untyped-def]
