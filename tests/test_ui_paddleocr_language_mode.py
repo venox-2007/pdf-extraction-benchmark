@@ -35,3 +35,9 @@ def test_create_extractor_passes_selected_paddleocr_mode(monkeypatch) -> None:
         {"language_mode": "english"},
         {"language_mode": "multilingual"},
     ]
+
+
+def test_surya_option_is_exposed_in_ui() -> None:
+    """The Streamlit UI should expose Surya as a selectable extractor."""
+    assert "Surya" in app.EXTRACTOR_OPTIONS
+    assert app.EXTRACTOR_CAPABILITIES["Surya"]["ocr_supported"] is True

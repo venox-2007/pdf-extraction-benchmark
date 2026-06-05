@@ -24,6 +24,7 @@ from pdf_extraction_benchmark.extractors.opendataloader.extractor import (  # no
 )
 from pdf_extraction_benchmark.extractors.paddleocr.extractor import PaddleocrExtractor  # noqa: E402
 from pdf_extraction_benchmark.extractors.pymupdf.extractor import PymupdfExtractor  # noqa: E402
+from pdf_extraction_benchmark.extractors.surya.extractor import SuryaExtractor  # noqa: E402
 from pdf_extraction_benchmark.models.extraction_result import (  # noqa: E402
     ExtractionMetadata,
     ExtractionResult,
@@ -47,12 +48,14 @@ EXTRACTOR_OPTIONS = {
     "OpenDataLoader": OpendataloaderExtractor,
     "PyMuPDF": PymupdfExtractor,
     "PaddleOCR": PaddleocrExtractor,
+    "Surya": SuryaExtractor,
 }
 
 EXTRACTOR_CAPABILITIES = {
     "OpenDataLoader": {"ocr_supported": False, "supports_pdf": True, "supports_image": False},
     "PyMuPDF": {"ocr_supported": False, "supports_pdf": True, "supports_image": False},
     "PaddleOCR": {"ocr_supported": True, "supports_pdf": True, "supports_image": True},
+    "Surya": {"ocr_supported": True, "supports_pdf": True, "supports_image": True},
 }
 
 PADDLEOCR_LANGUAGE_OPTIONS = {
@@ -895,6 +898,28 @@ def run() -> None:
                             st.write(
                                 "**OCR Language:** "
                                 f"{metadata_extra.get('ocr_language', '')}"
+                            )
+                    if extractor_name == "Surya":
+                        surya_metadata = None
+                        if extractor_results.get(extractor_name):
+                            surya_metadata = extractor_results[extractor_name][0].metadata
+                        if surya_metadata is not None:
+                            metadata_extra = surya_metadata.extra
+                            st.write(
+                                "**Surya Backend:** "
+                                f"{metadata_extra.get('surya_backend', '')}"
+                            )
+                            st.write(
+                                "**Surya Model:** "
+                                f"{metadata_extra.get('surya_model_name', '')}"
+                            )
+                            st.write(
+                                "**Layout Blocks:** "
+                                f"{metadata_extra.get('surya_layout_block_count', 0)}"
+                            )
+                            st.write(
+                                "**Average Confidence:** "
+                                f"{metadata_extra.get('average_confidence', 0.0)}"
                             )
                     st.write(
                         "**Classifier Confidence:** "
