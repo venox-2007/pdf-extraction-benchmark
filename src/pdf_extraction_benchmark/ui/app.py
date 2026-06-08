@@ -19,6 +19,7 @@ if str(SRC_ROOT) not in sys.path:
     sys.path.insert(0, str(SRC_ROOT))
 
 from pdf_extraction_benchmark.classifiers.pdf_type_classifier import PdfTypeClassifier  # noqa: E402
+from pdf_extraction_benchmark.extractors.docling.extractor import DoclingExtractor  # noqa: E402
 from pdf_extraction_benchmark.extractors.opendataloader.extractor import (  # noqa: E402
     OpendataloaderExtractor,
 )
@@ -40,13 +41,14 @@ IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".tif", ".tiff"}
 RECOMMENDATIONS = {
     "native": ["OpenDataLoader", "PyMuPDF", "Marker"],
     "hybrid": ["PaddleOCR + PyMuPDF", "OpenDataLoader + OCR fallback"],
-    "scanned": ["PaddleOCR", "Surya", "Tesseract (future)"],
+    "scanned": ["PaddleOCR", "Surya", "Docling"],
     "image": ["PaddleOCR"],
 }
 
 EXTRACTOR_OPTIONS = {
     "OpenDataLoader": OpendataloaderExtractor,
     "PyMuPDF": PymupdfExtractor,
+    "Docling": DoclingExtractor,
     "PaddleOCR": PaddleocrExtractor,
     "Surya": SuryaExtractor,
 }
@@ -54,6 +56,7 @@ EXTRACTOR_OPTIONS = {
 EXTRACTOR_CAPABILITIES = {
     "OpenDataLoader": {"ocr_supported": False, "supports_pdf": True, "supports_image": False},
     "PyMuPDF": {"ocr_supported": False, "supports_pdf": True, "supports_image": False},
+    "Docling": {"ocr_supported": True, "supports_pdf": True, "supports_image": False},
     "PaddleOCR": {"ocr_supported": True, "supports_pdf": True, "supports_image": True},
     "Surya": {"ocr_supported": True, "supports_pdf": True, "supports_image": True},
 }

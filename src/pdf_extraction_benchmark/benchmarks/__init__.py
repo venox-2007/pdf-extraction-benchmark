@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from pdf_extraction_benchmark.benchmarks.docling.benchmark import DoclingBenchmarkPipeline
 from pdf_extraction_benchmark.benchmarks.funsd.benchmark import (
     FunsdBenchmarkPipeline,
     FunsdBenchmarkSummary,
@@ -27,5 +28,6 @@ __all__ = [
     "FunsdEntityResult",
     "FunsdEntitySummary",
     "RankedEntityDocument",
+    "DoclingBenchmarkPipeline",
     "SuryaBenchmarkPipeline",
 ]
