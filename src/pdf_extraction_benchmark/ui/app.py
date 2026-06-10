@@ -646,6 +646,109 @@ def _render_comparison_analysis(rows: list[dict[str, Any]]) -> None:
     st.dataframe(_build_capabilities_df(rows), width="stretch")
 
 
+def _table_to_dataframe(table: Any) -> pd.DataFrame:
+    """Convert an ExtractedTable into a 2D grid for display."""
+    if not table.cells:
+        return pd.DataFrame()
+    max_row = max(cell.row for cell in table.cells)
+    max_col = max(cell.col for cell in table.cells)
+    grid = [["" for _ in range(max_col + 1)] for _ in range(max_row + 1)]
+    for cell in table.cells:
+        grid[cell.row][cell.col] = cell.text
+    return pd.DataFrame(grid)
+
+
+def _render_docling_advanced_features(results: list[Any], markdown_text: str) -> None:
+    """Render Docling-specific document understanding features."""
+    all_tables = [table for result in results for table in result.tables]
+
+    st.markdown("**Tables Detected**")
+    st.write(len(all_tables))
+
+    st.markdown("**Table Preview**")
+    if all_tables:
+        for table_index, table in enumerate(all_tables[:3], start=1):
+            st.caption(f"Table {table_index} (`{table.table_id}`)")
+            st.dataframe(_table_to_dataframe(table), width="stretch")
+    else:
+        st.caption("No tables detected in this document.")
+
+    st.markdown("**Markdown Output Preview**")
+    if markdown_text.strip():
+        preview = markdown_text.strip()[:1000]
+        st.code(preview + ("..." if len(markdown_text.strip()) > 1000 else ""), language="markdown")
+    else:
+        st.caption("No markdown output produced for this document.")
+
+    st.markdown("**Layout Structure Preview**")
+    layout_rows = [
+        {
+            "Page": result.page_number,
+            "Layout Regions": len(result.bounding_boxes),
+            "First Region (x0, y0, x1, y1)": (
+                f"({result.bounding_boxes[0].x0:.1f}, {result.bounding_boxes[0].y0:.1f}, "
+                f"{result.bounding_boxes[0].x1:.1f}, {result.bounding_boxes[0].y1:.1f})"
+                if result.bounding_boxes
+                else "-"
+            ),
+        }
+        for result in results
+    ]
+    if layout_rows:
+        st.dataframe(pd.DataFrame(layout_rows), width="stretch")
+    else:
+        st.caption("No layout structure detected for this document.")
+
+
+def _render_unsupported_advanced_features() -> None:
+    """Render placeholder rows for extractors without advanced document features."""
+    st.dataframe(
+        pd.DataFrame(
+            {
+                "Feature": [
+                    "Tables Detected",
+                    "Table Preview",
+                    "Markdown Output Preview",
+                    "Layout Structure Preview",
+                ],
+                "Status": ["Not Supported", "Not Supported", "N/A", "Not Supported"],
+            }
+        ),
+        width="stretch",
+        hide_index=True,
+    )
+
+
+def _render_advanced_document_features(
+    extractor_results: dict[str, list[Any]],
+    extractor_markdown: dict[str, str],
+) -> None:
+    """Render extractor-specific advanced document understanding features.
+
+    These capabilities are not supported uniformly across extractors and are
+    intentionally kept separate from the side-by-side comparison metrics.
+    """
+    if not extractor_results:
+        return
+
+    st.markdown("## Advanced Document Features")
+    st.caption(
+        "Extractor-specific document understanding capabilities. These highlight "
+        "what makes each extractor unique and are not part of the comparison "
+        "metrics above. Docling's richer table, markdown, and layout extraction "
+        "is part of why it can take longer than the other extractors."
+    )
+
+    for extractor_name, results in extractor_results.items():
+        with st.expander(extractor_name, expanded=(extractor_name == "Docling")):
+            if extractor_name == "Docling":
+                _render_docling_advanced_features(
+                    results, extractor_markdown.get(extractor_name, "")
+                )
+            else:
+                _render_unsupported_advanced_features()
+
+
 def run() -> None:
     """Render and run the streamlined extraction dashboard."""
     st.set_page_config(page_title=APP_NAME, layout="wide")
@@ -964,6 +1067,11 @@ def run() -> None:
 
     if st.session_state.comparison_rows:
         _render_comparison_analysis(st.session_state.comparison_rows)
+
+    if st.session_state.last_results:
+        _render_advanced_document_features(
+            st.session_state.last_results, st.session_state.last_markdown
+        )
 
     extractor_results = st.session_state.last_results
     if extractor_results:
