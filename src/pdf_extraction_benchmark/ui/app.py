@@ -24,6 +24,10 @@ SRC_ROOT = Path(__file__).resolve().parents[2]
 if str(SRC_ROOT) not in sys.path:
     sys.path.insert(0, str(SRC_ROOT))
 
+from pdf_extraction_benchmark.benchmarks.funsd.metrics import (  # noqa: E402
+    character_error_rate,
+    word_error_rate,
+)
 from pdf_extraction_benchmark.classifiers.pdf_type_classifier import PdfTypeClassifier  # noqa: E402
 from pdf_extraction_benchmark.extractors.opendataloader.extractor import (  # noqa: E402
     OpendataloaderExtractor,
@@ -57,10 +61,34 @@ EXTRACTOR_OPTIONS = {
 }
 
 EXTRACTOR_CAPABILITIES = {
-    "OpenDataLoader": {"ocr_supported": False, "supports_pdf": True, "supports_image": False},
-    "PyMuPDF": {"ocr_supported": False, "supports_pdf": True, "supports_image": False},
-    "Docling": {"ocr_supported": True, "supports_pdf": True, "supports_image": False},
-    "PaddleOCR": {"ocr_supported": True, "supports_pdf": True, "supports_image": True},
+    "OpenDataLoader": {
+        "ocr_supported": False,
+        "supports_pdf": True,
+        "supports_image": False,
+        "markdown_support": True,
+        "layout_preservation_support": True,
+    },
+    "PyMuPDF": {
+        "ocr_supported": False,
+        "supports_pdf": True,
+        "supports_image": False,
+        "markdown_support": False,
+        "layout_preservation_support": True,
+    },
+    "Docling": {
+        "ocr_supported": True,
+        "supports_pdf": True,
+        "supports_image": False,
+        "markdown_support": True,
+        "layout_preservation_support": True,
+    },
+    "PaddleOCR": {
+        "ocr_supported": True,
+        "supports_pdf": True,
+        "supports_image": True,
+        "markdown_support": False,
+        "layout_preservation_support": False,
+    },
 }
 
 PADDLEOCR_LANGUAGE_OPTIONS = {
@@ -513,6 +541,181 @@ def _format_comparison_rows(rows: list[dict[str, Any]]) -> pd.DataFrame:
     ]
     return df[display_cols]
 
+def _attach_relative_error_rates(
+    comparison_rows: list[dict[str, object]], per_extractor_text: dict[str, str]
+) -> None:
+    """Compute relative CER/WER for each extractor against the longest-text result.
+
+    There is no ground-truth transcript for arbitrary uploaded documents, so the
+    extractor that produced the most text is treated as a pseudo-reference and the
+    other extractors' outputs are compared against it. This is a relative measure
+    of agreement, not an absolute accuracy score.
+    """
+    successful_rows = [row for row in comparison_rows if row.get("char_count", 0) > 0]
+    if not successful_rows:
+        for row in comparison_rows:
+            row["cer"] = None
+            row["wer"] = None
+        return
+
+    reference_row = max(successful_rows, key=lambda row: row["char_count"])
+    reference_extractor = str(reference_row["extractor"])
+    reference_text = per_extractor_text.get(reference_extractor, "")
+
+    for row in comparison_rows:
+        if row.get("char_count", 0) == 0:
+            row["cer"] = None
+            row["wer"] = None
+            continue
+        if row["extractor"] == reference_extractor:
+            row["cer"] = 0.0
+            row["wer"] = 0.0
+            continue
+        hypothesis_text = per_extractor_text.get(str(row["extractor"]), "")
+        row["cer"] = round(character_error_rate(reference_text, hypothesis_text), 4)
+        row["wer"] = round(word_error_rate(reference_text, hypothesis_text), 4)
+
+    for row in comparison_rows:
+        row["cer_reference"] = reference_extractor
+
+
+def _build_comparison_analysis_df(rows: list[dict[str, Any]]) -> pd.DataFrame:
+    """Build the side-by-side comparison table for the Comparison Analysis section."""
+    if not rows:
+        return pd.DataFrame()
+    df = pd.DataFrame(rows)
+    df = df.rename(
+        columns={
+            "extractor": "Extractor",
+            "latency_seconds": "Extraction Time (s)",
+            "char_count": "Character Count",
+            "word_count": "Word Count",
+            "cer": "CER",
+            "wer": "WER",
+            "bbox_count": "Bounding Box Count",
+            "table_count": "Table Count",
+            "image_count": "Image Count",
+            "markdown_support": "Markdown Support",
+            "layout_preservation_support": "Layout Preservation Support",
+        }
+    )
+    return df[
+        [
+            "Extractor",
+            "Extraction Time (s)",
+            "Character Count",
+            "Word Count",
+            "CER",
+            "WER",
+            "Bounding Box Count",
+            "Table Count",
+            "Image Count",
+            "Markdown Support",
+            "Layout Preservation Support",
+        ]
+    ]
+
+
+def _render_comparison_charts(rows: list[dict[str, Any]]) -> None:
+    """Render bar charts comparing key metrics across extractors."""
+    df = pd.DataFrame(rows).set_index("extractor")
+
+    chart_col1, chart_col2 = st.columns(2)
+    with chart_col1:
+        st.caption("Extraction Time (s)")
+        st.bar_chart(df[["latency_seconds"]])
+        st.caption("Character & Word Count")
+        st.bar_chart(df[["char_count", "word_count"]])
+        st.caption("Bounding Box Count")
+        st.bar_chart(df[["bbox_count"]])
+
+    with chart_col2:
+        cer_wer_df = df[["cer", "wer"]].dropna()
+        st.caption("Relative CER / WER")
+        if not cer_wer_df.empty:
+            st.bar_chart(cer_wer_df)
+        else:
+            st.caption("Not enough text output to compute CER/WER.")
+        st.caption("Table & Image Count")
+        st.bar_chart(df[["table_count", "image_count"]])
+
+
+def _build_best_per_category(rows: list[dict[str, Any]]) -> dict[str, str]:
+    """Determine the best extractor for each comparison category."""
+    successful_rows = [row for row in rows if row.get("status") == "success"]
+    if not successful_rows:
+        return {}
+
+    best: dict[str, str] = {}
+    best["Fastest Extractor"] = min(successful_rows, key=lambda row: row["latency_seconds"])[
+        "extractor"
+    ]
+
+    cer_rows = [row for row in successful_rows if row.get("cer") is not None]
+    if cer_rows:
+        best["Lowest CER"] = min(cer_rows, key=lambda row: row["cer"])["extractor"]
+
+    wer_rows = [row for row in successful_rows if row.get("wer") is not None]
+    if wer_rows:
+        best["Lowest WER"] = min(wer_rows, key=lambda row: row["wer"])["extractor"]
+
+    best["Most Tables Extracted"] = max(
+        successful_rows, key=lambda row: row["table_count"]
+    )["extractor"]
+    best["Most Bounding Boxes Detected"] = max(
+        successful_rows, key=lambda row: row["bbox_count"]
+    )["extractor"]
+
+    layout_rows = [row for row in successful_rows if row.get("layout_preservation_support")]
+    if layout_rows:
+        best["Best Layout Preservation"] = max(
+            layout_rows, key=lambda row: row["char_count"]
+        )["extractor"]
+
+    return best
+
+
+def _render_best_per_category_card(best: dict[str, str]) -> None:
+    """Render the 'Best Tool Per Category' summary card."""
+    if not best:
+        return
+    st.markdown("### Best Tool Per Category")
+    rows_html = "".join(
+        '<div style="margin-top:0.5rem">'
+        f'<span class="summary-title">{category}</span><br>'
+        f'<span class="summary-value">{extractor_name}</span>'
+        "</div>"
+        for category, extractor_name in best.items()
+    )
+    st.markdown(
+        f'<div class="summary-card">{rows_html}</div>',
+        unsafe_allow_html=True,
+    )
+
+
+def _render_comparison_analysis(rows: list[dict[str, Any]]) -> None:
+    """Render the full Comparison Analysis section: table, charts, and best-tool card."""
+    if not rows:
+        return
+    st.markdown("## Comparison Analysis")
+
+    cer_reference = rows[0].get("cer_reference")
+    if cer_reference:
+        st.caption(
+            "CER/WER are computed relative to the extractor with the most extracted "
+            f"text (`{cer_reference}`), used as a pseudo-reference since no ground "
+            "truth transcript is available for uploaded documents."
+        )
+
+    st.markdown("#### Side-by-Side Metrics")
+    st.dataframe(_build_comparison_analysis_df(rows), width="stretch")
+
+    st.markdown("#### Visual Comparison")
+    _render_comparison_charts(rows)
+
+    _render_best_per_category_card(_build_best_per_category(rows))
+
+
 def run() -> None:
     """Render and run the streamlined extraction dashboard."""
     st.set_page_config(page_title=APP_NAME, layout="wide")
@@ -687,6 +890,18 @@ def run() -> None:
                         if result.metadata and result.metadata.extra.get("ocr_required") is True
                     )
                     ocr_supported = bool(capabilities["ocr_supported"])
+                    char_count = len(all_text)
+                    word_count = len(all_text.split())
+                    bbox_count = sum(len(result.bounding_boxes) for result in results)
+                    table_count = sum(len(result.tables) for result in results)
+                    image_count = sum(
+                        int(result.metadata.extra.get("image_count", 0))
+                        if result.metadata
+                        else 0
+                        for result in results
+                    )
+                    if image_count == 0:
+                        image_count = len(re.findall(r"!\[[^\]]*\]\([^)]+\)", markdown_text))
                     status = _get_result_status(results)
                     if status == "ok":
                         status = "success"
@@ -719,6 +934,15 @@ def run() -> None:
                             "ocr_required_pages": ocr_required_pages,
                             "status": status,
                             "pdf_type": pdf_type,
+                            "char_count": char_count,
+                            "word_count": word_count,
+                            "bbox_count": bbox_count,
+                            "table_count": table_count,
+                            "image_count": image_count,
+                            "markdown_support": bool(capabilities["markdown_support"]),
+                            "layout_preservation_support": bool(
+                                capabilities["layout_preservation_support"]
+                            ),
                         }
                     )
                     run_status.write(
@@ -728,6 +952,7 @@ def run() -> None:
                         f"text length: {len(all_text)})."
                     )
                 except Exception as exc:
+                    capabilities = EXTRACTOR_CAPABILITIES[extractor_name]
                     comparison_rows.append(
                         {
                             "extractor": extractor_name,
@@ -740,10 +965,21 @@ def run() -> None:
                             "ocr_required_pages": 0,
                             "status": "failed",
                             "pdf_type": pdf_type,
+                            "char_count": 0,
+                            "word_count": 0,
+                            "bbox_count": 0,
+                            "table_count": 0,
+                            "image_count": 0,
+                            "markdown_support": bool(capabilities["markdown_support"]),
+                            "layout_preservation_support": bool(
+                                capabilities["layout_preservation_support"]
+                            ),
                         }
                     )
                     warnings.append(f"{extractor_name}: failed ({exc})")
                     run_status.write(f"`{extractor_name}` failed: {exc}")
+
+            _attach_relative_error_rates(comparison_rows, per_extractor_text)
 
             st.session_state.last_results = per_extractor_results
             st.session_state.last_payload = per_extractor_payloads
@@ -810,6 +1046,9 @@ def run() -> None:
         st.markdown("</div>", unsafe_allow_html=True)
     if st.session_state.recommendation:
         _render_recommendation_card(st.session_state.recommendation)
+
+    if st.session_state.comparison_rows:
+        _render_comparison_analysis(st.session_state.comparison_rows)
 
     extractor_results = st.session_state.last_results
     if extractor_results:
