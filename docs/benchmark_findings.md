@@ -19,6 +19,6 @@ This document records early practical observations from the extraction demo whil
 
 ## Next Steps (Lightweight)
 
-1. Add OCR-first extractor adapters (PaddleOCR, Surya) for scanned workflows.
+1. Add OCR-first extractor adapters (PaddleOCR) for scanned workflows.
 2. Add simple side-by-side quality notes in the UI for extraction comparisons.
 3. Track page-level extraction consistency as part of benchmark metadata.

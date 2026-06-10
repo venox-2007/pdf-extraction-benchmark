@@ -16,8 +16,6 @@ from pdf_extraction_benchmark.benchmarks.funsd.entity import (
     FunsdEntitySummary,
     RankedEntityDocument,
 )
-from pdf_extraction_benchmark.benchmarks.surya.benchmark import SuryaBenchmarkPipeline
-
 __all__ = [
     "FunsdBenchmarkPipeline",
     "FunsdBenchmarkSummary",
@@ -29,5 +27,4 @@ __all__ = [
     "FunsdEntitySummary",
     "RankedEntityDocument",
     "DoclingBenchmarkPipeline",
-    "SuryaBenchmarkPipeline",
 ]

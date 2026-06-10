@@ -56,7 +56,7 @@ The dataset is intentionally organized around extraction strategy, not early doc
 Why this matters:
 
 - Native PDFs -> direct extraction tools (OpenDataLoader, PyMuPDF, Marker)
-- Scanned PDFs -> OCR-based extractors (PaddleOCR, Surya, Tesseract/future)
+- Scanned PDFs -> OCR-based extractors (PaddleOCR, Tesseract/future)
 
 This keeps routing and benchmarking aligned with real-world document AI pipelines.
 

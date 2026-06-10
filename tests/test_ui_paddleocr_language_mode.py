@@ -37,9 +37,7 @@ def test_create_extractor_passes_selected_paddleocr_mode(monkeypatch) -> None:
     ]
 
 
-def test_surya_option_is_exposed_in_ui() -> None:
-    """The Streamlit UI should expose Surya as a selectable extractor."""
+def test_docling_option_is_exposed_in_ui() -> None:
+    """The Streamlit UI should expose Docling as a selectable extractor."""
     assert "Docling" in app.EXTRACTOR_OPTIONS
-    assert "Surya" in app.EXTRACTOR_OPTIONS
     assert app.EXTRACTOR_CAPABILITIES["Docling"]["supports_pdf"] is True
-    assert app.EXTRACTOR_CAPABILITIES["Surya"]["ocr_supported"] is True

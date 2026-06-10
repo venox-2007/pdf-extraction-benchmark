@@ -45,7 +45,7 @@ IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".tif", ".tiff"}
 RECOMMENDATIONS = {
     "native": ["OpenDataLoader", "PyMuPDF", "Marker"],
     "hybrid": ["PaddleOCR + PyMuPDF", "OpenDataLoader + OCR fallback"],
-    "scanned": ["PaddleOCR", "Surya", "Docling"],
+    "scanned": ["PaddleOCR", "Docling"],
     "image": ["PaddleOCR"],
 }
 
@@ -54,7 +54,6 @@ EXTRACTOR_OPTIONS = {
     "PyMuPDF": PymupdfExtractor,
     "Docling": None,
     "PaddleOCR": PaddleocrExtractor,
-    "Surya": None,
 }
 
 EXTRACTOR_CAPABILITIES = {
@@ -62,7 +61,6 @@ EXTRACTOR_CAPABILITIES = {
     "PyMuPDF": {"ocr_supported": False, "supports_pdf": True, "supports_image": False},
     "Docling": {"ocr_supported": True, "supports_pdf": True, "supports_image": False},
     "PaddleOCR": {"ocr_supported": True, "supports_pdf": True, "supports_image": True},
-    "Surya": {"ocr_supported": True, "supports_pdf": True, "supports_image": True},
 }
 
 PADDLEOCR_LANGUAGE_OPTIONS = {
@@ -130,10 +128,6 @@ def _create_extractor(extractor_name: str, paddleocr_language_mode: str) -> Any:
         extractor_cls = import_module(
             "pdf_extraction_benchmark.extractors.docling.extractor"
         ).DoclingExtractor
-    elif extractor_name == "Surya":
-        extractor_cls = import_module(
-            "pdf_extraction_benchmark.extractors.surya.extractor"
-        ).SuryaExtractor
     if extractor_name == "PaddleOCR":
         return extractor_cls(language_mode=paddleocr_language_mode)
     return extractor_cls()
@@ -913,28 +907,6 @@ def run() -> None:
                             st.write(
                                 "**OCR Language:** "
                                 f"{metadata_extra.get('ocr_language', '')}"
-                            )
-                    if extractor_name == "Surya":
-                        surya_metadata = None
-                        if extractor_results.get(extractor_name):
-                            surya_metadata = extractor_results[extractor_name][0].metadata
-                        if surya_metadata is not None:
-                            metadata_extra = surya_metadata.extra
-                            st.write(
-                                "**Surya Backend:** "
-                                f"{metadata_extra.get('surya_backend', '')}"
-                            )
-                            st.write(
-                                "**Surya Model:** "
-                                f"{metadata_extra.get('surya_model_name', '')}"
-                            )
-                            st.write(
-                                "**Layout Blocks:** "
-                                f"{metadata_extra.get('surya_layout_block_count', 0)}"
-                            )
-                            st.write(
-                                "**Average Confidence:** "
-                                f"{metadata_extra.get('average_confidence', 0.0)}"
                             )
                     st.write(
                         "**Classifier Confidence:** "
