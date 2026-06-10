@@ -1250,6 +1250,143 @@ def _process_document(
     }
 
 
+def _render_extractor_result_tabs(
+    extractor_results: dict[str, list[Any]],
+    paddleocr_language_mode: str,
+    project_root: Path,
+) -> None:
+    """Render the per-extractor Text/Markdown/JSON/Metadata tabs."""
+    if not extractor_results:
+        return
+
+    extractor_tabs = st.tabs(list(extractor_results.keys()))
+    for index, extractor_name in enumerate(extractor_results.keys()):
+        with extractor_tabs[index]:
+            st.markdown(f"### {extractor_name}")
+            inner_tabs = st.tabs(["Text", "Markdown", "JSON", "Metadata"])
+
+            with inner_tabs[0]:
+                text_value = st.session_state.last_text.get(extractor_name, "")
+                st.text_area(
+                    f"Extracted Text ({extractor_name})",
+                    value=text_value,
+                    height=320,
+                )
+
+            with inner_tabs[1]:
+                markdown_value = st.session_state.last_markdown.get(extractor_name, "")
+                markdown_for_view = markdown_value
+                markdown_without_images = re.sub(
+                    r"!\[[^\]]*\]\([^)]+\)",
+                    "",
+                    markdown_for_view,
+                )
+                st.markdown(markdown_without_images)
+
+                md_output_path = st.session_state.last_paths.get(
+                    extractor_name,
+                    {},
+                ).get("markdown", "")
+                if md_output_path:
+                    md_base_dir = Path(md_output_path).resolve().parent
+                    image_paths = re.findall(r"!\[[^\]]*\]\(([^)]+)\)", markdown_for_view)
+                    rendered: set[str] = set()
+                    for rel_path in image_paths:
+                        cleaned = rel_path.strip().strip("<>").strip().strip("\"'")
+                        if cleaned.startswith(("http://", "https://", "data:")):
+                            continue
+                        candidates = [
+                            (md_base_dir / cleaned).resolve(),
+                            (md_base_dir.parent / cleaned).resolve(),
+                            (project_root / cleaned).resolve(),
+                            (project_root / "outputs" / cleaned).resolve(),
+                            (project_root / "outputs" / "markdown" / cleaned).resolve(),
+                        ]
+                        for resolved in candidates:
+                            key = str(resolved)
+                            if key in rendered:
+                                break
+                            if resolved.exists():
+                                st.image(str(resolved), caption=resolved.name, width=900)
+                                rendered.add(key)
+                                break
+
+            with inner_tabs[2]:
+                payload = st.session_state.last_payload.get(extractor_name)
+                if payload is None:
+                    st.info("JSON output will appear here after extraction.")
+                else:
+                    st.json(payload)
+
+            with inner_tabs[3]:
+                st.markdown('<div class="meta-card">', unsafe_allow_html=True)
+                st.write(f"**File:** {st.session_state.last_meta.get('file_name', '')}")
+                st.write(f"**Size:** {st.session_state.last_meta.get('file_size_kb', 0)} KB")
+                st.write(
+                    f"**Total PDF Pages:** "
+                    f"{st.session_state.last_meta.get('total_pdf_pages', 0)}"
+                )
+                st.write(
+                    f"**Detected Type:** "
+                    f"{st.session_state.last_meta.get('pdf_type', 'unknown')}"
+                )
+                if extractor_name == "PaddleOCR":
+                    ocr_metadata = None
+                    if extractor_results.get(extractor_name):
+                        ocr_metadata = extractor_results[extractor_name][0].metadata
+                    ocr_mode = (
+                        str(ocr_metadata.extra.get("ocr_language_mode"))
+                        if ocr_metadata is not None
+                        else paddleocr_language_mode
+                    )
+                    st.write(
+                        "**PaddleOCR Language Mode:** "
+                        f"{_paddleocr_language_label(str(ocr_mode))} "
+                        f"(`{ocr_mode}`)"
+                    )
+                    if ocr_metadata is not None:
+                        metadata_extra = ocr_metadata.extra
+                        st.write(
+                            "**OCR Model:** "
+                            f"{metadata_extra.get('ocr_model_name', '')}"
+                        )
+                        st.write(
+                            "**OCR Language:** "
+                            f"{metadata_extra.get('ocr_language', '')}"
+                        )
+                st.write(
+                    "**Classifier Confidence:** "
+                    f"{st.session_state.last_meta.get('classification_confidence', 0.0):.2f}"
+                )
+                st.write(
+                    f"**Classifier Reason:** "
+                    f"{st.session_state.last_meta.get('classification_reasoning', '')}"
+                )
+                st.write(
+                    f"**Text-rich Pages:** {st.session_state.last_meta.get('text_pages', 0)} / "
+                    f"{st.session_state.last_meta.get('total_pdf_pages', 0)}"
+                )
+                st.write(
+                    f"**Avg Text Density:** "
+                    f"{st.session_state.last_meta.get('avg_text_density', 0.0):.3f}"
+                )
+                st.write(
+                    f"**Avg Image Ratio:** "
+                    f"{st.session_state.last_meta.get('avg_image_ratio', 0.0):.3f}"
+                )
+                st.write(
+                    f"**JSON Output:** "
+                    f"`{st.session_state.last_paths.get(extractor_name, {}).get('json', '')}`"
+                )
+                st.write(
+                    f"**Markdown Output:** "
+                    f"`"
+                    f"{st.session_state.last_paths.get(extractor_name, {}).get('markdown', '')}"
+                    f"`"
+                )
+                st.markdown("</div>", unsafe_allow_html=True)
+
+
 def run() -> None:
     """Render and run the streamlined extraction dashboard."""
     st.set_page_config(page_title=APP_NAME, layout="wide")
@@ -1425,178 +1562,64 @@ def run() -> None:
                 )
             progress_bar.progress(1.0, text="Extraction run complete.")
 
-    if st.session_state.last_meta:
-        _render_document_summary(st.session_state.last_meta)
-        _render_overview_cards(st.session_state.last_meta, st.session_state.comparison_rows)
+    overview_tab, benchmarking_tab, extractor_tab, advanced_tab, visualizations_tab = st.tabs(
+        ["Overview", "Benchmarking", "Extractor Results", "Advanced Features", "Visualizations"]
+    )
 
-    if st.session_state.comparison_rows:
-        st.markdown("### Comparison Overview")
-        display_df = _format_comparison_rows(st.session_state.comparison_rows)
-        st.dataframe(display_df, width="stretch")
+    with overview_tab:
+        if st.session_state.last_meta:
+            _render_document_summary(st.session_state.last_meta)
+            _render_overview_cards(st.session_state.last_meta, st.session_state.comparison_rows)
 
-    if st.session_state.observations:
-        st.markdown("### Key Findings")
-        st.markdown('<div class="summary-card">', unsafe_allow_html=True)
-        for note in st.session_state.observations:
-            st.write(f"- {note}")
-        st.markdown("</div>", unsafe_allow_html=True)
-    if st.session_state.recommendation:
-        _render_recommendation_card(st.session_state.recommendation)
+        if st.session_state.comparison_rows:
+            st.markdown("### Comparison Overview")
+            display_df = _format_comparison_rows(st.session_state.comparison_rows)
+            st.dataframe(display_df, width="stretch")
 
-    if st.session_state.comparison_rows:
-        _render_comparison_analysis(st.session_state.comparison_rows)
+        if st.session_state.observations:
+            st.markdown("### Key Findings")
+            st.markdown('<div class="summary-card">', unsafe_allow_html=True)
+            for note in st.session_state.observations:
+                st.write(f"- {note}")
+            st.markdown("</div>", unsafe_allow_html=True)
+        if st.session_state.recommendation:
+            _render_recommendation_card(st.session_state.recommendation)
 
-    if st.session_state.documents:
-        report_rows = build_multi_document_report_rows(
-            [
-                (doc["file_name"], doc["comparison_rows"])
-                for doc in st.session_state.documents
-            ]
+        if st.session_state.comparison_rows:
+            _render_comparison_analysis(st.session_state.comparison_rows)
+
+    with benchmarking_tab:
+        if st.session_state.documents:
+            report_rows = build_multi_document_report_rows(
+                [
+                    (doc["file_name"], doc["comparison_rows"])
+                    for doc in st.session_state.documents
+                ]
+            )
+            _render_document_benchmark_results(report_rows)
+            _render_aggregate_summary(report_rows)
+            if len(st.session_state.documents) == 1:
+                file_stem = (
+                    Path(st.session_state.documents[0]["file_name"]).stem or "benchmark_report"
+                )
+            else:
+                file_stem = "multi_document_benchmark_report"
+            _render_export_controls(report_rows, file_stem)
+
+    with extractor_tab:
+        _render_extractor_result_tabs(
+            st.session_state.last_results, paddleocr_language_mode, project_root
         )
-        _render_document_benchmark_results(report_rows)
-        _render_aggregate_summary(report_rows)
-        if len(st.session_state.documents) == 1:
-            file_stem = Path(st.session_state.documents[0]["file_name"]).stem or "benchmark_report"
-        else:
-            file_stem = "multi_document_benchmark_report"
-        _render_export_controls(report_rows, file_stem)
 
-    if st.session_state.last_results:
-        _render_advanced_document_features(
-            st.session_state.last_results, st.session_state.last_markdown
-        )
+    with advanced_tab:
+        if st.session_state.last_results:
+            _render_advanced_document_features(
+                st.session_state.last_results, st.session_state.last_markdown
+            )
 
-    if st.session_state.documents:
-        _render_bounding_box_visualization(st.session_state.documents, project_root)
-
-    extractor_results = st.session_state.last_results
-    if extractor_results:
-        extractor_tabs = st.tabs(list(extractor_results.keys()))
-        for index, extractor_name in enumerate(extractor_results.keys()):
-            with extractor_tabs[index]:
-                st.markdown(f"### {extractor_name}")
-                inner_tabs = st.tabs(["Text", "Markdown", "JSON", "Metadata"])
-
-                with inner_tabs[0]:
-                    text_value = st.session_state.last_text.get(extractor_name, "")
-                    st.text_area(
-                        f"Extracted Text ({extractor_name})",
-                        value=text_value,
-                        height=320,
-                    )
-
-                with inner_tabs[1]:
-                    markdown_value = st.session_state.last_markdown.get(extractor_name, "")
-                    markdown_for_view = markdown_value
-                    markdown_without_images = re.sub(
-                        r"!\[[^\]]*\]\([^)]+\)",
-                        "",
-                        markdown_for_view,
-                    )
-                    st.markdown(markdown_without_images)
-
-                    md_output_path = st.session_state.last_paths.get(
-                        extractor_name,
-                        {},
-                    ).get("markdown", "")
-                    if md_output_path:
-                        md_base_dir = Path(md_output_path).resolve().parent
-                        image_paths = re.findall(r"!\[[^\]]*\]\(([^)]+)\)", markdown_for_view)
-                        rendered: set[str] = set()
-                        for rel_path in image_paths:
-                            cleaned = rel_path.strip().strip("<>").strip().strip("\"'")
-                            if cleaned.startswith(("http://", "https://", "data:")):
-                                continue
-                            candidates = [
-                                (md_base_dir / cleaned).resolve(),
-                                (md_base_dir.parent / cleaned).resolve(),
-                                (project_root / cleaned).resolve(),
-                                (project_root / "outputs" / cleaned).resolve(),
-                                (project_root / "outputs" / "markdown" / cleaned).resolve(),
-                            ]
-                            for resolved in candidates:
-                                key = str(resolved)
-                                if key in rendered:
-                                    break
-                                if resolved.exists():
-                                    st.image(str(resolved), caption=resolved.name, width=900)
-                                    rendered.add(key)
-                                    break
-
-                with inner_tabs[2]:
-                    payload = st.session_state.last_payload.get(extractor_name)
-                    if payload is None:
-                        st.info("JSON output will appear here after extraction.")
-                    else:
-                        st.json(payload)
-
-                with inner_tabs[3]:
-                    st.markdown('<div class="meta-card">', unsafe_allow_html=True)
-                    st.write(f"**File:** {st.session_state.last_meta.get('file_name', '')}")
-                    st.write(f"**Size:** {st.session_state.last_meta.get('file_size_kb', 0)} KB")
-                    st.write(
-                        f"**Total PDF Pages:** "
-                        f"{st.session_state.last_meta.get('total_pdf_pages', 0)}"
-                    )
-                    st.write(
-                        f"**Detected Type:** "
-                        f"{st.session_state.last_meta.get('pdf_type', 'unknown')}"
-                    )
-                    if extractor_name == "PaddleOCR":
-                        ocr_metadata = None
-                        if extractor_results.get(extractor_name):
-                            ocr_metadata = extractor_results[extractor_name][0].metadata
-                        ocr_mode = (
-                            str(ocr_metadata.extra.get("ocr_language_mode"))
-                            if ocr_metadata is not None
-                            else paddleocr_language_mode
-                        )
-                        st.write(
-                            "**PaddleOCR Language Mode:** "
-                            f"{_paddleocr_language_label(str(ocr_mode))} "
-                            f"(`{ocr_mode}`)"
-                        )
-                        if ocr_metadata is not None:
-                            metadata_extra = ocr_metadata.extra
-                            st.write(
-                                "**OCR Model:** "
-                                f"{metadata_extra.get('ocr_model_name', '')}"
-                            )
-                            st.write(
-                                "**OCR Language:** "
-                                f"{metadata_extra.get('ocr_language', '')}"
-                            )
-                    st.write(
-                        "**Classifier Confidence:** "
-                        f"{st.session_state.last_meta.get('classification_confidence', 0.0):.2f}"
-                    )
-                    st.write(
-                        f"**Classifier Reason:** "
-                        f"{st.session_state.last_meta.get('classification_reasoning', '')}"
-                    )
-                    st.write(
-                        f"**Text-rich Pages:** {st.session_state.last_meta.get('text_pages', 0)} / "
-                        f"{st.session_state.last_meta.get('total_pdf_pages', 0)}"
-                    )
-                    st.write(
-                        f"**Avg Text Density:** "
-                        f"{st.session_state.last_meta.get('avg_text_density', 0.0):.3f}"
-                    )
-                    st.write(
-                        f"**Avg Image Ratio:** "
-                        f"{st.session_state.last_meta.get('avg_image_ratio', 0.0):.3f}"
-                    )
-                    st.write(
-                        f"**JSON Output:** "
-                        f"`{st.session_state.last_paths.get(extractor_name, {}).get('json', '')}`"
-                    )
-                    st.write(
-                        f"**Markdown Output:** "
-                        f"`"
-                        f"{st.session_state.last_paths.get(extractor_name, {}).get('markdown', '')}"
-                        f"`"
-                    )
-                    st.markdown("</div>", unsafe_allow_html=True)
+    with visualizations_tab:
+        if st.session_state.documents:
+            _render_bounding_box_visualization(st.session_state.documents, project_root)
 
 
 if __name__ == "__main__":
