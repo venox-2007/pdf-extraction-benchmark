@@ -45,6 +45,12 @@ from pdf_extraction_benchmark.reports.benchmark_report import (  # noqa: E402
     to_json_bytes,
 )
 from pdf_extraction_benchmark.utils.logger import configure_logging  # noqa: E402
+from pdf_extraction_benchmark.visualization.bbox_overlay import (  # noqa: E402
+    build_page_visualizations,
+    get_extractor_color,
+    get_extractor_source_dpi,
+    has_bounding_boxes,
+)
 
 APP_NAME = "DocuVision AI"
 APP_SUBTITLE = "Clean PDF intelligence with multiple extraction backends"
@@ -885,6 +891,90 @@ def _render_advanced_document_features(
                 _render_unsupported_advanced_features()
 
 
+def _render_extractor_bbox_visualization(
+    extractor_name: str,
+    results: list[Any],
+    input_path: Path,
+    page_image_cache: dict[int, Any],
+) -> None:
+    """Render bounding-box overlays for one extractor's results.
+
+    Bounding boxes are taken as-is from `results`; pages are re-rendered for
+    display only via `build_page_visualizations`. Renders a
+    "Bounding Boxes Not Available" notice when `results` contain no boxes,
+    and a warning (without raising) if page rendering fails.
+    """
+    if not has_bounding_boxes(results):
+        st.caption("Bounding Boxes Not Available")
+        return
+
+    try:
+        visualizations = build_page_visualizations(
+            input_path=input_path,
+            results=results,
+            source_dpi=get_extractor_source_dpi(extractor_name),
+            color=get_extractor_color(extractor_name),
+            page_image_cache=page_image_cache,
+        )
+    except Exception as exc:
+        st.warning(f"Could not render bounding box visualization for {extractor_name}: {exc}")
+        return
+
+    if not visualizations:
+        st.caption("Bounding Boxes Not Available")
+        return
+
+    columns = st.columns(len(visualizations))
+    for column, viz in zip(columns, visualizations):
+        with column:
+            st.image(
+                viz["image"],
+                caption=(
+                    f"{extractor_name} | Page {viz['page_number']} | "
+                    f"{viz['bbox_count']} boxes"
+                ),
+                width="stretch",
+            )
+
+
+def _render_bounding_box_visualization(documents: list[dict[str, Any]], project_root: Path) -> None:
+    """Render the 'Bounding Box Visualization' section for all processed documents.
+
+    Reuses the per-extractor `ExtractionResult` objects already produced by
+    extraction (stored in `documents`); no extraction or bounding-box
+    computation happens here. Page images are rasterized fresh for display
+    and cached per document/page so multiple extractors share the same base
+    image.
+    """
+    documents_with_results = [doc for doc in documents if doc.get("per_extractor_results")]
+    if not documents_with_results:
+        return
+
+    st.markdown("## Bounding Box Visualization")
+    st.caption(
+        "Bounding boxes are drawn from the extraction results above. "
+        "Only the first 1-3 pages are shown per extractor for performance."
+    )
+
+    input_dir = project_root / "data" / "processed"
+    show_document_headers = len(documents_with_results) > 1
+
+    for doc in documents_with_results:
+        file_name = doc["file_name"]
+        per_extractor_results: dict[str, list[Any]] = doc["per_extractor_results"]
+        input_path = input_dir / file_name
+
+        if show_document_headers:
+            st.markdown(f"### {file_name}")
+
+        page_image_cache: dict[int, Any] = {}
+        for extractor_name, results in per_extractor_results.items():
+            st.markdown(f"**{extractor_name}**")
+            _render_extractor_bbox_visualization(
+                extractor_name, results, input_path, page_image_cache
+            )
+
+
 def _process_document(
     uploaded: Any,
     selected_extractors: list[str],
@@ -1375,6 +1465,9 @@ def run() -> None:
         _render_advanced_document_features(
             st.session_state.last_results, st.session_state.last_markdown
         )
+
+    if st.session_state.documents:
+        _render_bounding_box_visualization(st.session_state.documents, project_root)
 
     extractor_results = st.session_state.last_results
     if extractor_results:
