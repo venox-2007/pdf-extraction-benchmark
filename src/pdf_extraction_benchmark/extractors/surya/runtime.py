@@ -114,35 +114,50 @@ def run_document(
         )
 
     local_manager = manager or SuryaInferenceManager(method=backend)
+    restore_guided_layout = False
+    previous_guided_layout = settings.SURYA_GUIDED_LAYOUT if settings else False
+    if settings and local_manager.method == "llamacpp" and settings.SURYA_GUIDED_LAYOUT:
+        logger.info(
+            "Disabling guided layout for llama.cpp backend because llama-server "
+            "rejects Surya's bbox regex schema; falling back to plain JSON."
+        )
+        settings.SURYA_GUIDED_LAYOUT = False
+        restore_guided_layout = True
     local_layout_predictor = layout_predictor or LayoutPredictor(local_manager)
     local_recognition_predictor = recognition_predictor or RecognitionPredictor(local_manager)
 
-    images = [page.image for page in loaded_pages]
-    layout_results = local_layout_predictor(images)
-    ocr_results = local_recognition_predictor(images, layout_results=layout_results, full_page=True)
-
-    pages: list[SuryaPageArtifact] = []
-    for loaded_page, layout_result, ocr_result in zip(
-        loaded_pages,
-        layout_results,
-        ocr_results,
-        strict=True,
-    ):
-        pages.append(
-            SuryaPageArtifact(
-                page_number=loaded_page.page_number,
-                image=loaded_page.image,
-                layout_result=layout_result,
-                ocr_result=ocr_result,
-                source_kind=loaded_page.source_kind,
-            )
+    try:
+        images = [page.image for page in loaded_pages]
+        layout_results = local_layout_predictor(images)
+        ocr_results = local_recognition_predictor(
+            images, layout_results=layout_results, full_page=True
         )
 
-    return SuryaDocumentArtifact(
-        source_path=input_path.resolve(),
-        backend=getattr(local_manager, "method", backend or ""),
-        pages=pages,
-    )
+        pages: list[SuryaPageArtifact] = []
+        for loaded_page, layout_result, ocr_result in zip(
+            loaded_pages,
+            layout_results,
+            ocr_results,
+            strict=True,
+        ):
+            pages.append(
+                SuryaPageArtifact(
+                    page_number=loaded_page.page_number,
+                    image=loaded_page.image,
+                    layout_result=layout_result,
+                    ocr_result=ocr_result,
+                    source_kind=loaded_page.source_kind,
+                )
+            )
+
+        return SuryaDocumentArtifact(
+            source_path=input_path.resolve(),
+            backend=getattr(local_manager, "method", backend or ""),
+            pages=pages,
+        )
+    finally:
+        if restore_guided_layout and settings:
+            settings.SURYA_GUIDED_LAYOUT = previous_guided_layout
 
 
 def build_extraction_results(document: SuryaDocumentArtifact) -> list[ExtractionResult]:

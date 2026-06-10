@@ -6,6 +6,7 @@ import json
 import re
 import sys
 import time
+from importlib import import_module
 from pathlib import Path
 from typing import Any
 
@@ -19,13 +20,11 @@ if str(SRC_ROOT) not in sys.path:
     sys.path.insert(0, str(SRC_ROOT))
 
 from pdf_extraction_benchmark.classifiers.pdf_type_classifier import PdfTypeClassifier  # noqa: E402
-from pdf_extraction_benchmark.extractors.docling.extractor import DoclingExtractor  # noqa: E402
 from pdf_extraction_benchmark.extractors.opendataloader.extractor import (  # noqa: E402
     OpendataloaderExtractor,
 )
 from pdf_extraction_benchmark.extractors.paddleocr.extractor import PaddleocrExtractor  # noqa: E402
 from pdf_extraction_benchmark.extractors.pymupdf.extractor import PymupdfExtractor  # noqa: E402
-from pdf_extraction_benchmark.extractors.surya.extractor import SuryaExtractor  # noqa: E402
 from pdf_extraction_benchmark.models.extraction_result import (  # noqa: E402
     ExtractionMetadata,
     ExtractionResult,
@@ -48,9 +47,9 @@ RECOMMENDATIONS = {
 EXTRACTOR_OPTIONS = {
     "OpenDataLoader": OpendataloaderExtractor,
     "PyMuPDF": PymupdfExtractor,
-    "Docling": DoclingExtractor,
+    "Docling": None,
     "PaddleOCR": PaddleocrExtractor,
-    "Surya": SuryaExtractor,
+    "Surya": None,
 }
 
 EXTRACTOR_CAPABILITIES = {
@@ -122,6 +121,14 @@ def _build_unsupported_image_result(
 def _create_extractor(extractor_name: str, paddleocr_language_mode: str) -> Any:
     """Instantiate the selected extractor with any UI-provided configuration."""
     extractor_cls = EXTRACTOR_OPTIONS[extractor_name]
+    if extractor_name == "Docling":
+        extractor_cls = import_module(
+            "pdf_extraction_benchmark.extractors.docling.extractor"
+        ).DoclingExtractor
+    elif extractor_name == "Surya":
+        extractor_cls = import_module(
+            "pdf_extraction_benchmark.extractors.surya.extractor"
+        ).SuryaExtractor
     if extractor_name == "PaddleOCR":
         return extractor_cls(language_mode=paddleocr_language_mode)
     return extractor_cls()
