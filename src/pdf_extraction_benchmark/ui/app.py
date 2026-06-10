@@ -35,6 +35,11 @@ from pdf_extraction_benchmark.models.extraction_result import (  # noqa: E402
     ExtractionResult,
 )
 from pdf_extraction_benchmark.parsers.unified_output_parser import UnifiedOutputParser  # noqa: E402
+from pdf_extraction_benchmark.reports.benchmark_report import (  # noqa: E402
+    build_report_rows,
+    to_csv_bytes,
+    to_json_bytes,
+)
 from pdf_extraction_benchmark.utils.logger import configure_logging  # noqa: E402
 
 APP_NAME = "DocuVision AI"
@@ -719,6 +724,36 @@ def _render_unsupported_advanced_features() -> None:
     )
 
 
+def _render_export_controls(document_name: str, comparison_rows: list[dict[str, Any]]) -> None:
+    """Render CSV/JSON download buttons for the current benchmark results."""
+    if not comparison_rows:
+        return
+
+    report_rows = build_report_rows(document_name, comparison_rows)
+    csv_bytes = to_csv_bytes(report_rows)
+    json_bytes = to_json_bytes(report_rows)
+    file_stem = Path(document_name).stem or "benchmark_report"
+
+    st.markdown("### Export Results")
+    col1, col2 = st.columns(2)
+    with col1:
+        st.download_button(
+            label="Download CSV",
+            data=csv_bytes,
+            file_name=f"{file_stem}_benchmark_report.csv",
+            mime="text/csv",
+            key="download_benchmark_csv",
+        )
+    with col2:
+        st.download_button(
+            label="Download JSON",
+            data=json_bytes,
+            file_name=f"{file_stem}_benchmark_report.json",
+            mime="application/json",
+            key="download_benchmark_json",
+        )
+
+
 def _render_advanced_document_features(
     extractor_results: dict[str, list[Any]],
     extractor_markdown: dict[str, str],
@@ -965,6 +1000,7 @@ def run() -> None:
                             "layout_preservation_support": bool(
                                 capabilities["layout_preservation_support"]
                             ),
+                            "error_message": "",
                         }
                     )
                     run_status.write(
@@ -994,6 +1030,7 @@ def run() -> None:
                             "layout_preservation_support": bool(
                                 capabilities["layout_preservation_support"]
                             ),
+                            "error_message": str(exc),
                         }
                     )
                     warnings.append(f"{extractor_name}: failed ({exc})")
@@ -1067,6 +1104,10 @@ def run() -> None:
 
     if st.session_state.comparison_rows:
         _render_comparison_analysis(st.session_state.comparison_rows)
+        _render_export_controls(
+            st.session_state.last_meta.get("file_name", "benchmark"),
+            st.session_state.comparison_rows,
+        )
 
     if st.session_state.last_results:
         _render_advanced_document_features(
