@@ -14,6 +14,11 @@ import fitz
 import pandas as pd
 import streamlit as st
 
+# Import torch before paddle: on Windows, paddle's DLL search path additions
+# break torch's shm.dll loading (WinError 127) if paddle loads first. Importing
+# torch here ensures its DLLs are loaded before PaddleocrExtractor pulls in paddle.
+import torch  # noqa: E402,F401
+
 # Ensure local src package imports resolve when launching Streamlit directly.
 SRC_ROOT = Path(__file__).resolve().parents[2]
 if str(SRC_ROOT) not in sys.path:
