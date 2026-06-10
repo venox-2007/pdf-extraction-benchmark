@@ -35,8 +35,12 @@ from pdf_extraction_benchmark.models.extraction_result import (  # noqa: E402
     ExtractionResult,
 )
 from pdf_extraction_benchmark.parsers.unified_output_parser import UnifiedOutputParser  # noqa: E402
+from pdf_extraction_benchmark.reports.aggregation import (  # noqa: E402
+    build_multi_document_report_rows,
+    compute_aggregate_summary,
+    compute_per_extractor_summary,
+)
 from pdf_extraction_benchmark.reports.benchmark_report import (  # noqa: E402
-    build_report_rows,
     to_csv_bytes,
     to_json_bytes,
 )
@@ -724,15 +728,112 @@ def _render_unsupported_advanced_features() -> None:
     )
 
 
-def _render_export_controls(document_name: str, comparison_rows: list[dict[str, Any]]) -> None:
-    """Render CSV/JSON download buttons for the current benchmark results."""
-    if not comparison_rows:
+def _build_document_benchmark_df(report_rows: list[dict[str, Any]]) -> pd.DataFrame:
+    """Build the display dataframe for the Document Benchmark Results table.
+
+    Reuses the flat report-row schema (document name, extractor, extraction
+    time, character/word/bbox counts, status, error message) without
+    recomputing any metric.
+    """
+    if not report_rows:
+        return pd.DataFrame()
+    df = pd.DataFrame(report_rows)
+    df = df.rename(
+        columns={
+            "document_name": "Document Name",
+            "extractor": "Extractor",
+            "extraction_time_seconds": "Extraction Time (s)",
+            "character_count": "Character Count",
+            "word_count": "Word Count",
+            "bounding_box_count": "Bounding Box Count",
+            "status": "Status",
+            "error_message": "Error Message",
+        }
+    )
+    return df[
+        [
+            "Document Name",
+            "Extractor",
+            "Extraction Time (s)",
+            "Character Count",
+            "Word Count",
+            "Bounding Box Count",
+            "Status",
+            "Error Message",
+        ]
+    ]
+
+
+def _render_document_benchmark_results(report_rows: list[dict[str, Any]]) -> None:
+    """Render the 'Document Benchmark Results' table for all processed documents."""
+    if not report_rows:
+        return
+    st.markdown("## Document Benchmark Results")
+    st.dataframe(_build_document_benchmark_df(report_rows), width="stretch")
+
+
+def _build_aggregate_summary_df(per_extractor_summary: dict[str, dict[str, Any]]) -> pd.DataFrame:
+    """Build the per-extractor aggregate statistics table."""
+    if not per_extractor_summary:
+        return pd.DataFrame()
+    rows = []
+    for extractor_name, summary in per_extractor_summary.items():
+        rows.append(
+            {
+                "Extractor": extractor_name,
+                "Total Runs": summary["total_runs"],
+                "Success Rate": f"{summary['success_rate'] * 100:.1f}%",
+                "Avg Extraction Time (s)": round(summary["avg_extraction_time_seconds"], 3),
+                "Avg Character Count": round(summary["avg_character_count"], 1),
+                "Avg Word Count": round(summary["avg_word_count"], 1),
+                "Avg Bounding Box Count": round(summary["avg_bounding_box_count"], 1),
+            }
+        )
+    return pd.DataFrame(rows)
+
+
+def _render_aggregate_summary(report_rows: list[dict[str, Any]]) -> None:
+    """Render the 'Aggregate Benchmark Summary' section.
+
+    Computes overall and per-extractor aggregate statistics from the flat
+    report rows already produced for the Document Benchmark Results table,
+    without recomputing any underlying metric.
+    """
+    if not report_rows:
+        return
+    overall = compute_aggregate_summary(report_rows)
+    per_extractor = compute_per_extractor_summary(report_rows)
+
+    st.markdown("## Aggregate Benchmark Summary")
+
+    st.markdown("#### Overall")
+    c1, c2, c3 = st.columns(3)
+    c1.metric("Total Documents Processed", str(overall["total_documents"]))
+    c2.metric("Total Benchmark Runs", str(overall["total_runs"]))
+    c3.metric("Success Rate", f"{overall['success_rate'] * 100:.1f}%")
+    c4, c5, c6 = st.columns(3)
+    c4.metric("Avg Extraction Time (s)", f"{overall['avg_extraction_time_seconds']:.3f}")
+    c5.metric("Avg Character Count", f"{overall['avg_character_count']:.1f}")
+    c6.metric("Avg Word Count", f"{overall['avg_word_count']:.1f}")
+    st.metric("Avg Bounding Box Count", f"{overall['avg_bounding_box_count']:.1f}")
+
+    st.markdown("#### Per Extractor")
+    st.dataframe(_build_aggregate_summary_df(per_extractor), width="stretch")
+
+
+def _render_export_controls(report_rows: list[dict[str, Any]], file_stem: str) -> None:
+    """Render CSV/JSON download buttons for the current benchmark results.
+
+    `report_rows` is the flat report-row list (one row per document/extractor
+    combination) already built via `build_multi_document_report_rows`; this
+    function only serializes and renders, performing no computation of its
+    own.
+    """
+    if not report_rows:
         return
 
-    report_rows = build_report_rows(document_name, comparison_rows)
     csv_bytes = to_csv_bytes(report_rows)
     json_bytes = to_json_bytes(report_rows)
-    file_stem = Path(document_name).stem or "benchmark_report"
 
     st.markdown("### Export Results")
     col1, col2 = st.columns(2)
@@ -784,6 +885,281 @@ def _render_advanced_document_features(
                 _render_unsupported_advanced_features()
 
 
+def _process_document(
+    uploaded: Any,
+    selected_extractors: list[str],
+    paddleocr_language_mode: str,
+    project_root: Path,
+    output_root_dir: Path,
+    output_markdown_dir: Path,
+    run_status: Any,
+    progress_bar: Any,
+    progress_offset: int,
+    progress_total: int,
+) -> dict[str, Any]:
+    """Run the selected extractors against a single uploaded document.
+
+    Encapsulates the per-document extraction pipeline (classification,
+    per-extractor extraction with partial-failure handling, and comparison
+    row construction) so it can be reused for both single- and
+    multi-document benchmark runs.
+
+    Parameters
+    ----------
+    uploaded:
+        A Streamlit `UploadedFile` for the document to process.
+    selected_extractors:
+        Display names of the extractors to run.
+    paddleocr_language_mode:
+        PaddleOCR language mode key (e.g. ``"english"``).
+    project_root, output_root_dir, output_markdown_dir:
+        Filesystem locations used for input staging and extractor outputs.
+    run_status, progress_bar:
+        Streamlit status/progress widgets shared across the whole run.
+    progress_offset, progress_total:
+        This document's starting position and the overall step count across
+        all documents/extractors, used to advance `progress_bar` smoothly.
+
+    Returns
+    -------
+    dict[str, Any]
+        Per-document state: `file_name`, `per_extractor_results`,
+        `per_extractor_payloads`, `per_extractor_markdown`,
+        `per_extractor_paths`, `per_extractor_text`, `comparison_rows`,
+        `meta`, `observations`, `recommendation`, `classification`, and
+        `warnings`.
+    """
+    input_dir = project_root / "data" / "processed"
+    input_dir.mkdir(parents=True, exist_ok=True)
+    input_path = input_dir / uploaded.name
+    input_path.write_bytes(uploaded.getvalue())
+    input_type = _detect_input_type(input_path)
+    is_image_input = input_type == "Image"
+
+    classification = None
+    if input_type == "PDF":
+        classifier = PdfTypeClassifier()
+        classification = classifier.classify(input_path)
+        pdf_type = classification.pdf_type
+        page_count = classification.page_count
+        classification_confidence = classification.confidence
+        classification_reasoning = classification.reasoning
+        image_heavy_pages = classification.image_heavy_pages
+        text_pages = classification.text_pages
+        avg_text_density = classification.avg_text_density
+        avg_image_ratio = classification.avg_image_ratio
+    else:
+        pdf_type = "image"
+        page_count = 1
+        classification_confidence = 1.0
+        classification_reasoning = "Image input detected; route to OCR-capable extractors."
+        image_heavy_pages = 1
+        text_pages = 0
+        avg_text_density = 0.0
+        avg_image_ratio = 1.0
+
+    recs = RECOMMENDATIONS.get(pdf_type, [])
+    rec_text = ", ".join(recs)
+    st.info(
+        f"`{uploaded.name}` detected: {input_type}. "
+        f"Classification: {pdf_type.title()} "
+        f"(confidence {classification_confidence:.2f}). "
+        f"Recommended: {rec_text}"
+    )
+    if "PaddleOCR" in selected_extractors:
+        st.caption(
+            f"`{uploaded.name}` PaddleOCR Language Mode: "
+            f"{_paddleocr_language_label(paddleocr_language_mode)} "
+            f"(`{paddleocr_language_mode}`)"
+        )
+
+    per_extractor_results: dict[str, list[Any]] = {}
+    per_extractor_payloads: dict[str, dict[str, object]] = {}
+    per_extractor_markdown: dict[str, str] = {}
+    per_extractor_paths: dict[str, dict[str, str]] = {}
+    per_extractor_text: dict[str, str] = {}
+    comparison_rows: list[dict[str, object]] = []
+    warnings: list[str] = []
+    total_extractors = max(1, len(selected_extractors))
+
+    for idx, extractor_name in enumerate(selected_extractors, start=1):
+        progress_step = progress_offset + (idx - 1)
+        progress_bar.progress(
+            min(1.0, progress_step / progress_total),
+            text=f"Running {extractor_name} on {uploaded.name} ({idx}/{total_extractors})...",
+        )
+        run_status.write(
+            f"Started `{extractor_name}` on `{uploaded.name}` ({idx}/{total_extractors})."
+        )
+        start = time.perf_counter()
+        extractor_slug = _extractor_slug(extractor_name)
+        extractor_output_dir = output_root_dir / extractor_slug / input_path.stem
+        extractor_output_dir.mkdir(parents=True, exist_ok=True)
+
+        try:
+            capabilities = EXTRACTOR_CAPABILITIES[extractor_name]
+            if is_image_input and not capabilities["supports_image"]:
+                results = _build_unsupported_image_result(extractor_name, input_path)
+            else:
+                extractor = _create_extractor(extractor_name, paddleocr_language_mode)
+                if extractor_name == "OpenDataLoader":
+                    results = extractor.extract(
+                        pdf_path=input_path,
+                        output_dir=extractor_output_dir,
+                    )
+                else:
+                    results = extractor.extract(pdf_path=input_path)
+            elapsed = time.perf_counter() - start
+
+            payload = UnifiedOutputParser().to_json_payload(results)
+
+            md_source = extractor_output_dir / f"{input_path.stem}.md"
+            if (
+                extractor_name == "OpenDataLoader"
+                and input_type == "PDF"
+                and md_source.exists()
+            ):
+                markdown_text = _read_text_safely(md_source)
+            else:
+                markdown_text = _build_markdown_from_results(results, extractor_name)
+
+            has_markdown_images = bool(re.search(r"!\[[^\]]*\]\([^)]+\)", markdown_text))
+            if input_type == "PDF" and pdf_type == "scanned" and not has_markdown_images:
+                image_section = _build_scanned_page_image_markdown(
+                    pdf_path=input_path,
+                    markdown_root_dir=output_markdown_dir,
+                    extractor_slug=extractor_slug,
+                )
+                if image_section:
+                    markdown_text = f"{markdown_text.rstrip()}\n\n{image_section}\n"
+
+            json_output, md_output = _save_outputs(
+                json_payload=payload,
+                markdown_text=markdown_text,
+                output_dir=extractor_output_dir,
+            )
+
+            all_text = "\n\n".join(result.extracted_text for result in results)
+            no_text_output = not all_text.strip()
+            extracted_result_count = len(results)
+            processed_page_count = page_count if extracted_result_count > 0 else 0
+            ocr_required_pages = sum(
+                1
+                for result in results
+                if result.metadata and result.metadata.extra.get("ocr_required") is True
+            )
+            ocr_supported = bool(capabilities["ocr_supported"])
+            char_count = len(all_text)
+            word_count = len(all_text.split())
+            bbox_count = sum(len(result.bounding_boxes) for result in results)
+            status = _get_result_status(results)
+            if status == "ok":
+                status = "success"
+            elif not status:
+                status = "success" if not no_text_output else "empty_text_output"
+            if pdf_type == "scanned" and no_text_output and status == "empty_text_output":
+                status = "limited_for_scanned_pdf"
+            if status == "unsupported_for_image_input":
+                processed_page_count = 0
+            if status != "success":
+                warnings.append(f"{uploaded.name} / {extractor_name}: {status.replace('_', ' ')}")
+
+            per_extractor_results[extractor_name] = results
+            per_extractor_payloads[extractor_name] = payload
+            per_extractor_markdown[extractor_name] = markdown_text
+            per_extractor_paths[extractor_name] = {
+                "json": str(json_output),
+                "markdown": str(md_output),
+            }
+            per_extractor_text[extractor_name] = all_text
+            comparison_rows.append(
+                {
+                    "extractor": extractor_name,
+                    "latency_seconds": round(elapsed, 3),
+                    "total_pages": page_count,
+                    "processed_pages": processed_page_count,
+                    "text_length": len(all_text),
+                    "markdown_length": len(markdown_text),
+                    "ocr_supported": ocr_supported,
+                    "ocr_required_pages": ocr_required_pages,
+                    "status": status,
+                    "pdf_type": pdf_type,
+                    "char_count": char_count,
+                    "word_count": word_count,
+                    "bbox_count": bbox_count,
+                    "markdown_support": bool(capabilities["markdown_support"]),
+                    "layout_preservation_support": bool(
+                        capabilities["layout_preservation_support"]
+                    ),
+                    "error_message": "",
+                }
+            )
+            run_status.write(
+                f"Finished `{extractor_name}` on `{uploaded.name}` in {elapsed:.2f}s "
+                f"(status: {status}, "
+                f"pages: {processed_page_count}/{page_count}, "
+                f"text length: {len(all_text)})."
+            )
+        except Exception as exc:
+            capabilities = EXTRACTOR_CAPABILITIES[extractor_name]
+            comparison_rows.append(
+                {
+                    "extractor": extractor_name,
+                    "latency_seconds": round(time.perf_counter() - start, 3),
+                    "total_pages": page_count,
+                    "processed_pages": 0,
+                    "text_length": 0,
+                    "markdown_length": 0,
+                    "ocr_supported": False,
+                    "ocr_required_pages": 0,
+                    "status": "failed",
+                    "pdf_type": pdf_type,
+                    "char_count": 0,
+                    "word_count": 0,
+                    "bbox_count": 0,
+                    "markdown_support": bool(capabilities["markdown_support"]),
+                    "layout_preservation_support": bool(
+                        capabilities["layout_preservation_support"]
+                    ),
+                    "error_message": str(exc),
+                }
+            )
+            warnings.append(f"{uploaded.name} / {extractor_name}: failed ({exc})")
+            run_status.write(f"`{extractor_name}` on `{uploaded.name}` failed: {exc}")
+
+    observations, recommendation = _build_comparison_observations(comparison_rows, classification)
+    meta = {
+        "file_name": uploaded.name,
+        "file_size_kb": round(len(uploaded.getvalue()) / 1024, 2),
+        "input_type": input_type,
+        "total_pdf_pages": page_count,
+        "image_heavy_pages": image_heavy_pages,
+        "ocr_image_only_pages": max(0, page_count - text_pages),
+        "pdf_type": pdf_type,
+        "classification_confidence": classification_confidence,
+        "classification_reasoning": classification_reasoning,
+        "avg_text_density": avg_text_density,
+        "avg_image_ratio": avg_image_ratio,
+        "text_pages": text_pages,
+        "selected_extractors": selected_extractors,
+    }
+
+    return {
+        "file_name": uploaded.name,
+        "per_extractor_results": per_extractor_results,
+        "per_extractor_payloads": per_extractor_payloads,
+        "per_extractor_markdown": per_extractor_markdown,
+        "per_extractor_paths": per_extractor_paths,
+        "per_extractor_text": per_extractor_text,
+        "comparison_rows": comparison_rows,
+        "meta": meta,
+        "observations": observations,
+        "recommendation": recommendation,
+        "classification": classification,
+        "warnings": warnings,
+    }
+
+
 def run() -> None:
     """Render and run the streamlined extraction dashboard."""
     st.set_page_config(page_title=APP_NAME, layout="wide")
@@ -799,7 +1175,11 @@ def run() -> None:
 
     with st.sidebar:
         st.header("Extraction")
-        uploaded = st.file_uploader("Upload Document", type=SUPPORTED_UPLOAD_TYPES)
+        uploaded_files = st.file_uploader(
+            "Upload Document(s)",
+            type=SUPPORTED_UPLOAD_TYPES,
+            accept_multiple_files=True,
+        )
         selected_extractors = st.multiselect(
             "Extractors",
             options=list(EXTRACTOR_OPTIONS.keys()),
@@ -818,6 +1198,7 @@ def run() -> None:
     st.markdown(f'<div class="subtitle">{APP_SUBTITLE}</div>', unsafe_allow_html=True)
 
     if "last_results" not in st.session_state:
+        st.session_state.documents = []
         st.session_state.last_results = {}
         st.session_state.last_payload = {}
         st.session_state.last_markdown = {}
@@ -830,245 +1211,115 @@ def run() -> None:
         st.session_state.last_classification = None
 
     if run_clicked:
-        if uploaded is None:
-            st.warning("Please upload a document before running extraction.")
+        if not uploaded_files:
+            st.warning("Please upload at least one document before running extraction.")
         elif not selected_extractors:
             st.warning("Please select at least one extractor.")
         else:
             run_status = st.status("Running extraction...", expanded=True)
             progress_bar = st.progress(0.0, text="Initializing extraction...")
-            input_dir = project_root / "data" / "processed"
-            input_dir.mkdir(parents=True, exist_ok=True)
-            input_path = input_dir / uploaded.name
-            input_path.write_bytes(uploaded.getvalue())
-            input_type = _detect_input_type(input_path)
-            is_image_input = input_type == "Image"
-
-            classification = None
-            if input_type == "PDF":
-                classifier = PdfTypeClassifier()
-                classification = classifier.classify(input_path)
-                pdf_type = classification.pdf_type
-                page_count = classification.page_count
-                classification_confidence = classification.confidence
-                classification_reasoning = classification.reasoning
-                image_heavy_pages = classification.image_heavy_pages
-                text_pages = classification.text_pages
-                avg_text_density = classification.avg_text_density
-                avg_image_ratio = classification.avg_image_ratio
-            else:
-                pdf_type = "image"
-                page_count = 1
-                classification_confidence = 1.0
-                classification_reasoning = "Image input detected; route to OCR-capable extractors."
-                image_heavy_pages = 1
-                text_pages = 0
-                avg_text_density = 0.0
-                avg_image_ratio = 1.0
-            st.session_state.last_classification = classification
-
-            recs = RECOMMENDATIONS.get(pdf_type, [])
-            rec_text = ", ".join(recs)
-            st.info(
-                f"Input detected: {input_type}. "
-                f"Classification: {pdf_type.title()} "
-                f"(confidence {classification_confidence:.2f}). "
-                f"Recommended: {rec_text}"
-            )
-            if "PaddleOCR" in selected_extractors:
-                st.caption(
-                    "PaddleOCR Language Mode: "
-                    f"{_paddleocr_language_label(paddleocr_language_mode)} "
-                    f"(`{paddleocr_language_mode}`)"
-                )
-
-            per_extractor_results: dict[str, list[Any]] = {}
-            per_extractor_payloads: dict[str, dict[str, object]] = {}
-            per_extractor_markdown: dict[str, str] = {}
-            per_extractor_paths: dict[str, dict[str, str]] = {}
-            per_extractor_text: dict[str, str] = {}
-            comparison_rows: list[dict[str, object]] = []
-            warnings: list[str] = []
             total_extractors = max(1, len(selected_extractors))
+            progress_total = max(1, len(uploaded_files) * total_extractors)
 
-            for idx, extractor_name in enumerate(selected_extractors, start=1):
-                progress_ratio = (idx - 1) / total_extractors
-                progress_bar.progress(
-                    progress_ratio,
-                    text=f"Running {extractor_name} ({idx}/{total_extractors})...",
-                )
+            documents: list[dict[str, Any]] = []
+            all_warnings: list[str] = []
+
+            for doc_idx, uploaded in enumerate(uploaded_files):
                 run_status.write(
-                    f"Started `{extractor_name}` on `{uploaded.name}` ({idx}/{total_extractors})."
+                    f"Processing document `{uploaded.name}` "
+                    f"({doc_idx + 1}/{len(uploaded_files)})..."
                 )
-                start = time.perf_counter()
-                extractor_slug = _extractor_slug(extractor_name)
-                extractor_output_dir = output_root_dir / extractor_slug / input_path.stem
-                extractor_output_dir.mkdir(parents=True, exist_ok=True)
-
                 try:
-                    capabilities = EXTRACTOR_CAPABILITIES[extractor_name]
-                    if is_image_input and not capabilities["supports_image"]:
-                        results = _build_unsupported_image_result(extractor_name, input_path)
-                    else:
-                        extractor = _create_extractor(extractor_name, paddleocr_language_mode)
-                        if extractor_name == "OpenDataLoader":
-                            results = extractor.extract(
-                                pdf_path=input_path,
-                                output_dir=extractor_output_dir,
-                            )
-                        else:
-                            results = extractor.extract(pdf_path=input_path)
-                    elapsed = time.perf_counter() - start
-
-                    payload = UnifiedOutputParser().to_json_payload(results)
-
-                    md_source = extractor_output_dir / f"{input_path.stem}.md"
-                    if (
-                        extractor_name == "OpenDataLoader"
-                        and input_type == "PDF"
-                        and md_source.exists()
-                    ):
-                        markdown_text = _read_text_safely(md_source)
-                    else:
-                        markdown_text = _build_markdown_from_results(results, extractor_name)
-
-                    has_markdown_images = bool(re.search(r"!\[[^\]]*\]\([^)]+\)", markdown_text))
-                    if input_type == "PDF" and pdf_type == "scanned" and not has_markdown_images:
-                        image_section = _build_scanned_page_image_markdown(
-                            pdf_path=input_path,
-                            markdown_root_dir=output_markdown_dir,
-                            extractor_slug=extractor_slug,
-                        )
-                        if image_section:
-                            markdown_text = f"{markdown_text.rstrip()}\n\n{image_section}\n"
-
-                    json_output, md_output = _save_outputs(
-                        json_payload=payload,
-                        markdown_text=markdown_text,
-                        output_dir=extractor_output_dir,
-                    )
-
-                    all_text = "\n\n".join(result.extracted_text for result in results)
-                    no_text_output = not all_text.strip()
-                    extracted_result_count = len(results)
-                    processed_page_count = page_count if extracted_result_count > 0 else 0
-                    ocr_required_pages = sum(
-                        1
-                        for result in results
-                        if result.metadata and result.metadata.extra.get("ocr_required") is True
-                    )
-                    ocr_supported = bool(capabilities["ocr_supported"])
-                    char_count = len(all_text)
-                    word_count = len(all_text.split())
-                    bbox_count = sum(len(result.bounding_boxes) for result in results)
-                    status = _get_result_status(results)
-                    if status == "ok":
-                        status = "success"
-                    elif not status:
-                        status = "success" if not no_text_output else "empty_text_output"
-                    if pdf_type == "scanned" and no_text_output and status == "empty_text_output":
-                        status = "limited_for_scanned_pdf"
-                    if status == "unsupported_for_image_input":
-                        processed_page_count = 0
-                    if status != "success":
-                        warnings.append(f"{extractor_name}: {status.replace('_', ' ')}")
-
-                    per_extractor_results[extractor_name] = results
-                    per_extractor_payloads[extractor_name] = payload
-                    per_extractor_markdown[extractor_name] = markdown_text
-                    per_extractor_paths[extractor_name] = {
-                        "json": str(json_output),
-                        "markdown": str(md_output),
-                    }
-                    per_extractor_text[extractor_name] = all_text
-                    comparison_rows.append(
-                        {
-                            "extractor": extractor_name,
-                            "latency_seconds": round(elapsed, 3),
-                            "total_pages": page_count,
-                            "processed_pages": processed_page_count,
-                            "text_length": len(all_text),
-                            "markdown_length": len(markdown_text),
-                            "ocr_supported": ocr_supported,
-                            "ocr_required_pages": ocr_required_pages,
-                            "status": status,
-                            "pdf_type": pdf_type,
-                            "char_count": char_count,
-                            "word_count": word_count,
-                            "bbox_count": bbox_count,
-                            "markdown_support": bool(capabilities["markdown_support"]),
-                            "layout_preservation_support": bool(
-                                capabilities["layout_preservation_support"]
-                            ),
-                            "error_message": "",
-                        }
-                    )
-                    run_status.write(
-                        f"Finished `{extractor_name}` in {elapsed:.2f}s "
-                        f"(status: {status}, "
-                        f"pages: {processed_page_count}/{page_count}, "
-                        f"text length: {len(all_text)})."
+                    document_state = _process_document(
+                        uploaded=uploaded,
+                        selected_extractors=selected_extractors,
+                        paddleocr_language_mode=paddleocr_language_mode,
+                        project_root=project_root,
+                        output_root_dir=output_root_dir,
+                        output_markdown_dir=output_markdown_dir,
+                        run_status=run_status,
+                        progress_bar=progress_bar,
+                        progress_offset=doc_idx * total_extractors,
+                        progress_total=progress_total,
                     )
                 except Exception as exc:
-                    capabilities = EXTRACTOR_CAPABILITIES[extractor_name]
-                    comparison_rows.append(
-                        {
-                            "extractor": extractor_name,
-                            "latency_seconds": round(time.perf_counter() - start, 3),
-                            "total_pages": page_count,
-                            "processed_pages": 0,
-                            "text_length": 0,
-                            "markdown_length": 0,
-                            "ocr_supported": False,
-                            "ocr_required_pages": 0,
-                            "status": "failed",
-                            "pdf_type": pdf_type,
-                            "char_count": 0,
-                            "word_count": 0,
-                            "bbox_count": 0,
-                            "markdown_support": bool(capabilities["markdown_support"]),
-                            "layout_preservation_support": bool(
-                                capabilities["layout_preservation_support"]
-                            ),
-                            "error_message": str(exc),
-                        }
-                    )
-                    warnings.append(f"{extractor_name}: failed ({exc})")
-                    run_status.write(f"`{extractor_name}` failed: {exc}")
+                    failure_message = f"{uploaded.name}: failed ({exc})"
+                    run_status.write(failure_message)
+                    document_state = {
+                        "file_name": uploaded.name,
+                        "per_extractor_results": {},
+                        "per_extractor_payloads": {},
+                        "per_extractor_markdown": {},
+                        "per_extractor_paths": {},
+                        "per_extractor_text": {},
+                        "comparison_rows": [
+                            {
+                                "extractor": extractor_name,
+                                "latency_seconds": 0.0,
+                                "total_pages": 0,
+                                "processed_pages": 0,
+                                "text_length": 0,
+                                "markdown_length": 0,
+                                "ocr_supported": False,
+                                "ocr_required_pages": 0,
+                                "status": "failed",
+                                "pdf_type": "unknown",
+                                "char_count": 0,
+                                "word_count": 0,
+                                "bbox_count": 0,
+                                "markdown_support": bool(
+                                    EXTRACTOR_CAPABILITIES[extractor_name]["markdown_support"]
+                                ),
+                                "layout_preservation_support": bool(
+                                    EXTRACTOR_CAPABILITIES[extractor_name][
+                                        "layout_preservation_support"
+                                    ]
+                                ),
+                                "error_message": str(exc),
+                            }
+                            for extractor_name in selected_extractors
+                        ],
+                        "meta": {
+                            "file_name": uploaded.name,
+                            "selected_extractors": selected_extractors,
+                        },
+                        "observations": [],
+                        "recommendation": {},
+                        "classification": None,
+                        "warnings": [failure_message],
+                    }
 
-            st.session_state.last_results = per_extractor_results
-            st.session_state.last_payload = per_extractor_payloads
-            st.session_state.last_markdown = per_extractor_markdown
-            st.session_state.last_paths = per_extractor_paths
-            st.session_state.last_text = per_extractor_text
-            st.session_state.comparison_rows = comparison_rows
-            observations, recommendation = _build_comparison_observations(
-                comparison_rows,
-                st.session_state.last_classification,
-            )
-            st.session_state.observations = observations
-            st.session_state.recommendation = recommendation
-            st.session_state.last_meta = {
-                "file_name": uploaded.name,
-                "file_size_kb": round(len(uploaded.getvalue()) / 1024, 2),
-                "input_type": input_type,
-                "total_pdf_pages": page_count,
-                "image_heavy_pages": image_heavy_pages,
-                "ocr_image_only_pages": max(
-                    0,
-                    page_count - text_pages,
-                ),
-                "pdf_type": pdf_type,
-                "classification_confidence": classification_confidence,
-                "classification_reasoning": classification_reasoning,
-                "avg_text_density": avg_text_density,
-                "avg_image_ratio": avg_image_ratio,
-                "text_pages": text_pages,
-                "selected_extractors": selected_extractors,
-            }
+                documents.append(document_state)
+                all_warnings.extend(document_state["warnings"])
 
-            if warnings:
-                for warning in warnings:
+            st.session_state.documents = documents
+
+            if len(documents) == 1:
+                doc = documents[0]
+                st.session_state.last_results = doc["per_extractor_results"]
+                st.session_state.last_payload = doc["per_extractor_payloads"]
+                st.session_state.last_markdown = doc["per_extractor_markdown"]
+                st.session_state.last_paths = doc["per_extractor_paths"]
+                st.session_state.last_text = doc["per_extractor_text"]
+                st.session_state.comparison_rows = doc["comparison_rows"]
+                st.session_state.observations = doc["observations"]
+                st.session_state.recommendation = doc["recommendation"]
+                st.session_state.last_classification = doc["classification"]
+                st.session_state.last_meta = doc["meta"]
+            else:
+                st.session_state.last_results = {}
+                st.session_state.last_payload = {}
+                st.session_state.last_markdown = {}
+                st.session_state.last_paths = {}
+                st.session_state.last_text = {}
+                st.session_state.comparison_rows = []
+                st.session_state.observations = []
+                st.session_state.recommendation = {}
+                st.session_state.last_classification = None
+                st.session_state.last_meta = {}
+
+            if all_warnings:
+                for warning in all_warnings:
                     st.warning(warning)
                 run_status.update(
                     label="Extraction completed with warnings.",
@@ -1104,10 +1355,21 @@ def run() -> None:
 
     if st.session_state.comparison_rows:
         _render_comparison_analysis(st.session_state.comparison_rows)
-        _render_export_controls(
-            st.session_state.last_meta.get("file_name", "benchmark"),
-            st.session_state.comparison_rows,
+
+    if st.session_state.documents:
+        report_rows = build_multi_document_report_rows(
+            [
+                (doc["file_name"], doc["comparison_rows"])
+                for doc in st.session_state.documents
+            ]
         )
+        _render_document_benchmark_results(report_rows)
+        _render_aggregate_summary(report_rows)
+        if len(st.session_state.documents) == 1:
+            file_stem = Path(st.session_state.documents[0]["file_name"]).stem or "benchmark_report"
+        else:
+            file_stem = "multi_document_benchmark_report"
+        _render_export_controls(report_rows, file_stem)
 
     if st.session_state.last_results:
         _render_advanced_document_features(
