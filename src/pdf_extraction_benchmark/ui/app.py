@@ -44,6 +44,16 @@ from pdf_extraction_benchmark.reports.benchmark_report import (  # noqa: E402
     to_csv_bytes,
     to_json_bytes,
 )
+from pdf_extraction_benchmark.reports.native_vs_scanned import (  # noqa: E402
+    NATIVE_GROUP,
+    SCANNED_GROUP,
+    build_comparison_table_rows,
+    build_pdf_type_report_rows,
+    build_production_recommendation,
+    compute_group_summary,
+    recommend_native_extractor,
+    recommend_scanned_extractor,
+)
 from pdf_extraction_benchmark.utils.logger import configure_logging  # noqa: E402
 from pdf_extraction_benchmark.visualization.bbox_overlay import (  # noqa: E402
     build_page_visualizations,
@@ -337,8 +347,7 @@ def _build_comparison_observations(
         )
     else:
         notes.append(
-            f"{fastest_name} was fastest ({fastest_latency:.3f}s), "
-            "but produced no usable text."
+            f"{fastest_name} was fastest ({fastest_latency:.3f}s), but produced no usable text."
         )
 
     most_text_name = str(most_text.get("extractor", "-"))
@@ -351,9 +360,7 @@ def _build_comparison_observations(
         )
 
     failed = [
-        str(row.get("extractor", ""))
-        for row in rows
-        if str(row.get("status", "")) == "failed"
+        str(row.get("extractor", "")) for row in rows if str(row.get("status", "")) == "failed"
     ]
     limited = [
         str(row.get("extractor", ""))
@@ -379,14 +386,10 @@ def _build_comparison_observations(
 
     if pdf_type == "scanned":
         primary = (
-            str(ocr_winner.get("extractor"))
-            if ocr_winner
-            else str(most_text.get("extractor"))
+            str(ocr_winner.get("extractor")) if ocr_winner else str(most_text.get("extractor"))
         )
         secondary = (
-            str(fastest.get("extractor"))
-            if str(fastest.get("extractor")) != primary
-            else "-"
+            str(fastest.get("extractor")) if str(fastest.get("extractor")) != primary else "-"
         )
         reason = (
             f"Scanned PDF detected. `{primary}` recovered the most usable text for this run."
@@ -395,14 +398,10 @@ def _build_comparison_observations(
         )
     elif pdf_type == "image":
         primary = (
-            str(ocr_winner.get("extractor"))
-            if ocr_winner
-            else str(most_text.get("extractor"))
+            str(ocr_winner.get("extractor")) if ocr_winner else str(most_text.get("extractor"))
         )
         secondary = (
-            str(fastest.get("extractor"))
-            if str(fastest.get("extractor")) != primary
-            else "-"
+            str(fastest.get("extractor")) if str(fastest.get("extractor")) != primary else "-"
         )
         reason = (
             f"Image input detected. `{primary}` recovered the most usable OCR text."
@@ -412,15 +411,11 @@ def _build_comparison_observations(
     elif pdf_type == "hybrid":
         primary = str(most_text.get("extractor"))
         secondary = (
-            str(ocr_winner.get("extractor"))
-            if ocr_winner
-            else str(fastest.get("extractor"))
+            str(ocr_winner.get("extractor")) if ocr_winner else str(fastest.get("extractor"))
         )
         if secondary == primary:
             secondary = (
-                str(fastest.get("extractor"))
-                if str(fastest.get("extractor")) != primary
-                else "-"
+                str(fastest.get("extractor")) if str(fastest.get("extractor")) != primary else "-"
             )
         reason = (
             "Hybrid PDF detected with both text and image-heavy signals. "
@@ -429,9 +424,7 @@ def _build_comparison_observations(
     else:
         primary = str(most_text.get("extractor"))
         secondary = (
-            str(fastest.get("extractor"))
-            if str(fastest.get("extractor")) != primary
-            else "-"
+            str(fastest.get("extractor")) if str(fastest.get("extractor")) != primary else "-"
         )
         reason = (
             "Native PDF detected with strong extractable text. "
@@ -458,7 +451,7 @@ def _render_recommendation_card(recommendation: dict[str, str]) -> None:
             '<div style="margin-top:0.7rem" class="summary-title">Secondary</div>'
             f'<div class="summary-value">{recommendation.get("secondary", "-")}</div>'
             '<div style="margin-top:0.7rem"><b>Reason:</b> '
-            f'{recommendation.get("reason", "-")}</div>'
+            f"{recommendation.get('reason', '-')}</div>"
             "</div>"
         ),
         unsafe_allow_html=True,
@@ -492,9 +485,9 @@ def _render_document_summary(meta: dict[str, Any]) -> None:
             f'<div style="margin-top:0.7rem" class="summary-title">Document Type</div>'
             f'<div class="summary-value">{str(meta.get("pdf_type", "unknown")).title()}</div>'
             f'<div style="margin-top:0.7rem"><b>Confidence:</b> '
-            f'{meta.get("classification_confidence", 0.0) * 100:.0f}%</div>'
+            f"{meta.get('classification_confidence', 0.0) * 100:.0f}%</div>"
             f'<div style="margin-top:0.35rem"><b>Reason:</b> '
-            f'{meta.get("classification_reasoning", "-")}</div>'
+            f"{meta.get('classification_reasoning', '-')}</div>"
             f'<div style="margin-top:0.35rem"><b>Recommended Extractors:</b> '
             f"{recommendations}</div>"
             f"</div>"
@@ -551,6 +544,7 @@ def _format_comparison_rows(rows: list[dict[str, Any]]) -> pd.DataFrame:
         "pdf_type",
     ]
     return df[display_cols]
+
 
 def _build_comparison_analysis_df(rows: list[dict[str, Any]]) -> pd.DataFrame:
     """Build the side-by-side comparison table for the Comparison Analysis section."""
@@ -614,9 +608,9 @@ def _build_best_per_category(rows: list[dict[str, Any]]) -> dict[str, str]:
     best["Fastest Extractor"] = min(successful_rows, key=lambda row: row["latency_seconds"])[
         "extractor"
     ]
-    best["Most Bounding Boxes Detected"] = max(
-        successful_rows, key=lambda row: row["bbox_count"]
-    )["extractor"]
+    best["Most Bounding Boxes Detected"] = max(successful_rows, key=lambda row: row["bbox_count"])[
+        "extractor"
+    ]
 
     return best
 
@@ -827,6 +821,130 @@ def _render_aggregate_summary(report_rows: list[dict[str, Any]]) -> None:
     st.dataframe(_build_aggregate_summary_df(per_extractor), width="stretch")
 
 
+def _render_extractor_recommendation_card(title: str, recommendation: dict[str, Any]) -> None:
+    """Render a 'Best Extractor' style card with a recommendation and reasoning."""
+    extractor_name = recommendation.get("extractor") or "Not enough data"
+    reasoning = recommendation.get("reasoning", "")
+    st.markdown(
+        f'<div class="summary-card">'
+        f'<span class="summary-title">{title}</span><br>'
+        f'<span class="summary-value">{extractor_name}</span>'
+        f'<div style="margin-top:0.5rem">{reasoning}</div>'
+        f"</div>",
+        unsafe_allow_html=True,
+    )
+
+
+def _render_production_recommendation_card(recommendation: dict[str, dict[str, Any]]) -> None:
+    """Render the final 'Production Recommendation' card covering all document categories."""
+    labels = {
+        "native": "Native PDFs",
+        "scanned": "Scanned PDFs",
+        "table_heavy": "Table-heavy Documents",
+    }
+    rows_html = "".join(
+        '<div style="margin-top:0.75rem">'
+        f'<span class="summary-title">{labels[category]}</span><br>'
+        f'<span class="summary-value">{value.get("extractor") or "Not enough data"}</span>'
+        f'<div style="margin-top:0.25rem">{value.get("reasoning", "")}</div>'
+        "</div>"
+        for category, value in recommendation.items()
+    )
+    st.markdown(
+        f'<div class="summary-card">{rows_html}</div>',
+        unsafe_allow_html=True,
+    )
+
+
+def _render_pdf_type_group_analysis(
+    title: str, group_rows: list[dict[str, Any]]
+) -> dict[str, dict[str, Any]]:
+    """Render Summary Metrics, Comparison Table, charts, and best-extractor card for one group.
+
+    `group_rows` is the flat report-row list for one pdf_type group, already
+    built via `build_pdf_type_report_rows`. Returns the per-extractor summary
+    so it can be reused for the production recommendation section.
+    """
+    if not group_rows:
+        st.caption(f"No {title.lower()} processed yet.")
+        return {}
+
+    overall = compute_aggregate_summary(group_rows)
+    group_summary = compute_group_summary(group_rows)
+    per_extractor = group_summary["per_extractor"]
+
+    st.markdown("#### Summary Metrics")
+    c1, c2, c3 = st.columns(3)
+    c1.metric(f"Total {title}", str(group_summary["total_documents"]))
+    c2.metric("Avg Processing Time (s)", f"{overall['avg_extraction_time_seconds']:.3f}")
+    c3.metric("Success Rate", f"{overall['success_rate'] * 100:.1f}%")
+    c4, c5 = st.columns(2)
+    c4.metric("Avg Character Count", f"{overall['avg_character_count']:.1f}")
+    c5.metric("Avg Word Count", f"{overall['avg_word_count']:.1f}")
+
+    st.markdown("#### Comparison Table")
+    st.dataframe(pd.DataFrame(build_comparison_table_rows(per_extractor)), width="stretch")
+
+    st.markdown("#### Visual Comparison")
+    chart_df = pd.DataFrame(
+        {
+            extractor_name: {
+                "avg_extraction_time_seconds": summary["avg_extraction_time_seconds"],
+                "success_rate": summary["success_rate"],
+            }
+            for extractor_name, summary in per_extractor.items()
+        }
+    ).T
+    st.caption("Average Extraction Time by Extractor (s)")
+    st.bar_chart(chart_df[["avg_extraction_time_seconds"]])
+    st.caption("Success Rate by Extractor")
+    st.bar_chart(chart_df[["success_rate"]])
+
+    return per_extractor
+
+
+def _render_native_vs_scanned_analysis(documents: list[dict[str, Any]]) -> None:
+    """Render the 'Native vs Scanned Analysis' tab.
+
+    Groups all processed documents' extractor runs into native and scanned
+    buckets using the `pdf_type` already assigned by `PdfTypeClassifier`
+    during extraction (see `_process_document`), then reuses
+    `reports/aggregation.py` helpers to compute per-extractor statistics for
+    each bucket without recomputing any underlying metric.
+    """
+    if not documents:
+        st.info("Run an extraction to see the native vs scanned analysis.")
+        return
+
+    grouped = build_pdf_type_report_rows(
+        [(doc["file_name"], doc["comparison_rows"]) for doc in documents]
+    )
+
+    st.markdown("## Native PDF Analysis")
+    native_per_extractor = _render_pdf_type_group_analysis(
+        "Native Documents", grouped[NATIVE_GROUP]
+    )
+    if native_per_extractor:
+        _render_extractor_recommendation_card(
+            "Best Native Extractor", recommend_native_extractor(native_per_extractor)
+        )
+
+    st.markdown("## Scanned PDF Analysis")
+    scanned_per_extractor = _render_pdf_type_group_analysis(
+        "Scanned Documents", grouped[SCANNED_GROUP]
+    )
+    if scanned_per_extractor:
+        _render_extractor_recommendation_card(
+            "Best Scanned Extractor", recommend_scanned_extractor(scanned_per_extractor)
+        )
+
+    if native_per_extractor or scanned_per_extractor:
+        st.markdown("## Production Recommendation")
+        _render_production_recommendation_card(
+            build_production_recommendation(native_per_extractor, scanned_per_extractor)
+        )
+
+
 def _render_export_controls(report_rows: list[dict[str, Any]], file_stem: str) -> None:
     """Render CSV/JSON download buttons for the current benchmark results.
 
@@ -930,8 +1048,7 @@ def _render_extractor_bbox_visualization(
             st.image(
                 viz["image"],
                 caption=(
-                    f"{extractor_name} | Page {viz['page_number']} | "
-                    f"{viz['bbox_count']} boxes"
+                    f"{extractor_name} | Page {viz['page_number']} | {viz['bbox_count']} boxes"
                 ),
                 width="stretch",
             )
@@ -1104,11 +1221,7 @@ def _process_document(
             payload = UnifiedOutputParser().to_json_payload(results)
 
             md_source = extractor_output_dir / f"{input_path.stem}.md"
-            if (
-                extractor_name == "OpenDataLoader"
-                and input_type == "PDF"
-                and md_source.exists()
-            ):
+            if extractor_name == "OpenDataLoader" and input_type == "PDF" and md_source.exists():
                 markdown_text = _read_text_safely(md_source)
             else:
                 markdown_text = _build_markdown_from_results(results, extractor_name)
@@ -1323,12 +1436,10 @@ def _render_extractor_result_tabs(
                 st.write(f"**File:** {st.session_state.last_meta.get('file_name', '')}")
                 st.write(f"**Size:** {st.session_state.last_meta.get('file_size_kb', 0)} KB")
                 st.write(
-                    f"**Total PDF Pages:** "
-                    f"{st.session_state.last_meta.get('total_pdf_pages', 0)}"
+                    f"**Total PDF Pages:** {st.session_state.last_meta.get('total_pdf_pages', 0)}"
                 )
                 st.write(
-                    f"**Detected Type:** "
-                    f"{st.session_state.last_meta.get('pdf_type', 'unknown')}"
+                    f"**Detected Type:** {st.session_state.last_meta.get('pdf_type', 'unknown')}"
                 )
                 if extractor_name == "PaddleOCR":
                     ocr_metadata = None
@@ -1346,14 +1457,8 @@ def _render_extractor_result_tabs(
                     )
                     if ocr_metadata is not None:
                         metadata_extra = ocr_metadata.extra
-                        st.write(
-                            "**OCR Model:** "
-                            f"{metadata_extra.get('ocr_model_name', '')}"
-                        )
-                        st.write(
-                            "**OCR Language:** "
-                            f"{metadata_extra.get('ocr_language', '')}"
-                        )
+                        st.write(f"**OCR Model:** {metadata_extra.get('ocr_model_name', '')}")
+                        st.write(f"**OCR Language:** {metadata_extra.get('ocr_language', '')}")
                 st.write(
                     "**Classifier Confidence:** "
                     f"{st.session_state.last_meta.get('classification_confidence', 0.0):.2f}"
@@ -1562,8 +1667,22 @@ def run() -> None:
                 )
             progress_bar.progress(1.0, text="Extraction run complete.")
 
-    overview_tab, benchmarking_tab, extractor_tab, advanced_tab, visualizations_tab = st.tabs(
-        ["Overview", "Benchmarking", "Extractor Results", "Advanced Features", "Visualizations"]
+    (
+        overview_tab,
+        benchmarking_tab,
+        native_vs_scanned_tab,
+        extractor_tab,
+        advanced_tab,
+        visualizations_tab,
+    ) = st.tabs(
+        [
+            "Overview",
+            "Benchmarking",
+            "Native vs Scanned Analysis",
+            "Extractor Results",
+            "Advanced Features",
+            "Visualizations",
+        ]
     )
 
     with overview_tab:
@@ -1591,10 +1710,7 @@ def run() -> None:
     with benchmarking_tab:
         if st.session_state.documents:
             report_rows = build_multi_document_report_rows(
-                [
-                    (doc["file_name"], doc["comparison_rows"])
-                    for doc in st.session_state.documents
-                ]
+                [(doc["file_name"], doc["comparison_rows"]) for doc in st.session_state.documents]
             )
             _render_document_benchmark_results(report_rows)
             _render_aggregate_summary(report_rows)
@@ -1605,6 +1721,9 @@ def run() -> None:
             else:
                 file_stem = "multi_document_benchmark_report"
             _render_export_controls(report_rows, file_stem)
+
+    with native_vs_scanned_tab:
+        _render_native_vs_scanned_analysis(st.session_state.documents)
 
     with extractor_tab:
         _render_extractor_result_tabs(
