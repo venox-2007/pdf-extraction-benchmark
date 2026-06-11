@@ -68,7 +68,7 @@ SUPPORTED_UPLOAD_TYPES = ["pdf", "png", "jpg", "jpeg", "tif", "tiff"]
 IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".tif", ".tiff"}
 
 RECOMMENDATIONS = {
-    "native": ["OpenDataLoader", "PyMuPDF", "Marker"],
+    "native": ["OpenDataLoader", "PyMuPDF"],
     "hybrid": ["PaddleOCR + PyMuPDF", "OpenDataLoader + OCR fallback"],
     "scanned": ["PaddleOCR", "Docling"],
     "image": ["PaddleOCR"],
@@ -1626,7 +1626,7 @@ def run() -> None:
 
             st.session_state.documents = documents
 
-            if len(documents) == 1:
+            if documents:
                 doc = documents[0]
                 st.session_state.last_results = doc["per_extractor_results"]
                 st.session_state.last_payload = doc["per_extractor_payloads"]
