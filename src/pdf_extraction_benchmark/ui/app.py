@@ -670,21 +670,8 @@ def _table_to_dataframe(table: Any) -> pd.DataFrame:
     return pd.DataFrame(grid)
 
 
-def _render_docling_advanced_features(results: list[Any], markdown_text: str) -> None:
-    """Render Docling-specific document understanding features."""
-    all_tables = [table for result in results for table in result.tables]
-
-    st.markdown("**Tables Detected**")
-    st.write(len(all_tables))
-
-    st.markdown("**Table Preview**")
-    if all_tables:
-        for table_index, table in enumerate(all_tables[:3], start=1):
-            st.caption(f"Table {table_index} (`{table.table_id}`)")
-            st.dataframe(_table_to_dataframe(table), width="stretch")
-    else:
-        st.caption("No tables detected in this document.")
-
+def _render_markdown_output_preview(markdown_text: str) -> None:
+    """Render the shared markdown-output preview block."""
     st.markdown("**Markdown Output Preview**")
     if markdown_text.strip():
         preview = markdown_text.strip()[:1000]
@@ -692,6 +679,9 @@ def _render_docling_advanced_features(results: list[Any], markdown_text: str) ->
     else:
         st.caption("No markdown output produced for this document.")
 
+
+def _render_layout_structure_preview(results: list[Any]) -> None:
+    """Render the shared layout-structure (bounding box) preview block."""
     st.markdown("**Layout Structure Preview**")
     layout_rows = [
         {
@@ -710,6 +700,42 @@ def _render_docling_advanced_features(results: list[Any], markdown_text: str) ->
         st.dataframe(pd.DataFrame(layout_rows), width="stretch")
     else:
         st.caption("No layout structure detected for this document.")
+
+
+def _render_docling_advanced_features(results: list[Any], markdown_text: str) -> None:
+    """Render Docling-specific document understanding features."""
+    all_tables = [table for result in results for table in result.tables]
+
+    st.markdown("**Tables Detected**")
+    st.write(len(all_tables))
+
+    st.markdown("**Table Preview**")
+    if all_tables:
+        for table_index, table in enumerate(all_tables[:3], start=1):
+            st.caption(f"Table {table_index} (`{table.table_id}`)")
+            st.dataframe(_table_to_dataframe(table), width="stretch")
+    else:
+        st.caption("No tables detected in this document.")
+
+    _render_markdown_output_preview(markdown_text)
+    _render_layout_structure_preview(results)
+
+
+def _render_opendataloader_advanced_features(results: list[Any], markdown_text: str) -> None:
+    """Render OpenDataLoader document understanding features.
+
+    OpenDataLoader does not produce structured table cells (`_map_kids_to_results`
+    leaves `tables` empty), but it does produce real markdown output and
+    layout bounding boxes, so those previews reuse the same rendering as Docling.
+    """
+    st.markdown("**Tables Detected**")
+    st.caption("Not Supported")
+
+    st.markdown("**Table Preview**")
+    st.caption("Not Supported")
+
+    _render_markdown_output_preview(markdown_text)
+    _render_layout_structure_preview(results)
 
 
 def _render_unsupported_advanced_features() -> None:
@@ -1011,6 +1037,10 @@ def _render_advanced_document_features(
         with st.expander(extractor_name, expanded=(extractor_name == "Docling")):
             if extractor_name == "Docling":
                 _render_docling_advanced_features(
+                    results, extractor_markdown.get(extractor_name, "")
+                )
+            elif extractor_name == "OpenDataLoader":
+                _render_opendataloader_advanced_features(
                     results, extractor_markdown.get(extractor_name, "")
                 )
             else:
