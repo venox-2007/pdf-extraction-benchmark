@@ -55,6 +55,9 @@ from pdf_extraction_benchmark.reports.native_vs_scanned import (  # noqa: E402
     recommend_scanned_extractor,
 )
 from pdf_extraction_benchmark.utils.logger import configure_logging  # noqa: E402
+from pdf_extraction_benchmark.utils.opendataloader_hybrid import (  # noqa: E402
+    ensure_hybrid_server,
+)
 from pdf_extraction_benchmark.visualization.bbox_overlay import (  # noqa: E402
     build_page_visualizations,
     get_extractor_color,
@@ -83,7 +86,7 @@ EXTRACTOR_OPTIONS = {
 
 EXTRACTOR_CAPABILITIES = {
     "OpenDataLoader": {
-        "ocr_supported": False,
+        "ocr_supported": True,
         "supports_pdf": True,
         "supports_image": False,
         "markdown_support": True,
@@ -930,6 +933,11 @@ def _render_native_vs_scanned_analysis(documents: list[dict[str, Any]]) -> None:
         )
 
     st.markdown("## Scanned PDF Analysis")
+    if "OpenDataLoader" in {row.get("extractor") for row in grouped[SCANNED_GROUP]}:
+        st.caption(
+            "OpenDataLoader (scanned): OCR via Docling hybrid backend "
+            "(docling-fast + rapidocr) — not an independent OCR engine."
+        )
     scanned_per_extractor = _render_pdf_type_group_analysis(
         "Scanned Documents", grouped[SCANNED_GROUP]
     )
@@ -1210,9 +1218,19 @@ def _process_document(
             else:
                 extractor = _create_extractor(extractor_name, paddleocr_language_mode)
                 if extractor_name == "OpenDataLoader":
+                    hybrid_url = None
+                    if pdf_type in {"scanned", "image", "hybrid"}:
+                        try:
+                            hybrid_url = ensure_hybrid_server()
+                        except RuntimeError:
+                            run_status.write(
+                                f"OpenDataLoader hybrid OCR server unavailable for "
+                                f"`{uploaded.name}`; falling back to text-layer-only mode."
+                            )
                     results = extractor.extract(
                         pdf_path=input_path,
                         output_dir=extractor_output_dir,
+                        hybrid_url=hybrid_url,
                     )
                 else:
                     results = extractor.extract(pdf_path=input_path)

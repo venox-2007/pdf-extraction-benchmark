@@ -29,12 +29,23 @@ class OpendataloaderExtractor(BaseExtractor):
         """Initialize extractor logger."""
         self.logger = get_logger(__name__)
 
-    def extract(self, pdf_path: Path, output_dir: Path | None = None) -> list[ExtractionResult]:
+    def extract(
+        self,
+        pdf_path: Path,
+        output_dir: Path | None = None,
+        hybrid_url: str | None = None,
+    ) -> list[ExtractionResult]:
         """Extract page-level structured results from a PDF file.
 
         The OpenDataLoader converter writes `*.json` and `*.md` outputs to the selected
         output directory. This method parses JSON output and maps it into standardized
         `ExtractionResult` objects.
+
+        When `hybrid_url` is provided, OpenDataLoader is run in hybrid mode,
+        routing every page through the Docling/OCR backend at that URL
+        (`hybrid_mode="full"`) so that scanned/image-only pages produce
+        extracted text. Without it, OpenDataLoader runs in its default
+        Java-only (no-OCR) mode.
         """
         pdf_path = pdf_path.resolve()
         if not pdf_path.exists() or pdf_path.suffix.lower() != ".pdf":
@@ -45,12 +56,21 @@ class OpendataloaderExtractor(BaseExtractor):
 
         self.logger.info("Starting OpenDataLoader extraction for %s", pdf_path)
 
-        try:
-            opendataloader_pdf.convert(
-                input_path=str(pdf_path),
-                output_dir=str(target_output),
-                format="json,markdown",
+        convert_kwargs: dict[str, Any] = {
+            "input_path": str(pdf_path),
+            "output_dir": str(target_output),
+            "format": "json,markdown",
+        }
+        if hybrid_url:
+            convert_kwargs.update(
+                hybrid="docling-fast",
+                hybrid_url=hybrid_url,
+                hybrid_mode="full",
+                hybrid_fallback=True,
             )
+
+        try:
+            opendataloader_pdf.convert(**convert_kwargs)
         except Exception as exc:  # pragma: no cover - external runtime dependency
             self.logger.exception("OpenDataLoader extraction failed for %s", pdf_path)
             raise RuntimeError(f"OpenDataLoader extraction failed: {exc}") from exc

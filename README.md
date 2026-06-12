@@ -60,6 +60,19 @@ Why this matters:
 
 This keeps routing and benchmarking aligned with real-world document AI pipelines.
 
+### OpenDataLoader extraction modes
+
+OpenDataLoader operates in two modes depending on document type:
+
+- **Native PDFs**: OpenDataLoader's standard (Java, text-layer) extraction pipeline.
+- **Scanned/Image PDFs**: OpenDataLoader Hybrid Mode, which delegates OCR and layout
+  analysis to a Docling-based backend (`docling-fast`) running with `rapidocr`.
+
+Because of this, benchmark results for OpenDataLoader on scanned/image documents
+reflect the Docling+rapidocr hybrid backend's accuracy and speed (including its
+startup/inference cost), not an independent OCR engine. Native-PDF results are
+unaffected and use OpenDataLoader's own pipeline.
+
 Future-ready TODOs (not implemented yet):
 
 - dataset metadata manifests
