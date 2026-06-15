@@ -128,6 +128,29 @@ RVL_CDIP_EXTRACTOR_ORDER = ["PyMuPDF", "OpenDataLoader", "PaddleOCR", "Docling"]
 RVL_CDIP_SAMPLE_SIZE_OPTIONS = [1, 3, 5, 10]
 RVL_CDIP_LOW_YIELD_WORD_THRESHOLD = 20.0
 
+OPENDATALOADER_MODE_OPTIONS = {
+    "Auto (Recommended)": "auto",
+    "Standard": "standard",
+    "Hybrid": "hybrid",
+}
+
+OPENDATALOADER_MODE_DESCRIPTIONS = {
+    "auto": (
+        "Auto: uses OpenDataLoader's standard pipeline for native PDFs and "
+        "switches to Hybrid OCR mode for scanned/image PDFs. This is the "
+        "existing default behavior."
+    ),
+    "standard": (
+        "Standard: always uses OpenDataLoader's native pipeline. The hybrid "
+        "OCR server is never started or used, even for scanned PDFs."
+    ),
+    "hybrid": (
+        "Hybrid: always uses OpenDataLoader Hybrid mode (Docling/OCR "
+        "backend), including for native PDFs. The hybrid server is started "
+        "if it isn't already running."
+    ),
+}
+
 
 def _extractor_slug(extractor_name: str) -> str:
     """Convert extractor display name into output folder slug."""
@@ -1138,10 +1161,46 @@ def _render_bounding_box_visualization(documents: list[dict[str, Any]], project_
             )
 
 
+def _resolve_opendataloader_hybrid_url(
+    opendataloader_mode: str,
+    pdf_type: str,
+    run_status: Any,
+    document_name: str,
+) -> str | None:
+    """Resolve the `hybrid_url` to pass to `OpendataloaderExtractor.extract`.
+
+    - "standard": never use the hybrid server.
+    - "hybrid": always ensure the hybrid server is available, regardless of
+      `pdf_type`.
+    - "auto" (default): preserve the existing behavior - only use the hybrid
+      server for scanned/image/hybrid PDFs.
+    """
+    if opendataloader_mode == "standard":
+        return None
+
+    if opendataloader_mode == "hybrid":
+        needs_hybrid = True
+    else:
+        needs_hybrid = pdf_type in {"scanned", "image", "hybrid"}
+
+    if not needs_hybrid:
+        return None
+
+    try:
+        return ensure_hybrid_server()
+    except RuntimeError:
+        run_status.write(
+            f"OpenDataLoader hybrid OCR server unavailable for "
+            f"`{document_name}`; falling back to text-layer-only mode."
+        )
+        return None
+
+
 def _process_document(
     uploaded: Any,
     selected_extractors: list[str],
     paddleocr_language_mode: str,
+    opendataloader_mode: str,
     project_root: Path,
     output_root_dir: Path,
     output_markdown_dir: Path,
@@ -1165,6 +1224,8 @@ def _process_document(
         Display names of the extractors to run.
     paddleocr_language_mode:
         PaddleOCR language mode key (e.g. ``"english"``).
+    opendataloader_mode:
+        OpenDataLoader mode key: ``"auto"``, ``"standard"``, or ``"hybrid"``.
     project_root, output_root_dir, output_markdown_dir:
         Filesystem locations used for input staging and extractor outputs.
     run_status, progress_bar:
@@ -1256,15 +1317,12 @@ def _process_document(
             else:
                 extractor = _create_extractor(extractor_name, paddleocr_language_mode)
                 if extractor_name == "OpenDataLoader":
-                    hybrid_url = None
-                    if pdf_type in {"scanned", "image", "hybrid"}:
-                        try:
-                            hybrid_url = ensure_hybrid_server()
-                        except RuntimeError:
-                            run_status.write(
-                                f"OpenDataLoader hybrid OCR server unavailable for "
-                                f"`{uploaded.name}`; falling back to text-layer-only mode."
-                            )
+                    hybrid_url = _resolve_opendataloader_hybrid_url(
+                        opendataloader_mode=opendataloader_mode,
+                        pdf_type=pdf_type,
+                        run_status=run_status,
+                        document_name=uploaded.name,
+                    )
                     results = extractor.extract(
                         pdf_path=input_path,
                         output_dir=extractor_output_dir,
@@ -1851,6 +1909,17 @@ def run() -> None:
             help="Choose English or multilingual OCR for PaddleOCR runs.",
         )
         paddleocr_language_mode = PADDLEOCR_LANGUAGE_OPTIONS[paddleocr_language_label]
+        opendataloader_mode_label = st.selectbox(
+            "OpenDataLoader Mode",
+            options=list(OPENDATALOADER_MODE_OPTIONS.keys()),
+            index=0,
+            help=(
+                f"{OPENDATALOADER_MODE_DESCRIPTIONS['auto']}\n\n"
+                f"{OPENDATALOADER_MODE_DESCRIPTIONS['standard']}\n\n"
+                f"{OPENDATALOADER_MODE_DESCRIPTIONS['hybrid']}"
+            ),
+        )
+        opendataloader_mode = OPENDATALOADER_MODE_OPTIONS[opendataloader_mode_label]
         run_clicked = st.button("Run Extraction", type="primary", use_container_width=True)
 
     st.title(APP_NAME)
@@ -1893,6 +1962,7 @@ def run() -> None:
                         uploaded=uploaded,
                         selected_extractors=selected_extractors,
                         paddleocr_language_mode=paddleocr_language_mode,
+                        opendataloader_mode=opendataloader_mode,
                         project_root=project_root,
                         output_root_dir=output_root_dir,
                         output_markdown_dir=output_markdown_dir,
