@@ -27,15 +27,17 @@ EXTRACTOR_COLORS: dict[str, str] = {
     "PyMuPDF": "#58a6ff",
     "Docling": "#f1c40f",
     "PaddleOCR": "#e05d44",
+    "Tesseract": "#a371f7",
 }
 DEFAULT_COLOR = "#ff5c5c"
 
 # Bounding-box coordinate space produced by each extractor, in DPI. Most
-# extractors report boxes in PDF point space (72 dpi). PaddleOCR runs OCR on
-# pages rasterized at 2x zoom (144 dpi via `fitz.Matrix(2.0, 2.0)`), so its
-# boxes are in 144-dpi pixel space.
+# extractors report boxes in PDF point space (72 dpi). PaddleOCR and
+# Tesseract run OCR on pages rasterized at 2x zoom (144 dpi via
+# `fitz.Matrix(2.0, 2.0)`), so their boxes are in 144-dpi pixel space.
 EXTRACTOR_SOURCE_DPI: dict[str, float] = {
     "PaddleOCR": 144.0,
+    "Tesseract": 144.0,
 }
 
 

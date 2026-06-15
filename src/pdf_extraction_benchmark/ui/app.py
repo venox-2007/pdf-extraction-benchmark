@@ -34,6 +34,7 @@ from pdf_extraction_benchmark.extractors.opendataloader.extractor import (  # no
 )
 from pdf_extraction_benchmark.extractors.paddleocr.extractor import PaddleocrExtractor  # noqa: E402
 from pdf_extraction_benchmark.extractors.pymupdf.extractor import PymupdfExtractor  # noqa: E402
+from pdf_extraction_benchmark.extractors.tesseract.extractor import TesseractExtractor  # noqa: E402
 from pdf_extraction_benchmark.models.extraction_result import (  # noqa: E402
     ExtractionMetadata,
     ExtractionResult,
@@ -77,8 +78,8 @@ IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".tif", ".tiff"}
 RECOMMENDATIONS = {
     "native": ["OpenDataLoader", "PyMuPDF"],
     "hybrid": ["PaddleOCR + PyMuPDF", "OpenDataLoader + OCR fallback"],
-    "scanned": ["PaddleOCR", "Docling"],
-    "image": ["PaddleOCR"],
+    "scanned": ["PaddleOCR", "Docling", "Tesseract"],
+    "image": ["PaddleOCR", "Tesseract"],
 }
 
 EXTRACTOR_OPTIONS = {
@@ -86,6 +87,7 @@ EXTRACTOR_OPTIONS = {
     "PyMuPDF": PymupdfExtractor,
     "Docling": None,
     "PaddleOCR": PaddleocrExtractor,
+    "Tesseract": TesseractExtractor,
 }
 
 EXTRACTOR_CAPABILITIES = {
@@ -117,6 +119,13 @@ EXTRACTOR_CAPABILITIES = {
         "markdown_support": False,
         "layout_preservation_support": False,
     },
+    "Tesseract": {
+        "ocr_supported": True,
+        "supports_pdf": True,
+        "supports_image": True,
+        "markdown_support": False,
+        "layout_preservation_support": False,
+    },
 }
 
 PADDLEOCR_LANGUAGE_OPTIONS = {
@@ -124,7 +133,7 @@ PADDLEOCR_LANGUAGE_OPTIONS = {
     "Multilingual (Hindi/Marathi/Devanagari)": "multilingual",
 }
 
-RVL_CDIP_EXTRACTOR_ORDER = ["PyMuPDF", "OpenDataLoader", "PaddleOCR", "Docling"]
+RVL_CDIP_EXTRACTOR_ORDER = ["PyMuPDF", "OpenDataLoader", "PaddleOCR", "Docling", "Tesseract"]
 RVL_CDIP_SAMPLE_SIZE_OPTIONS = [1, 3, 5, 10]
 RVL_CDIP_LOW_YIELD_WORD_THRESHOLD = 20.0
 
@@ -1625,6 +1634,8 @@ def _build_rvl_cdip_extractors(
                 "pdf_extraction_benchmark.extractors.docling.extractor"
             ).DoclingExtractor
             extractors[name] = docling_cls(output_root=project_root)
+        elif name == "Tesseract":
+            extractors[name] = TesseractExtractor()
     return extractors
 
 

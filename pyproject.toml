@@ -17,6 +17,7 @@ dependencies = [
   "paddleocr==2.7.3",
   "paddlepaddle==2.6.2",
   "pymupdf>=1.24.0",
+  "pytesseract>=0.3.10",
   "python-multipart>=0.0.28",
   "rapidocr>=2.0.0",
   "streamlit>=1.36.0",

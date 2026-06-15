@@ -6,6 +6,7 @@ Beginner-friendly, src-based Python project for benchmarking PDF extraction and 
 
 - Python 3.11+
 - Java 11+ on system PATH (required by OpenDataLoader)
+- Tesseract OCR binary on system PATH (required by the Tesseract extractor)
 
 Verify Java:
 
@@ -14,6 +15,21 @@ java -version
 ```
 
 If Java is missing on Windows, install Eclipse Temurin JDK 11+ and reopen terminal.
+
+Verify Tesseract:
+
+```bash
+tesseract --version
+```
+
+If Tesseract is missing:
+
+- **Windows**: `winget install --id UB-Mannheim.TesseractOCR -e`, then reopen
+  your terminal. The Tesseract extractor also falls back to
+  `C:\Program Files\Tesseract-OCR\tesseract.exe` if the binary is installed
+  but not yet on PATH.
+- **macOS**: `brew install tesseract`
+- **Linux (Debian/Ubuntu)**: `sudo apt-get install tesseract-ocr`
 
 ## Setup
 
@@ -56,7 +72,7 @@ The dataset is intentionally organized around extraction strategy, not early doc
 Why this matters:
 
 - Native PDFs -> direct extraction tools (OpenDataLoader, PyMuPDF, Marker)
-- Scanned PDFs -> OCR-based extractors (PaddleOCR, Tesseract/future)
+- Scanned PDFs -> OCR-based extractors (PaddleOCR, Tesseract)
 
 This keeps routing and benchmarking aligned with real-world document AI pipelines.
 
@@ -72,6 +88,22 @@ Because of this, benchmark results for OpenDataLoader on scanned/image documents
 reflect the Docling+rapidocr hybrid backend's accuracy and speed (including its
 startup/inference cost), not an independent OCR engine. Native-PDF results are
 unaffected and use OpenDataLoader's own pipeline.
+
+### Extractors
+
+- **OpenDataLoader**: Java-based extractor with a native (text-layer) pipeline
+  and a Docling/rapidocr-backed Hybrid OCR mode (see above).
+- **PyMuPDF**: fast text-layer extraction for native PDFs; no OCR support.
+- **Docling**: layout-aware extraction with markdown and table support; runs
+  OCR for scanned content.
+- **PaddleOCR**: OCR-based extractor for scanned PDFs and images, with
+  word-level bounding boxes and confidences. Supports English and
+  multilingual (Hindi/Marathi/Devanagari) modes.
+- **Tesseract**: OCR-based extractor for scanned PDFs and images using
+  `pytesseract` and a local Tesseract OCR install. Returns word-level text,
+  bounding boxes, and confidences via `image_to_data`. Requires the
+  `tesseract` binary to be installed and discoverable (see Runtime
+  Requirements above).
 
 Future-ready TODOs (not implemented yet):
 
