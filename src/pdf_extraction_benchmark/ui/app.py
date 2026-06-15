@@ -1900,7 +1900,7 @@ def run() -> None:
         selected_extractors = st.multiselect(
             "Extractors",
             options=list(EXTRACTOR_OPTIONS.keys()),
-            default=["OpenDataLoader", "PyMuPDF", "PaddleOCR"],
+            default=[],
         )
         paddleocr_language_label = st.selectbox(
             "PaddleOCR Language",
