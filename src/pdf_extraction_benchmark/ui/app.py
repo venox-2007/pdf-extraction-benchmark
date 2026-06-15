@@ -1819,7 +1819,7 @@ def _render_rvl_cdip_benchmark_tab(project_root: Path) -> None:
         selected_extractors = st.multiselect(
             "Extractors",
             options=RVL_CDIP_EXTRACTOR_ORDER,
-            default=["PyMuPDF", "OpenDataLoader", "PaddleOCR"],
+            default=[],
             key="rvl_cdip_extractors",
         )
 
