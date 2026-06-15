@@ -24,6 +24,10 @@ SRC_ROOT = Path(__file__).resolve().parents[2]
 if str(SRC_ROOT) not in sys.path:
     sys.path.insert(0, str(SRC_ROOT))
 
+from pdf_extraction_benchmark.benchmarks.rvl_cdip.benchmark import (  # noqa: E402
+    RvlCdipBenchmarkPipeline,
+    RvlCdipBenchmarkSummary,
+)
 from pdf_extraction_benchmark.classifiers.pdf_type_classifier import PdfTypeClassifier  # noqa: E402
 from pdf_extraction_benchmark.extractors.opendataloader.extractor import (  # noqa: E402
     OpendataloaderExtractor,
@@ -119,6 +123,10 @@ PADDLEOCR_LANGUAGE_OPTIONS = {
     "English": "english",
     "Multilingual (Hindi/Marathi/Devanagari)": "multilingual",
 }
+
+RVL_CDIP_EXTRACTOR_ORDER = ["PyMuPDF", "OpenDataLoader", "PaddleOCR", "Docling"]
+RVL_CDIP_SAMPLE_SIZE_OPTIONS = [1, 3, 5, 10]
+RVL_CDIP_LOW_YIELD_WORD_THRESHOLD = 20.0
 
 
 def _extractor_slug(extractor_name: str) -> str:
@@ -1540,6 +1548,277 @@ def _render_extractor_result_tabs(
                 st.markdown("</div>", unsafe_allow_html=True)
 
 
+def _build_rvl_cdip_extractors(
+    selected_extractors: list[str], project_root: Path
+) -> dict[str, Any]:
+    """Instantiate the selected RVL-CDIP extractors in canonical order."""
+    extractors: dict[str, Any] = {}
+    for name in RVL_CDIP_EXTRACTOR_ORDER:
+        if name not in selected_extractors:
+            continue
+        if name == "PyMuPDF":
+            extractors[name] = PymupdfExtractor()
+        elif name == "OpenDataLoader":
+            extractors[name] = OpendataloaderExtractor()
+        elif name == "PaddleOCR":
+            extractors[name] = PaddleocrExtractor()
+        elif name == "Docling":
+            docling_cls = import_module(
+                "pdf_extraction_benchmark.extractors.docling.extractor"
+            ).DoclingExtractor
+            extractors[name] = docling_cls(output_root=project_root)
+    return extractors
+
+
+def _build_rvl_cdip_extractor_comparison_df(summary: RvlCdipBenchmarkSummary) -> pd.DataFrame:
+    """Build the extractor comparison table (success rate, latency, char/word/bbox counts)."""
+    rows = []
+    for extractor_summary in summary.extractor_summaries.values():
+        rows.append(
+            {
+                "Extractor": extractor_summary.extractor,
+                "Success Rate": extractor_summary.success_rate,
+                "Avg Latency (ms)": extractor_summary.latency_ms.mean,
+                "Avg Char Count": extractor_summary.char_count.mean,
+                "Avg Word Count": extractor_summary.word_count.mean,
+                "Avg BBox Count": extractor_summary.bbox_count.mean,
+            }
+        )
+    return pd.DataFrame(rows)
+
+
+def _build_rvl_cdip_category_analysis(
+    summary: RvlCdipBenchmarkSummary,
+) -> tuple[pd.DataFrame, list[str]]:
+    """Build the per-category best/worst extractor table and low-yield category list."""
+    rows = []
+    low_yield_categories: list[str] = []
+    for category_summary in summary.category_summaries.values():
+        word_counts = category_summary.extractor_word_count
+        if not word_counts:
+            continue
+        best_extractor, best_words = max(word_counts.items(), key=lambda item: item[1])
+        worst_extractor, worst_words = min(word_counts.items(), key=lambda item: item[1])
+        rows.append(
+            {
+                "Category": category_summary.category,
+                "Documents": category_summary.documents,
+                "Best Extractor": best_extractor,
+                "Best Avg Words": round(best_words, 1),
+                "Worst Extractor": worst_extractor,
+                "Worst Avg Words": round(worst_words, 1),
+            }
+        )
+        if best_words < RVL_CDIP_LOW_YIELD_WORD_THRESHOLD:
+            low_yield_categories.append(category_summary.category)
+    return pd.DataFrame(rows), low_yield_categories
+
+
+def _build_rvl_cdip_recommendations(summary: RvlCdipBenchmarkSummary) -> list[str]:
+    """Derive recommendations from the actual extractor summaries."""
+    recommendations: list[str] = []
+    summaries = list(summary.extractor_summaries.values())
+    if not summaries:
+        return recommendations
+
+    most_reliable = max(summaries, key=lambda s: s.success_rate)
+    recommendations.append(
+        f"**Most reliable:** {most_reliable.extractor} "
+        f"({most_reliable.success_rate * 100:.1f}% success rate)"
+    )
+
+    fastest = min(summaries, key=lambda s: s.latency_ms.mean)
+    recommendations.append(
+        f"**Fastest:** {fastest.extractor} ({fastest.latency_ms.mean:.2f} ms avg)"
+    )
+
+    yielding = [s for s in summaries if s.word_count.mean > 0]
+    if yielding:
+        best_yield = max(yielding, key=lambda s: s.word_count.mean)
+        recommendations.append(
+            f"**Highest text yield (best for scanned/OCR):** {best_yield.extractor} "
+            f"({best_yield.word_count.mean:.1f} avg words/doc)"
+        )
+
+        def _yield_per_second(s: Any) -> float:
+            latency_s = max(s.latency_ms.mean / 1000.0, 1e-6)
+            return s.word_count.mean / latency_s
+
+        best_tradeoff = max(yielding, key=_yield_per_second)
+        recommendations.append(
+            f"**Best speed/yield tradeoff:** {best_tradeoff.extractor} "
+            f"({_yield_per_second(best_tradeoff):.1f} words/sec)"
+        )
+    else:
+        recommendations.append(
+            "No extractor produced extractable text for the selected documents "
+            "(all zero-text) - consider enabling an OCR-capable extractor."
+        )
+
+    return recommendations
+
+
+def _render_rvl_cdip_results(summary: RvlCdipBenchmarkSummary) -> None:
+    """Render summary metrics, extractor comparison, category analysis, and recommendations."""
+    st.markdown("#### Summary")
+    total_evaluated = sum(s.documents_evaluated for s in summary.extractor_summaries.values())
+    total_ok = sum(s.documents_ok for s in summary.extractor_summaries.values())
+    overall_success_rate = (total_ok / total_evaluated) if total_evaluated else 0.0
+    avg_latency = (
+        sum(r.latency_ms for r in summary.documents) / len(summary.documents)
+        if summary.documents
+        else 0.0
+    )
+    c1, c2, c3, c4 = st.columns(4)
+    c1.metric("Documents Processed", str(summary.total_documents))
+    c2.metric("Categories Processed", str(len(summary.categories)))
+    c3.metric("Overall Success Rate", f"{overall_success_rate * 100:.1f}%")
+    c4.metric("Avg Extraction Time", f"{avg_latency:.1f} ms")
+
+    st.markdown("#### Extractor Comparison")
+    comparison_df = _build_rvl_cdip_extractor_comparison_df(summary)
+    st.dataframe(comparison_df, width="stretch")
+
+    if not comparison_df.empty:
+        chart_df = comparison_df.set_index("Extractor")
+        st.caption("Avg Latency (ms)")
+        st.bar_chart(chart_df[["Avg Latency (ms)"]])
+        st.caption("Avg Char & Word Count")
+        st.bar_chart(chart_df[["Avg Char Count", "Avg Word Count"]])
+        st.caption("Avg BBox Count")
+        st.bar_chart(chart_df[["Avg BBox Count"]])
+
+    st.markdown("#### Category Analysis")
+    category_df, low_yield_categories = _build_rvl_cdip_category_analysis(summary)
+    st.dataframe(category_df, width="stretch")
+    if low_yield_categories:
+        st.warning(
+            "Categories with unusually low text extraction (best extractor averages "
+            f"< {RVL_CDIP_LOW_YIELD_WORD_THRESHOLD:.0f} words): "
+            f"{', '.join(low_yield_categories)}"
+        )
+
+    st.markdown("#### Recommendations")
+    recommendations = _build_rvl_cdip_recommendations(summary)
+    if recommendations:
+        st.markdown('<div class="summary-card">', unsafe_allow_html=True)
+        for note in recommendations:
+            st.write(f"- {note}")
+        st.markdown("</div>", unsafe_allow_html=True)
+
+    st.caption(f"Full results written to `{summary.output_dir}`")
+
+
+def _render_rvl_cdip_benchmark_tab(project_root: Path) -> None:
+    """Render the RVL-CDIP Benchmark tab: controls, execution, and results."""
+    st.markdown("### RVL-CDIP Benchmark")
+    st.caption(
+        "Run the category-based RVL-CDIP extraction robustness benchmark using the "
+        "existing RvlCdipBenchmarkPipeline."
+    )
+
+    dataset_dir = project_root / "data" / "raw" / "rvl_cdip"
+    if not dataset_dir.exists():
+        st.warning(f"RVL-CDIP dataset not found at `{dataset_dir}`.")
+        return
+
+    categories = sorted(path.name for path in dataset_dir.iterdir() if path.is_dir())
+    if not categories:
+        st.warning(f"No category folders found in `{dataset_dir}`.")
+        return
+
+    if "rvl_cdip_summary" not in st.session_state:
+        st.session_state.rvl_cdip_summary = None
+
+    select_all = st.checkbox("Select all categories", value=True, key="rvl_cdip_select_all")
+    if select_all:
+        selected_categories = categories
+        st.multiselect(
+            "Categories",
+            options=categories,
+            default=categories,
+            disabled=True,
+            key="rvl_cdip_categories_all",
+            help="Uncheck 'Select all categories' to choose individual categories.",
+        )
+    else:
+        selected_categories = st.multiselect(
+            "Categories",
+            options=categories,
+            default=categories,
+            key="rvl_cdip_categories",
+        )
+
+    col1, col2 = st.columns(2)
+    with col1:
+        sample_size = st.selectbox(
+            "Sample size per category",
+            options=RVL_CDIP_SAMPLE_SIZE_OPTIONS,
+            index=1,
+            key="rvl_cdip_sample_size",
+        )
+    with col2:
+        selected_extractors = st.multiselect(
+            "Extractors",
+            options=RVL_CDIP_EXTRACTOR_ORDER,
+            default=["PyMuPDF", "OpenDataLoader", "PaddleOCR"],
+            key="rvl_cdip_extractors",
+        )
+
+    run_clicked = st.button(
+        "Run RVL-CDIP Benchmark", type="primary", key="rvl_cdip_run", use_container_width=True
+    )
+
+    if run_clicked:
+        if not selected_categories:
+            st.warning("Please select at least one category.")
+        elif not selected_extractors:
+            st.warning("Please select at least one extractor.")
+        else:
+            run_status = st.status("Running RVL-CDIP benchmark...", expanded=True)
+            progress_bar = st.progress(0.0, text="Initializing benchmark...")
+            try:
+                extractors = _build_rvl_cdip_extractors(selected_extractors, project_root)
+                run_status.write(
+                    f"Evaluating {len(selected_categories)} categories x {sample_size} "
+                    f"docs/category with extractors: {', '.join(extractors.keys())}"
+                )
+
+                def _on_progress(completed: int, total: int) -> None:
+                    fraction = completed / total if total else 1.0
+                    progress_bar.progress(
+                        min(fraction, 1.0), text=f"Evaluated {completed}/{total} runs..."
+                    )
+
+                pipeline = RvlCdipBenchmarkPipeline(
+                    dataset_dir=dataset_dir,
+                    output_dir=project_root / "outputs" / "benchmark_results" / "rvl_cdip",
+                    extractors=extractors,
+                )
+                summary = pipeline.run(
+                    sample_size_per_category=int(sample_size),
+                    categories=selected_categories,
+                    progress_callback=_on_progress,
+                )
+                st.session_state.rvl_cdip_summary = summary
+                progress_bar.progress(1.0, text="Benchmark run complete.")
+                run_status.update(
+                    label="RVL-CDIP benchmark completed successfully.",
+                    state="complete",
+                    expanded=False,
+                )
+            except Exception as exc:  # noqa: BLE001 - surface benchmark failures in the UI
+                run_status.update(
+                    label=f"RVL-CDIP benchmark failed: {exc}",
+                    state="error",
+                    expanded=True,
+                )
+                st.error(f"Benchmark run failed: {exc}")
+
+    if st.session_state.rvl_cdip_summary is not None:
+        _render_rvl_cdip_results(st.session_state.rvl_cdip_summary)
+
+
 def run() -> None:
     """Render and run the streamlined extraction dashboard."""
     st.set_page_config(page_title=APP_NAME, layout="wide")
@@ -1719,6 +1998,7 @@ def run() -> None:
         overview_tab,
         benchmarking_tab,
         native_vs_scanned_tab,
+        rvl_cdip_tab,
         extractor_tab,
         advanced_tab,
         visualizations_tab,
@@ -1727,6 +2007,7 @@ def run() -> None:
             "Overview",
             "Benchmarking",
             "Native vs Scanned Analysis",
+            "RVL-CDIP Benchmark",
             "Extractor Results",
             "Advanced Features",
             "Visualizations",
@@ -1772,6 +2053,9 @@ def run() -> None:
 
     with native_vs_scanned_tab:
         _render_native_vs_scanned_analysis(st.session_state.documents)
+
+    with rvl_cdip_tab:
+        _render_rvl_cdip_benchmark_tab(project_root)
 
     with extractor_tab:
         _render_extractor_result_tabs(

@@ -6,6 +6,7 @@ import csv
 import inspect
 import json
 import time
+from collections.abc import Callable
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from statistics import mean, median, pstdev
@@ -49,15 +50,18 @@ class RvlCdipExtractorSummary:
     success_rate: float
     latency_ms: MetricStatistics
     word_count: MetricStatistics
+    char_count: MetricStatistics
+    bbox_count: MetricStatistics
 
 
 @dataclass(slots=True)
 class RvlCdipCategorySummary:
-    """Per-category success rate, by extractor."""
+    """Per-category success rate and mean word count, by extractor."""
 
     category: str
     documents: int
     extractor_success_rate: dict[str, float] = field(default_factory=dict)
+    extractor_word_count: dict[str, float] = field(default_factory=dict)
 
 
 @dataclass(slots=True)
@@ -70,6 +74,7 @@ class RvlCdipBenchmarkSummary:
     total_documents: int = 0
     extractor_summaries: dict[str, RvlCdipExtractorSummary] = field(default_factory=dict)
     category_summaries: dict[str, RvlCdipCategorySummary] = field(default_factory=dict)
+    documents: list[RvlCdipDocumentResult] = field(default_factory=list)
 
 
 def _statistics_for(values: list[float]) -> MetricStatistics:
@@ -115,23 +120,33 @@ class RvlCdipBenchmarkPipeline:
             name: extractor_cls() for name, extractor_cls in DEFAULT_EXTRACTORS.items()
         }
 
-    def run(self, sample_size_per_category: int | None = None) -> RvlCdipBenchmarkSummary:
+    def run(
+        self,
+        sample_size_per_category: int | None = None,
+        categories: list[str] | None = None,
+        progress_callback: Callable[[int, int], None] | None = None,
+    ) -> RvlCdipBenchmarkSummary:
         """Run the benchmark and persist CSV, JSON, and markdown outputs."""
-        documents = self._collect_documents(sample_size_per_category)
+        documents = self._collect_documents(sample_size_per_category, categories)
         results: list[RvlCdipDocumentResult] = []
+        total_steps = len(documents) * len(self.extractors)
         for category, pdf_path in documents:
             for extractor_name, extractor in self.extractors.items():
                 results.append(
                     self._evaluate_document(category, pdf_path, extractor_name, extractor)
                 )
+                if progress_callback is not None:
+                    progress_callback(len(results), total_steps)
 
-        categories = sorted({category for category, _ in documents})
-        summary = self._build_summary(documents, results, categories)
+        category_names = sorted({category for category, _ in documents})
+        summary = self._build_summary(documents, results, category_names)
         self._write_outputs(results, summary)
         return summary
 
     def _collect_documents(
-        self, sample_size_per_category: int | None
+        self,
+        sample_size_per_category: int | None,
+        categories: list[str] | None = None,
     ) -> list[tuple[str, Path]]:
         if not self.dataset_dir.exists():
             raise FileNotFoundError(f"RVL-CDIP dataset directory not found: {self.dataset_dir}")
@@ -140,6 +155,9 @@ class RvlCdipBenchmarkPipeline:
         category_dirs = sorted(
             path for path in self.dataset_dir.iterdir() if path.is_dir()
         )
+        if categories is not None:
+            selected = set(categories)
+            category_dirs = [path for path in category_dirs if path.name in selected]
         for category_dir in category_dirs:
             pdf_paths = sorted(category_dir.glob("*.pdf"))
             if sample_size_per_category is not None:
@@ -218,6 +236,8 @@ class RvlCdipBenchmarkPipeline:
                 success_rate=round(len(ok_results) / evaluated, 6) if evaluated else 0.0,
                 latency_ms=_statistics_for([r.latency_ms for r in extractor_results]),
                 word_count=_statistics_for([r.word_count for r in ok_results]),
+                char_count=_statistics_for([r.char_count for r in ok_results]),
+                bbox_count=_statistics_for([r.layout_region_count for r in ok_results]),
             )
 
         category_summaries: dict[str, RvlCdipCategorySummary] = {}
@@ -225,6 +245,7 @@ class RvlCdipBenchmarkPipeline:
             category_results = [r for r in results if r.category == category]
             category_doc_count = len({r.document_id for r in category_results})
             success_rate: dict[str, float] = {}
+            word_count: dict[str, float] = {}
             for extractor_name in self.extractors:
                 extractor_results = [
                     r for r in category_results if r.extractor == extractor_name
@@ -233,10 +254,15 @@ class RvlCdipBenchmarkPipeline:
                 success_rate[extractor_name] = (
                     round(ok_count / len(extractor_results), 6) if extractor_results else 0.0
                 )
+                ok_results = [r for r in extractor_results if r.status == "ok"]
+                word_count[extractor_name] = (
+                    round(mean(r.word_count for r in ok_results), 6) if ok_results else 0.0
+                )
             category_summaries[category] = RvlCdipCategorySummary(
                 category=category,
                 documents=category_doc_count,
                 extractor_success_rate=success_rate,
+                extractor_word_count=word_count,
             )
 
         return RvlCdipBenchmarkSummary(
@@ -246,6 +272,7 @@ class RvlCdipBenchmarkPipeline:
             total_documents=len(documents),
             extractor_summaries=extractor_summaries,
             category_summaries=category_summaries,
+            documents=results,
         )
 
     def _write_outputs(
@@ -265,9 +292,7 @@ class RvlCdipBenchmarkPipeline:
                     writer.writerow(asdict(result))
 
         summary_path = self.output_dir / "rvl_cdip_summary.json"
-        summary_payload = asdict(summary)
-        summary_payload["documents"] = [asdict(result) for result in results]
-        summary_path.write_text(json.dumps(summary_payload, indent=2), encoding="utf-8")
+        summary_path.write_text(json.dumps(asdict(summary), indent=2), encoding="utf-8")
 
         observations_path = self.output_dir / "benchmark_observations.md"
         observations_path.write_text(
@@ -311,15 +336,17 @@ class RvlCdipBenchmarkPipeline:
         if not summaries:
             return "_No extractors evaluated._"
         rows = [
-            "| Extractor | Evaluated | OK | Failed | Success Rate | Mean Latency (ms) | Mean Word Count |",
-            "| --- | ---: | ---: | ---: | ---: | ---: | ---: |",
+            "| Extractor | Evaluated | OK | Failed | Success Rate | Mean Latency (ms) | "
+            "Mean Char Count | Mean Word Count | Mean BBox Count |",
+            "| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |",
         ]
         for summary in summaries.values():
             rows.append(
                 f"| {summary.extractor} | {summary.documents_evaluated} | "
                 f"{summary.documents_ok} | {summary.documents_failed} | "
                 f"{summary.success_rate:.4f} | {summary.latency_ms.mean:.2f} | "
-                f"{summary.word_count.mean:.2f} |"
+                f"{summary.char_count.mean:.2f} | {summary.word_count.mean:.2f} | "
+                f"{summary.bbox_count.mean:.2f} |"
             )
         return "\n".join(rows)
 
