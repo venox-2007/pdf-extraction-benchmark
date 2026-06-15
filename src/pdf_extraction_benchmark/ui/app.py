@@ -1673,24 +1673,43 @@ def _build_rvl_cdip_category_analysis(
 
 
 def _build_rvl_cdip_recommendations(summary: RvlCdipBenchmarkSummary) -> list[str]:
-    """Derive recommendations from the actual extractor summaries."""
+    """Derive recommendations from the actual extractor summaries.
+
+    Extractors that ran without raising but extracted zero text on average
+    produced no usable output, so they are excluded from the "Most
+    reliable"/"Fastest"/yield-based picks (otherwise a fast no-op extractor
+    like PyMuPDF on scanned PDFs would win by default) and called out
+    separately as "No text extracted".
+    """
     recommendations: list[str] = []
     summaries = list(summary.extractor_summaries.values())
     if not summaries:
         return recommendations
 
-    most_reliable = max(summaries, key=lambda s: s.success_rate)
+    yielding = [s for s in summaries if s.word_count.mean > 0]
+    empty = [s for s in summaries if s.word_count.mean == 0]
+
+    if empty:
+        recommendations.append(
+            "**No text extracted:** "
+            + ", ".join(s.extractor for s in empty)
+            + " (excluded from the picks below, despite a nonzero success rate)"
+        )
+
+    pool = yielding or summaries
+
+    most_reliable = max(pool, key=lambda s: (s.success_rate, s.word_count.mean))
     recommendations.append(
         f"**Most reliable:** {most_reliable.extractor} "
-        f"({most_reliable.success_rate * 100:.1f}% success rate)"
+        f"({most_reliable.success_rate * 100:.1f}% success rate, "
+        f"{most_reliable.word_count.mean:.1f} avg words/doc)"
     )
 
-    fastest = min(summaries, key=lambda s: s.latency_ms.mean)
+    fastest = min(pool, key=lambda s: s.latency_ms.mean)
     recommendations.append(
         f"**Fastest:** {fastest.extractor} ({fastest.latency_ms.mean:.2f} ms avg)"
     )
 
-    yielding = [s for s in summaries if s.word_count.mean > 0]
     if yielding:
         best_yield = max(yielding, key=lambda s: s.word_count.mean)
         recommendations.append(
