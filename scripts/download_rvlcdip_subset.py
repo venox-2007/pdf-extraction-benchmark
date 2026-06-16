@@ -121,7 +121,7 @@ def write_summary(rows: list[dict[str, object]]) -> None:
     lines = [
         "# RVL-CDIP Small 200 - Benchmark Subset Summary",
         "",
-        f"Source dataset: `vaclavpechtor/rvl_cdip-small-200` (Hugging Face)",
+        "Source dataset: `vaclavpechtor/rvl_cdip-small-200` (Hugging Face)",
         f"Target per category: {SAMPLES_PER_CATEGORY}",
         f"Categories: {len(rows)}",
         f"Total documents extracted: {total_extracted}",

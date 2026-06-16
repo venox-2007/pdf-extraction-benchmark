@@ -1121,7 +1121,7 @@ def _render_extractor_bbox_visualization(
         return
 
     columns = st.columns(len(visualizations))
-    for column, viz in zip(columns, visualizations):
+    for column, viz in zip(columns, visualizations, strict=False):
         with column:
             st.image(
                 viz["image"],

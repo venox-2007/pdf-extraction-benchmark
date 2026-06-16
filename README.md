@@ -148,6 +148,7 @@ for the full justification for Marker, Surya OCR, Unstructured.io, and Textract.
 | Cost analysis vs AWS Textract | [`docs/cost_analysis.md`](docs/cost_analysis.md) |
 | Integration guide (microservice embedding) | [`docs/integration_guide.md`](docs/integration_guide.md) |
 | Rejected / deferred tools | [`docs/rejected_tools.md`](docs/rejected_tools.md) |
+| Benchmark findings summary | [`docs/benchmark_findings.md`](docs/benchmark_findings.md) |
 | Tesseract vs PaddleOCR vs Docling evaluation | [`outputs/benchmark_results/tesseract_evaluation/tesseract_evaluation_report.md`](outputs/benchmark_results/tesseract_evaluation/tesseract_evaluation_report.md) |
 
 ## Known Limitations
@@ -189,32 +190,15 @@ for the full justification for Marker, Surya OCR, Unstructured.io, and Textract.
   table output was verified qualitatively; no CER-equivalent metric for tables
   was computed.
 
-## Milestone 1 scope
+## Benchmark Results Summary
 
-- Streamlit UI
-- OpenDataLoader integration
-- Basic extraction flow
-- Visible JSON + Markdown outputs
+| Tool | Type | FUNSD CER ↓ | RVL-CDIP Latency | Tables |
+|---|---|---|---|---|
+| PyMuPDF | Native | n/a (text layer) | 6 ms/doc | No |
+| OpenDataLoader | Native + Hybrid | n/a (text layer) | 730 ms/doc | Yes |
+| PaddleOCR | OCR | **0.443** (50 docs) | 8,735 ms/doc | No |
+| Tesseract | OCR | 0.485 (50 docs) | **1,265 ms/doc** | No |
+| Docling | OCR + Layout | 0.417 (50 docs) | 32,295 ms/doc | **Yes** |
 
-## Git Workflow
-
-### Pull latest changes
-
-```bash
-git pull origin main
-```
-
-### Push your updates
-
-```bash
-git status
-git add .
-git commit -m "type: short clear message"
-git push
-```
-
-### Recommended commit style
-
-- `feat: add opendataloader extractor`
-- `fix: handle missing output json`
-- `docs: update streamlit setup`
+Lower CER is better. Latency from RVL-CDIP benchmark (32 single-page documents).
+Full methodology and per-criterion scores: [`docs/comparison_matrix.md`](docs/comparison_matrix.md).

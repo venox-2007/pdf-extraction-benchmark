@@ -12,16 +12,13 @@ authors = [{ name = "Your Team" }]
 dependencies = [
   "docling>=2.87.0",
   "numpy<2",
-  "fastapi>=0.136.1",
   "opendataloader-pdf>=2.4.6",
   "paddleocr==2.7.3",
   "paddlepaddle==2.6.2",
   "pymupdf>=1.24.0",
   "pytesseract>=0.3.10",
-  "python-multipart>=0.0.28",
   "rapidocr>=2.0.0",
   "streamlit>=1.36.0",
-  "uvicorn>=0.46.0",
 ]
 
 [project.optional-dependencies]

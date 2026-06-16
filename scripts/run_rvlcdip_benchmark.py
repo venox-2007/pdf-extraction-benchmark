@@ -11,7 +11,9 @@ from pdf_extraction_benchmark.utils.logger import configure_logging, get_logger
 
 def parse_args() -> argparse.Namespace:
     """Parse command-line arguments."""
-    parser = argparse.ArgumentParser(description="Run the RVL-CDIP extraction robustness benchmark.")
+    parser = argparse.ArgumentParser(
+        description="Run the RVL-CDIP extraction robustness benchmark."
+    )
     parser.add_argument(
         "--dataset-dir",
         type=Path,

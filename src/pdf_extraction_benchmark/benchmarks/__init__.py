@@ -16,6 +16,7 @@ from pdf_extraction_benchmark.benchmarks.funsd.entity import (
     FunsdEntitySummary,
     RankedEntityDocument,
 )
+
 __all__ = [
     "FunsdBenchmarkPipeline",
     "FunsdBenchmarkSummary",

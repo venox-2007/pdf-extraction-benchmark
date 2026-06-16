@@ -85,7 +85,9 @@ class OpendataloaderExtractor(BaseExtractor):
         self.logger.info("Extraction completed: %s pages from %s", len(results), pdf_path.name)
         return results
 
-    def _map_json_to_results(self, pdf_path: Path, payload: dict[str, Any]) -> list[ExtractionResult]:
+    def _map_json_to_results(
+        self, pdf_path: Path, payload: dict[str, Any]
+    ) -> list[ExtractionResult]:
         """Map OpenDataLoader JSON payload to standardized results."""
         if isinstance(payload, dict):
             kids = payload.get("kids")
@@ -144,7 +146,9 @@ class OpendataloaderExtractor(BaseExtractor):
             )
         ]
 
-    def _map_kids_to_results(self, pdf_path: Path, payload: dict[str, Any]) -> list[ExtractionResult]:
+    def _map_kids_to_results(
+        self, pdf_path: Path, payload: dict[str, Any]
+    ) -> list[ExtractionResult]:
         """Map OpenDataLoader `kids` block schema into page-level extraction results."""
         raw_kids = payload.get("kids", [])
         if not isinstance(raw_kids, list):

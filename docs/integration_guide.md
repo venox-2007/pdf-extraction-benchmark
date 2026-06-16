@@ -207,13 +207,18 @@ ocr_extractor = PaddleocrExtractor()
 
 @app.post("/extract")
 async def extract(file: UploadFile = File(...)):
+    import os
+
     with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as tmp:
         tmp.write(await file.read())
         tmp_path = Path(tmp.name)
 
-    doc_type = classifier.classify(tmp_path).pdf_type
-    extractor = native_extractor if doc_type == "native" else ocr_extractor
-    results = extractor.extract(tmp_path)
+    try:
+        doc_type = classifier.classify(tmp_path).pdf_type
+        extractor = native_extractor if doc_type == "native" else ocr_extractor
+        results = extractor.extract(tmp_path)
+    finally:
+        os.unlink(tmp_path)  # always clean up the temp file
 
     return {
         "document_type": doc_type,

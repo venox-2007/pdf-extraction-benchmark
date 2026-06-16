@@ -1,24 +1,47 @@
-# Benchmark Findings (Initial)
+# Benchmark Findings — Final Summary
 
-## Scope
+This document summarises the key empirical findings from the evaluation. All items
+listed as "next steps" in the original draft have been completed.
 
-This document records early practical observations from the extraction demo while validating native and scanned PDF behavior.
+For full scored evidence, see [`comparison_matrix.md`](comparison_matrix.md).
+For cost projections, see [`cost_analysis.md`](cost_analysis.md).
+For integration patterns, see [`integration_guide.md`](integration_guide.md).
 
-## Key Findings
+---
 
-1. OpenDataLoader performs reasonably well on native PDFs.
-2. For scanned PDFs, OCR text extraction is currently limited in this setup.
-3. In scanned cases, output may contain embedded image references in Markdown with little or no extracted text.
-4. Page count alignment between generated outputs and expected document pages is under active investigation.
+## What was found
 
-## Product Implications
+**Native PDFs:** PyMuPDF (6 ms/doc) and OpenDataLoader (~730 ms/doc) extract text
+directly from the PDF text layer. No OCR is needed; both achieve near-perfect
+character fidelity on clean digital documents.
 
-1. The app now classifies PDFs as `native`, `scanned`, or `mixed` before extraction.
-2. The UI surfaces extractor recommendations based on detected PDF type.
-3. When scanned PDFs are routed through OpenDataLoader and text is missing, the app marks the result as a limitation and shows a clear warning.
+**Scanned PDFs:** Text extraction from image-based PDFs requires OCR. Three OCR
+engines were evaluated and fully integrated:
 
-## Next Steps (Lightweight)
+| Tool | FUNSD CER ↓ | Mean latency (RVL-CDIP) |
+|---|---|---|
+| PaddleOCR | 0.443 (50 docs) | 8,735 ms |
+| Tesseract | 0.485 (50 docs) | 1,265 ms |
+| Docling | 0.417 (50 docs) | 32,295 ms |
 
-1. Add OCR-first extractor adapters (PaddleOCR) for scanned workflows.
-2. Add simple side-by-side quality notes in the UI for extraction comparisons.
-3. Track page-level extraction consistency as part of benchmark metadata.
+**Routing matters:** PaddleOCR applied to a native 26-page PDF took 262 seconds.
+Always classify documents first (`PdfTypeClassifier`) before routing to an OCR extractor.
+
+**Tables:** Only Docling and OpenDataLoader produce structured table output
+(row/column/cell). The other three tools return flat text with no table awareness.
+
+**Handwriting:** None of the five evaluated tools handle handwritten text reliably.
+Retain AWS Textract for handwriting use cases.
+
+---
+
+## Architecture decision
+
+The final recommended pipeline is a two-path router:
+
+1. `PdfTypeClassifier` classifies each document as `native`, `scanned`, or `hybrid`.
+2. Native → **PyMuPDF** (speed) or **OpenDataLoader** (structured/tables).
+3. Scanned → **PaddleOCR** (accuracy) or **Tesseract** (speed/triage).
+4. Table-heavy documents → **Docling** (with a latency timeout guard).
+
+This matches the architecture in the README and the integration guide.
