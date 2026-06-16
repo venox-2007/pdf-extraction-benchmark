@@ -151,6 +151,43 @@ for the full justification for Marker, Surya OCR, Unstructured.io, and Textract.
 | Benchmark findings summary | [`docs/benchmark_findings.md`](docs/benchmark_findings.md) |
 | Tesseract vs PaddleOCR vs Docling evaluation | [`outputs/benchmark_results/tesseract_evaluation/tesseract_evaluation_report.md`](outputs/benchmark_results/tesseract_evaluation/tesseract_evaluation_report.md) |
 
+## Image Preservation
+
+The Streamlit UI includes optional image/figure extraction for PDF inputs.
+
+**Enable it:** check **"Preserve Images in Markdown"** in the sidebar before
+running extraction (default: off).
+
+**How it works — hybrid strategy:**
+
+| PDF type | Strategy | What is captured |
+|---|---|---|
+| Scanned | Approach A — extract embedded image XObjects directly (`page.get_images()`) | Raster images (photos, scanned figures) |
+| Native / Hybrid | Approach B — detect non-text visual regions by clustering image positions and PDF drawing paths, then render each region with `page.get_pixmap()` | Raster images *and* vector content (charts, diagrams, TikZ, SVG-derived paths) |
+
+**Output location:** `outputs/extracted_images/<document_name>/figure_p<page>_<n>.png`
+
+**Markdown references:** After extraction, each extractor's markdown output
+gains image references in reading order, e.g.:
+
+```markdown
+Introduction paragraph text...
+
+![Figure p1_1](extracted_images/my_report/figure_p1_1.png)
+
+Next section text...
+```
+
+Images are rendered automatically in the **Markdown** tab of the UI.
+The **Metadata** tab shows the extracted image count and output folder path.
+
+**Filters applied (Approach B):**
+- Minimum region area: 3 600 pt² (≈ 60 × 60 pt) — suppresses hairlines and borders
+- Maximum page fraction: 90 % — skips full-page background fills
+- Text coverage threshold: 60 % — skips regions that are mostly text blocks
+
+---
+
 ## Known Limitations
 
 - **Handwriting:** None of the five evaluated tools handle handwritten text

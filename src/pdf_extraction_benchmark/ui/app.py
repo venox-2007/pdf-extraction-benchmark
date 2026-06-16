@@ -63,6 +63,10 @@ from pdf_extraction_benchmark.utils.logger import configure_logging  # noqa: E40
 from pdf_extraction_benchmark.utils.opendataloader_hybrid import (  # noqa: E402
     ensure_hybrid_server,
 )
+from pdf_extraction_benchmark.image_extractor import (  # noqa: E402
+    extract_and_save_images,
+    inject_image_markdown,
+)
 from pdf_extraction_benchmark.visualization.bbox_overlay import (  # noqa: E402
     build_page_visualizations,
     get_extractor_color,
@@ -1217,6 +1221,7 @@ def _process_document(
     progress_bar: Any,
     progress_offset: int,
     progress_total: int,
+    preserve_images: bool = False,
 ) -> dict[str, Any]:
     """Run the selected extractors against a single uploaded document.
 
@@ -1453,6 +1458,44 @@ def _process_document(
             warnings.append(f"{uploaded.name} / {extractor_name}: failed ({exc})")
             run_status.write(f"`{extractor_name}` on `{uploaded.name}` failed: {exc}")
 
+    # ── image preservation (optional) ────────────────────────────────────────
+    image_count = 0
+    image_dir_str = ""
+    if preserve_images and input_type == "PDF":
+        image_output_dir = (
+            project_root / "outputs" / "extracted_images" / input_path.stem
+        )
+        project_outputs_dir = project_root / "outputs"
+        try:
+            run_status.write(f"Extracting images from `{uploaded.name}`…")
+            extracted_images = extract_and_save_images(
+                pdf_path=input_path,
+                output_dir=image_output_dir,
+                pdf_type=pdf_type,
+            )
+            image_count = len(extracted_images)
+            image_dir_str = str(image_output_dir)
+            if extracted_images:
+                for extractor_name, results in per_extractor_results.items():
+                    updated_md = inject_image_markdown(
+                        page_results=results,
+                        images=extracted_images,
+                        project_outputs_dir=project_outputs_dir,
+                    )
+                    per_extractor_markdown[extractor_name] = updated_md
+                    out_path = Path(
+                        per_extractor_paths[extractor_name].get("markdown", "")
+                    )
+                    if out_path.exists():
+                        out_path.write_text(updated_md, encoding="utf-8")
+            run_status.write(
+                f"Image extraction complete: {image_count} figure(s) saved to "
+                f"`{image_output_dir}`."
+            )
+        except Exception as exc:
+            warnings.append(f"{uploaded.name}: image extraction failed ({exc})")
+            run_status.write(f"Image extraction failed for `{uploaded.name}`: {exc}")
+
     observations, recommendation = _build_comparison_observations(comparison_rows, classification)
     meta = {
         "file_name": uploaded.name,
@@ -1468,6 +1511,8 @@ def _process_document(
         "avg_image_ratio": avg_image_ratio,
         "text_pages": text_pages,
         "selected_extractors": selected_extractors,
+        "image_count": image_count,
+        "image_dir": image_dir_str,
     }
 
     return {
@@ -1612,6 +1657,11 @@ def _render_extractor_result_tabs(
                     f"{st.session_state.last_paths.get(extractor_name, {}).get('markdown', '')}"
                     f"`"
                 )
+                img_count = st.session_state.get("last_image_count", 0)
+                img_dir = st.session_state.get("last_image_dir", "")
+                if img_count:
+                    st.write(f"**Images Extracted:** {img_count}")
+                    st.write(f"**Image Output Folder:** `{img_dir}`")
                 st.markdown("</div>", unsafe_allow_html=True)
 
 
@@ -1950,6 +2000,15 @@ def run() -> None:
             ),
         )
         opendataloader_mode = OPENDATALOADER_MODE_OPTIONS[opendataloader_mode_label]
+        preserve_images = st.checkbox(
+            "Preserve Images in Markdown",
+            value=False,
+            help=(
+                "Extract figures, charts, and embedded images from PDFs "
+                "and inject markdown image references into the output. "
+                "Images are saved to outputs/extracted_images/<document_name>/."
+            ),
+        )
         run_clicked = st.button("Run Extraction", type="primary", use_container_width=True)
 
     st.title(APP_NAME)
@@ -1967,6 +2026,8 @@ def run() -> None:
         st.session_state.observations = []
         st.session_state.recommendation = {}
         st.session_state.last_classification = None
+        st.session_state.last_image_count = 0
+        st.session_state.last_image_dir = ""
 
     if run_clicked:
         if not uploaded_files:
@@ -2000,6 +2061,7 @@ def run() -> None:
                         progress_bar=progress_bar,
                         progress_offset=doc_idx * total_extractors,
                         progress_total=progress_total,
+                        preserve_images=preserve_images,
                     )
                 except Exception as exc:
                     failure_message = f"{uploaded.name}: failed ({exc})"
@@ -2065,6 +2127,8 @@ def run() -> None:
                 st.session_state.recommendation = doc["recommendation"]
                 st.session_state.last_classification = doc["classification"]
                 st.session_state.last_meta = doc["meta"]
+                st.session_state.last_image_count = doc["meta"].get("image_count", 0)
+                st.session_state.last_image_dir = doc["meta"].get("image_dir", "")
             else:
                 st.session_state.last_results = {}
                 st.session_state.last_payload = {}
@@ -2076,6 +2140,8 @@ def run() -> None:
                 st.session_state.recommendation = {}
                 st.session_state.last_classification = None
                 st.session_state.last_meta = {}
+                st.session_state.last_image_count = 0
+                st.session_state.last_image_dir = ""
 
             if all_warnings:
                 for warning in all_warnings:
