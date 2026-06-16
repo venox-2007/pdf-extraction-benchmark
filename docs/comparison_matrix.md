@@ -23,7 +23,7 @@ see [`rejected_tools.md`](rejected_tools.md) for full justification.
 | Handwriting Support | 5% | 1 | 2 | 3 | 2 | 2 |
 | Layout Preservation | 5% | 5 | 8 | 4 | 9 | 4 |
 | Ease of Integration | 5% | 9 | 5 | 7 | 6 | 8 |
-| **Weighted Total** | **100%** | **6.55** | **7.25** | **5.50** | **6.05** | **5.65** |
+| **Weighted Total** | **100%** | **6.55** | **7.25** | **5.50** | **6.05** | **5.95** |
 
 ### Weighted totals (formula)
 
@@ -32,10 +32,10 @@ PyMuPDF       = 7×0.30 + 1×0.20 + 10×0.20 + 10×0.15 + 1×0.05 + 5×0.05 + 9�
 OpenDataLoader= 7×0.30 + 7×0.20 +  9×0.20 +  8×0.15 + 2×0.05 + 8×0.05 + 5×0.05 = 7.25
 PaddleOCR     = 8×0.30 + 1×0.20 +  5×0.20 +  8×0.15 + 3×0.05 + 4×0.05 + 7×0.05 = 5.50
 Docling       = 6×0.30 + 9×0.20 +  2×0.20 +  8×0.15 + 2×0.05 + 9×0.05 + 6×0.05 = 6.05
-Tesseract     = 6×0.30 + 1×0.20 +  8×0.20 +  9×0.15 + 2×0.05 + 4×0.05 + 8×0.05 = 5.65
+Tesseract     = 7×0.30 + 1×0.20 +  8×0.20 +  9×0.15 + 2×0.05 + 4×0.05 + 8×0.05 = 5.95
 ```
 
-**Ranking: OpenDataLoader (7.25) > PyMuPDF (6.55) > Docling (6.05) > Tesseract (5.65) > PaddleOCR (5.50)**
+**Ranking: OpenDataLoader (7.25) > PyMuPDF (6.55) > Docling (6.05) > Tesseract (5.95) > PaddleOCR (5.50)**
 
 > **Important caveat on weighted totals.** A single aggregate score obscures the
 > fact that tool fitness is strongly document-type dependent. See the

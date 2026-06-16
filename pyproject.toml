@@ -40,6 +40,20 @@ addopts = "-ra"
 testpaths = ["tests"]
 pythonpath = ["src"]
 
+[tool.coverage.run]
+source = ["pdf_extraction_benchmark"]
+omit = [
+    "*/ui/app.py",          # Streamlit UI — requires Streamlit test runner, not unit-testable
+    "*/main.py",            # CLI entrypoint — subprocess wrapper
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "if __name__ == .__main__.:",
+    "raise NotImplementedError",
+]
+
 [tool.ruff]
 line-length = 100
 target-version = "py311"
