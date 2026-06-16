@@ -45,19 +45,6 @@ class ExtractionMetadata:
 
 
 @dataclass(slots=True)
-class ExtractedImage:
-    """A figure, chart, or embedded image extracted from a PDF page."""
-
-    page_number: int
-    image_index: int
-    path: str  # absolute path to saved PNG file (str for JSON serialisability)
-    bbox: BoundingBox | None = None
-    width: int = 0
-    height: int = 0
-    strategy: str = "region"  # "xobject" (scanned) | "region" (native/hybrid)
-
-
-@dataclass(slots=True)
 class ExtractionResult:
     """Unified page-level extraction payload."""
 
@@ -68,4 +55,3 @@ class ExtractionResult:
     bounding_boxes: list[BoundingBox] = field(default_factory=list)
     confidence_scores: list[float] = field(default_factory=list)
     metadata: ExtractionMetadata | None = None
-    images: list[ExtractedImage] = field(default_factory=list)
