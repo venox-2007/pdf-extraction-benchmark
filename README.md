@@ -159,11 +159,13 @@ for the full justification for Marker, Surya OCR, Unstructured.io, and Textract.
   AWS Textract or a dedicated HWR model until a viable open-source alternative
   is identified.
 
-- **FUNSD CER/WER interpretation:** CER of 0.44 (PaddleOCR, best result) on
+- **FUNSD CER/WER interpretation:** CER of 0.443 (PaddleOCR, best result) on
   FUNSD reflects extraction on low-resolution, noisy scanned forms without any
   post-processing. Production documents are typically higher quality; with spell
   correction and NLP post-processing, usable accuracy is higher. FUNSD numbers
   establish relative ranking across tools, not absolute production accuracy.
+  An earlier 5-doc Docling sample showed CER 0.417; the full 50-doc run (CER 0.500)
+  corrected this — Docling is the weakest on text accuracy but strongest on structure.
 
 - **Docling latency variance:** Docling's worst-case latency was 207 seconds on
   a single complex specification document. Mean latency is 32 seconds per
@@ -198,7 +200,7 @@ for the full justification for Marker, Surya OCR, Unstructured.io, and Textract.
 | OpenDataLoader | Native + Hybrid | n/a (text layer) | 730 ms/doc | Yes |
 | PaddleOCR | OCR | **0.443** (50 docs) | 8,735 ms/doc | No |
 | Tesseract | OCR | 0.485 (50 docs) | **1,265 ms/doc** | No |
-| Docling | OCR + Layout | 0.417 (5 docs) | 32,295 ms/doc | **Yes** |
+| Docling | OCR + Layout | 0.500 (50 docs) | 32,295 ms/doc | **Yes** |
 
 Lower CER is better. Latency from RVL-CDIP benchmark (32 single-page documents).
 Full methodology and per-criterion scores: [`docs/comparison_matrix.md`](docs/comparison_matrix.md).

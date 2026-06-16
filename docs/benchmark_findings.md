@@ -20,9 +20,14 @@ engines were evaluated and fully integrated:
 
 | Tool | FUNSD CER ↓ | Mean latency (RVL-CDIP) |
 |---|---|---|
-| PaddleOCR | 0.443 (50 docs) | 8,735 ms |
+| PaddleOCR | **0.443** (50 docs) | 8,735 ms |
 | Tesseract | 0.485 (50 docs) | 1,265 ms |
-| Docling | 0.417 (50 docs) | 32,295 ms |
+| Docling | 0.500 (50 docs) | 32,295 ms |
+
+Note: an earlier 5-document Docling sample showed CER 0.417, which suggested Docling was
+the accuracy leader. The full 50-document run (CER 0.500) reversed this: Docling has the
+worst character error rate among the three OCR tools. Its advantage is structured output
+(tables, layout), not raw text accuracy.
 
 **Routing matters:** PaddleOCR applied to a native 26-page PDF took 262 seconds.
 Always classify documents first (`PdfTypeClassifier`) before routing to an OCR extractor.

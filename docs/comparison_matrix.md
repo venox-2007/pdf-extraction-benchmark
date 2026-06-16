@@ -16,26 +16,26 @@ see [`rejected_tools.md`](rejected_tools.md) for full justification.
 
 | Criterion | Weight | PyMuPDF | OpenDataLoader | PaddleOCR | Docling | Tesseract |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| Accuracy | 30% | 7 | 7 | 7 | 8 | 6 |
+| Accuracy | 30% | 7 | 7 | 8 | 6 | 7 |
 | Table Extraction | 20% | 1 | 7 | 1 | 9 | 1 |
 | Latency | 20% | 10 | 9 | 5 | 2 | 8 |
 | Cost | 15% | 10 | 8 | 8 | 8 | 9 |
 | Handwriting Support | 5% | 1 | 2 | 3 | 2 | 2 |
 | Layout Preservation | 5% | 5 | 8 | 4 | 9 | 4 |
 | Ease of Integration | 5% | 9 | 5 | 7 | 6 | 8 |
-| **Weighted Total** | **100%** | **6.55** | **7.25** | **5.20** | **6.65** | **5.65** |
+| **Weighted Total** | **100%** | **6.55** | **7.25** | **5.50** | **6.05** | **5.65** |
 
 ### Weighted totals (formula)
 
 ```
 PyMuPDF       = 7×0.30 + 1×0.20 + 10×0.20 + 10×0.15 + 1×0.05 + 5×0.05 + 9×0.05 = 6.55
 OpenDataLoader= 7×0.30 + 7×0.20 +  9×0.20 +  8×0.15 + 2×0.05 + 8×0.05 + 5×0.05 = 7.25
-PaddleOCR     = 7×0.30 + 1×0.20 +  5×0.20 +  8×0.15 + 3×0.05 + 4×0.05 + 7×0.05 = 5.20
-Docling       = 8×0.30 + 9×0.20 +  2×0.20 +  8×0.15 + 2×0.05 + 9×0.05 + 6×0.05 = 6.65
+PaddleOCR     = 8×0.30 + 1×0.20 +  5×0.20 +  8×0.15 + 3×0.05 + 4×0.05 + 7×0.05 = 5.50
+Docling       = 6×0.30 + 9×0.20 +  2×0.20 +  8×0.15 + 2×0.05 + 9×0.05 + 6×0.05 = 6.05
 Tesseract     = 6×0.30 + 1×0.20 +  8×0.20 +  9×0.15 + 2×0.05 + 4×0.05 + 8×0.05 = 5.65
 ```
 
-**Ranking: OpenDataLoader (7.25) > Docling (6.65) > PyMuPDF (6.55) > Tesseract (5.65) > PaddleOCR (5.20)**
+**Ranking: OpenDataLoader (7.25) > PyMuPDF (6.55) > Docling (6.05) > Tesseract (5.65) > PaddleOCR (5.50)**
 
 > **Important caveat on weighted totals.** A single aggregate score obscures the
 > fact that tool fitness is strongly document-type dependent. See the
@@ -52,9 +52,9 @@ annotations). Lower CER/WER is better. Token F1 is order-insensitive.
 
 | Tool | CER ↓ | WER ↓ | Token F1 ↑ | Token Precision | Token Recall | Docs |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| Docling | 0.417 | 0.736 | 0.440 | 0.621 | 0.349 | 5 |
-| PaddleOCR | 0.443 | 0.647 | 0.628 | 0.710 | 0.568 | 50 |
+| PaddleOCR | **0.443** | **0.647** | **0.628** | **0.710** | **0.568** | 50 |
 | Tesseract | 0.485 | 0.688 | 0.545 | 0.603 | 0.506 | 50 |
+| Docling | 0.500 | 0.765 | 0.461 | 0.590 | 0.393 | 50 |
 | PyMuPDF | n/a (native only) | — | — | — | — | — |
 | OpenDataLoader | n/a (hybrid OCR delegates to Docling backend) | — | — | — | — | — |
 
@@ -67,20 +67,23 @@ relative ranking, not to claim any tool is production-ready without further
 tuning.
 
 **Scores:**
-- **Docling (8):** Best CER on the measured sample (5 docs), though small sample
-  limits confidence. Text duplication artifacts hurt WER and recall.
-- **PaddleOCR (7):** Best measured performance at scale (50 docs). Best token F1
-  and precision, indicating higher content coverage. The recommended OCR engine
-  when accuracy is the priority.
+- **PaddleOCR (8):** Best OCR accuracy at scale (50 docs). Best CER (0.443), WER
+  (0.647), token F1 (0.628), and precision (0.710). The recommended OCR engine when
+  text extraction accuracy is the priority.
 - **PyMuPDF (7):** No OCR, but achieves near-perfect character accuracy on
-  native/digital PDFs (benchmark shows 42K chars mean on native vs 3K on
-  scanned — essentially zero on scanned). Score reflects mixed-document use case.
+  native/digital PDFs (benchmark shows 42K chars mean on native vs ~0 on scanned).
+  Score reflects mixed-document use case.
 - **OpenDataLoader (7):** Equivalent to PyMuPDF for native PDFs (same text layer).
   In hybrid mode delegates OCR to Docling backend; no independent accuracy
   measurement available for the OCR path.
-- **Tesseract (6):** Statistically worse CER and WER than PaddleOCR (50-doc
-  comparison). Higher raw character/word counts on RVL-CDIP are partly noise —
-  confirmed by qualitative review showing garbled output on handwritten documents.
+- **Tesseract (7):** CER 0.485 across 50 docs — worse than PaddleOCR but better than
+  Docling on text extraction. Suitable for speed-priority use cases where some error
+  is acceptable.
+- **Docling (6):** CER 0.500 across 50 docs — the worst OCR text accuracy among the
+  three OCR tools. An earlier 5-doc sample (CER 0.417) was optimistic; the full-scale
+  run shows Docling trades text accuracy for layout and table structure. Its score
+  reflects this trade-off: use Docling when structured output (tables, headings) is
+  required, not when minimizing character error rate.
 
 ---
 
