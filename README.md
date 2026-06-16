@@ -198,7 +198,7 @@ for the full justification for Marker, Surya OCR, Unstructured.io, and Textract.
 | OpenDataLoader | Native + Hybrid | n/a (text layer) | 730 ms/doc | Yes |
 | PaddleOCR | OCR | **0.443** (50 docs) | 8,735 ms/doc | No |
 | Tesseract | OCR | 0.485 (50 docs) | **1,265 ms/doc** | No |
-| Docling | OCR + Layout | 0.417 (50 docs) | 32,295 ms/doc | **Yes** |
+| Docling | OCR + Layout | 0.417 (5 docs) | 32,295 ms/doc | **Yes** |
 
 Lower CER is better. Latency from RVL-CDIP benchmark (32 single-page documents).
 Full methodology and per-criterion scores: [`docs/comparison_matrix.md`](docs/comparison_matrix.md).
