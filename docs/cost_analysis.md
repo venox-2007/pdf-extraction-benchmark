@@ -1,207 +1,381 @@
 # Cost Analysis: AWS Textract vs Self-Hosted Alternatives
 
-This document compares the per-page cost of the current AWS Textract setup
-against the open-source tools evaluated in this project, at three scale points:
-10K, 100K, and 1M pages per month.
+Quantitative comparison of AWS Textract against the five evaluated open-source
+tools at four production volumes. All pricing is from public sources; all
+throughput figures are derived from benchmark measurements in this project.
 
 ---
 
-## AWS Textract Pricing (Public, as of 2025)
+## Pricing Sources and Assumptions
+
+### AWS Textract pricing (public, as of 2025)
 
 Source: https://aws.amazon.com/textract/pricing/
 
-| API | Price | Notes |
-| --- | ---: | --- |
-| Detect Document Text (OCR only) | $1.50 / 1,000 pages | $0.0015 / page |
-| Analyze Document (tables + forms) | $15.00 / 1,000 pages | $0.015 / page |
-| Analyze Document with Queries | $50.00 / 1,000 pages | $0.050 / page |
-| Free tier | 1,000 pages / month | Detect Text only; first 3 months |
+| API | Price per 1,000 pages | Price per page |
+| --- | ---: | ---: |
+| Detect Document Text (OCR only) | $1.50 | $0.0015 |
+| Analyze Document (tables + forms) | $15.00 | $0.0150 |
+| Analyze Document with Queries | $50.00 | $0.0500 |
+| Free tier | 1,000 pages/month | Detect Text only; first 3 months |
 
-Our platform currently uses Analyze Document (tables + forms) because invoices
-and contracts require table extraction. This means **$0.015 per page** is the
-relevant baseline.
+**Baseline used in this analysis:** Analyze Document at **$0.015/page** — the
+relevant API for workflows that require table and form extraction from invoices
+and contracts. Where noted, Detect Text ($0.0015/page) is used as an
+alternative baseline for text-only workflows.
 
----
+### AWS EC2 pricing (on-demand, us-east-1, 2025)
 
-## Self-Hosted Cost Model
+Source: https://aws.amazon.com/ec2/pricing/on-demand/
 
-Self-hosted tools have no per-page charge. The only cost is compute time.
+| Instance | vCPUs | RAM | $/hr (on-demand) | $/month (24×7) |
+| --- | ---: | ---: | ---: | ---: |
+| t3.medium | 2 | 4 GB | $0.0416 | $29.95 |
+| t3.large | 2 | 8 GB | $0.0832 | $59.90 |
+| c5.xlarge | 4 | 8 GB | $0.1700 | $122.40 |
+| c5.2xlarge | 8 | 16 GB | $0.3400 | $244.80 |
+| g4dn.xlarge | 4 CPU + 1× T4 GPU | 16 GB | $0.5260 | $378.72 |
+
+**Savings opportunity:** EC2 Reserved Instances (1-year, no upfront) reduce
+on-demand prices by approximately 30–40%. These are not used in the analysis
+below to keep comparisons conservative.
 
 ### Throughput assumptions (from benchmark data)
 
-| Tool | Mean latency / doc | Est. throughput (1 vCPU) |
-| --- | ---: | ---: |
-| PyMuPDF | 6 ms | ~10,000 docs/hr |
-| OpenDataLoader | 730 ms | ~4,900 docs/hr |
-| Tesseract | 1,265 ms | ~2,844 docs/hr |
-| PaddleOCR (CPU) | 8,735 ms | ~411 docs/hr |
-| Docling (CPU) | 32,295 ms | ~111 docs/hr |
+All latency figures are measured on CPU hardware (no GPU) from the benchmark
+runs in this project. Per-vCPU throughput assumes one worker per vCPU and
+linear scaling; actual scaling depends on tool and document complexity.
 
-*Latency source: RVL-CDIP benchmark, 32 mixed native/scanned documents.
-RVL-CDIP documents are single-page. Multi-page documents scale roughly linearly.*
+| Tool | Measured latency/doc | Per-vCPU throughput | Source |
+| --- | ---: | ---: | --- |
+| PyMuPDF | 6 ms | ~10,000 docs/hr | RVL-CDIP benchmark, n=48 |
+| OpenDataLoader | 830 ms | ~1,205 docs/hr | RVL-CDIP benchmark, n=48 |
+| Tesseract | 1,265 ms | ~2,844 docs/hr | RVL-CDIP benchmark, n=32 |
+| PaddleOCR | 3,420 ms | ~1,053 docs/hr | RVL-CDIP benchmark, n=48 |
+| Docling | 15,543 ms | ~232 docs/hr | RVL-CDIP benchmark, n=48 |
 
-### AWS EC2 reference pricing (on-demand, us-east-1, 2025)
+> **Note on PaddleOCR latency:** An earlier 2-doc/category run showed 8,735 ms
+> mean (dominated by outlier documents). The 3-doc/category run (48 docs) shows
+> 3,420 ms mean, which averages more document types and is used here. Expect
+> 3–9s/doc depending on document complexity.
 
-| Instance | vCPUs | RAM | On-demand / hr |
-| --- | ---: | ---: | ---: |
-| t3.medium | 2 | 4 GB | $0.0416 |
-| t3.large | 2 | 8 GB | $0.0832 |
-| c5.xlarge | 4 | 8 GB | $0.1700 |
-| c5.2xlarge | 8 | 16 GB | $0.3400 |
-
-For PaddleOCR and Docling, a GPU instance reduces latency significantly:
-
-| Instance | GPU | On-demand / hr | Est. PaddleOCR latency |
-| --- | --- | ---: | ---: |
-| g4dn.xlarge | 1× T4 16GB | $0.5260 | ~1–2 s/doc (est.) |
-| g4dn.2xlarge | 1× T4 16GB | $0.7520 | ~1–2 s/doc (est.) |
-
-*GPU latency estimates are projected; not directly measured in this benchmark.*
+> **Note on Docling latency:** Measured mean is 15,543 ms; worst-case on a
+> complex specification document was 207 seconds. A per-document timeout guard
+> is mandatory in production.
 
 ---
 
-## Cost per Page: Self-Hosted vs Textract
+## Per-Tool Cost Derivation
 
-### Scenario A — Native PDFs only (PyMuPDF)
+### Recommended instance and worker configuration per tool
 
-PyMuPDF on a t3.medium:
+| Tool | Recommended instance | Workers | Instance throughput | $/hr | $/page (compute) |
+| --- | --- | ---: | ---: | ---: | ---: |
+| PyMuPDF | t3.medium | 2 | 20,000 docs/hr | $0.0416 | **$0.0000021** |
+| OpenDataLoader | t3.large | 2 | 2,410 docs/hr | $0.0832 | **$0.0000345** |
+| Tesseract | t3.medium | 2 | 5,688 docs/hr | $0.0416 | **$0.0000073** |
+| PaddleOCR (CPU) | c5.xlarge | 4 | 4,212 docs/hr | $0.1700 | **$0.0000404** |
+| PaddleOCR (GPU) | g4dn.xlarge | 1 | ~2,400 docs/hr *(est.)* | $0.5260 | **$0.0002192** *(est.)* |
+| Docling (CPU) | c5.2xlarge | 4 | 928 docs/hr | $0.3400 | **$0.0003664** |
+| Docling (GPU) | g4dn.xlarge | 1 | ~900 docs/hr *(est.)* | $0.5260 | **$0.0005844** *(est.)* |
 
-```
-Throughput: ~10,000 docs/hr × 2 vCPU = 10,000 docs/hr
-Cost/hr: $0.0416
-Cost/page: $0.0416 / 10,000 = $0.0000042
-```
+**Derivation notes:**
 
-| Volume | Textract (Detect Text, $0.0015/page) | PyMuPDF self-hosted |
-| ---: | ---: | ---: |
-| 10,000 pages/month | $15.00 | $0.04 |
-| 100,000 pages/month | $150.00 | $0.42 |
-| 1,000,000 pages/month | $1,500.00 | $4.20 |
+- *PyMuPDF:* t3.medium, 2 workers × 10,000 = 20,000 docs/hr.
+  `$0.0416 / 20,000 = $0.0000021/page`
 
-**Saving: ~99.7% cost reduction at all scales.**
+- *OpenDataLoader:* t3.large (8 GB RAM required for JVM heap + Docling backend
+  in hybrid mode), 2 workers × 1,205 = 2,410 docs/hr.
+  `$0.0832 / 2,410 = $0.0000345/page`
+
+- *Tesseract:* t3.medium, 2 workers × 2,844 = 5,688 docs/hr.
+  `$0.0416 / 5,688 = $0.0000073/page`
+
+- *PaddleOCR CPU:* c5.xlarge (4 vCPU, 8 GB RAM needed for model), 4 workers ×
+  1,053 = 4,212 docs/hr.
+  `$0.1700 / 4,212 = $0.0000404/page`
+
+- *PaddleOCR GPU:* g4dn.xlarge, 1 GPU worker. Estimated 1.5 s/doc on T4 →
+  ~2,400 docs/hr. **Not directly measured; projected from GPU inference
+  benchmarks in PaddleOCR literature.**
+  `$0.5260 / 2,400 = $0.0002192/page`
+
+- *Docling CPU:* c5.2xlarge (16 GB RAM needed for ONNX models), 4 workers ×
+  232 = 928 docs/hr.
+  `$0.3400 / 928 = $0.0003664/page`
+
+- *Docling GPU:* g4dn.xlarge, 1 GPU worker. Estimated 4 s/doc on T4 → ~900
+  docs/hr. **Not directly measured; conservative projection.**
+  `$0.5260 / 900 = $0.0005844/page`
 
 ---
 
-### Scenario B — Scanned PDFs, accuracy priority (PaddleOCR, CPU)
+## Monthly Cost at Four Volumes
 
-PaddleOCR on a c5.xlarge (4 vCPU, run 4 workers in parallel):
+The tables below show **total compute cost** (instance cost × hours needed to
+process the monthly volume), not fixed 24/7 instance cost. This models
+on-demand or auto-scaled deployment where the instance runs only when needed.
+
+For a **dedicated 24/7 instance** (fixed cost), see the Break-Even section.
+
+### Formula
 
 ```
-Throughput: 411 docs/hr × 4 workers = 1,644 docs/hr
-Cost/hr: $0.17
-Cost/page: $0.17 / 1,644 = $0.0001034
+hours_needed = monthly_pages / instance_throughput
+monthly_cost = hours_needed × $/hr
 ```
 
-Textract baseline is Analyze Document at $0.015/page (table extraction needed
-for invoices/contracts).
+### Table 1 — Text-only workloads (native PDFs or OCR text extraction)
 
-| Volume | Textract (Analyze Doc, $0.015/page) | PaddleOCR CPU (c5.xlarge) |
-| ---: | ---: | ---: |
-| 10,000 pages/month | $150.00 | $1.03 |
-| 100,000 pages/month | $1,500.00 | $10.34 |
-| 1,000,000 pages/month | $15,000.00 | $103.40 |
+Textract baseline: **Detect Text, $0.0015/page**
 
-**Saving: ~99.3% cost reduction at all scales.**
+| Tool | Instance | 10K pages/mo | 100K pages/mo | 1M pages/mo | 10M pages/mo |
+| --- | --- | ---: | ---: | ---: | ---: |
+| **Textract (Detect Text)** | — | $15.00 | $150.00 | $1,500.00 | $15,000.00 |
+| PyMuPDF | t3.medium | **$0.02** | **$0.21** | **$2.08** | **$20.80** |
+| Tesseract | t3.medium | $0.07 | $0.73 | $7.31 | $73.10 |
+| PaddleOCR (CPU) | c5.xlarge | $0.40 | $4.04 | $40.40 | $404.00 |
+| Docling (CPU) | c5.2xlarge | $3.66 | $36.60 | $366.00 | $3,660.00 |
+
+Saving vs Textract (Detect Text) at 1M pages: PyMuPDF 99.9%, Tesseract 99.5%,
+PaddleOCR 97.3%, Docling 75.6%.
 
 ---
 
-### Scenario C — Mixed pipeline (recommended architecture)
+### Table 2 — Table extraction workloads (invoices, contracts, forms)
 
-A realistic production pipeline for our use case would route documents:
+Textract baseline: **Analyze Document, $0.015/page**
 
-- Native PDFs → PyMuPDF (fast, free)
-- Scanned PDFs → PaddleOCR (accurate, $0.0001/page)
-- Table-heavy documents → Docling (structured output, $0.0003/page)
+| Tool | Instance | 10K pages/mo | 100K pages/mo | 1M pages/mo | 10M pages/mo |
+| --- | --- | ---: | ---: | ---: | ---: |
+| **Textract (Analyze Doc)** | — | $150.00 | $1,500.00 | $15,000.00 | $150,000.00 |
+| OpenDataLoader | t3.large | $0.35 | $3.45 | $34.50 | $345.00 |
+| Docling (CPU) | c5.2xlarge | $3.66 | $36.60 | $366.00 | $3,660.00 |
+| Docling (GPU) *(est.)* | g4dn.xlarge | $5.84 | $58.40 | $584.00 | $5,840.00 |
 
-Assuming a typical split of 60% native, 35% scanned, 5% complex/table-heavy:
+Saving vs Textract (Analyze Doc) at 1M pages: OpenDataLoader 99.8%, Docling
+CPU 97.6%, Docling GPU (est.) 96.1%.
+
+---
+
+### Table 3 — Scanned document workloads (OCR required, accuracy priority)
+
+Textract baseline: **Analyze Document, $0.015/page**
+
+| Tool | Instance | 10K pages/mo | 100K pages/mo | 1M pages/mo | 10M pages/mo |
+| --- | --- | ---: | ---: | ---: | ---: |
+| **Textract (Analyze Doc)** | — | $150.00 | $1,500.00 | $15,000.00 | $150,000.00 |
+| Tesseract | t3.medium | $0.07 | $0.73 | $7.31 | $73.10 |
+| PaddleOCR (CPU) | c5.xlarge | $0.40 | $4.04 | $40.40 | $404.00 |
+| PaddleOCR (GPU) *(est.)* | g4dn.xlarge | $2.19 | $21.90 | $219.00 | $2,190.00 |
+| Docling (CPU) | c5.2xlarge | $3.66 | $36.60 | $366.00 | $3,660.00 |
+
+Saving vs Textract (Analyze Doc) at 1M pages: Tesseract 99.95%, PaddleOCR CPU
+99.7%, PaddleOCR GPU (est.) 98.5%, Docling CPU 97.6%.
+
+---
+
+### Table 4 — Recommended mixed pipeline
+
+Realistic document split: **60% native, 35% scanned, 5% table-heavy scanned**.
+Routing: native → PyMuPDF, scanned → PaddleOCR CPU, table-heavy → Docling CPU.
 
 ```
-Blended cost/page = 0.60×$0.000004 + 0.35×$0.000103 + 0.05×$0.000300
-                  ≈ $0.0000524 / page
+Blended $/page = 0.60 × $0.0000021
+               + 0.35 × $0.0000404
+               + 0.05 × $0.0003664
+               = $0.0000013 + $0.0000141 + $0.0000183
+               = $0.0000337 / page
 ```
 
-| Volume | Textract (Analyze Doc) | Mixed self-hosted pipeline |
-| ---: | ---: | ---: |
-| 10,000 pages/month | $150.00 | $0.52 |
-| 100,000 pages/month | $1,500.00 | $5.24 |
-| 1,000,000 pages/month | $15,000.00 | $52.40 |
-
-**Saving: ~99.6% cost reduction.**
+| | 10K pages/mo | 100K pages/mo | 1M pages/mo | 10M pages/mo |
+| --- | ---: | ---: | ---: | ---: |
+| **Textract (Analyze Doc)** | $150.00 | $1,500.00 | $15,000.00 | $150,000.00 |
+| Mixed self-hosted pipeline | $0.34 | $3.37 | $33.70 | $337.00 |
+| **Saving** | **$149.66 (99.8%)** | **$1,496.63 (99.8%)** | **$14,966.30 (99.8%)** | **$149,663.00 (99.8%)** |
+| **Annual saving** | **$1,796** | **$17,960** | **$179,596** | **$1,795,956** |
 
 ---
 
 ## Break-Even Analysis
 
-At what page volume does self-hosting become cheaper than Textract, accounting
-for a dedicated EC2 instance running 24/7?
+Break-even: the monthly volume at which self-hosting a **dedicated 24/7
+instance** becomes cheaper than Textract on a variable (pay-per-page) basis.
 
-A c5.xlarge running 24/7 costs: $0.17/hr × 24 × 30 = **$122.40/month** (fixed).
-
-Break-even with Textract (Analyze Document at $0.015/page):
+### Against Textract Analyze Document ($0.015/page)
 
 ```
-$122.40 / $0.015 = 8,160 pages/month
+break_even_pages = instance_monthly_cost / textract_price_per_page
 ```
 
-**If your monthly volume exceeds ~8,200 pages, self-hosting pays for itself.**
-At 10,000 pages/month the monthly saving is already $27.60. At 1M pages/month
-the annual saving exceeds **$176,000**.
+| Tool | Instance | Monthly cost (24/7) | Break-even vs Analyze Doc |
+| --- | --- | ---: | ---: |
+| PyMuPDF | t3.medium | $29.95 | **2,000 pages/month** |
+| Tesseract | t3.medium | $29.95 | **2,000 pages/month** |
+| OpenDataLoader | t3.large | $59.90 | **3,993 pages/month** |
+| PaddleOCR (CPU) | c5.xlarge | $122.40 | **8,160 pages/month** |
+| Docling (CPU) | c5.2xlarge | $244.80 | **16,320 pages/month** |
+| PaddleOCR (GPU) *(est.)* | g4dn.xlarge | $378.72 | **25,248 pages/month** |
+| Docling (GPU) *(est.)* | g4dn.xlarge | $378.72 | **25,248 pages/month** |
+| Mixed pipeline (PyMuPDF + PaddleOCR) | t3.medium + c5.xlarge | $152.35 | **10,157 pages/month** |
+
+### Against Textract Detect Text ($0.0015/page)
+
+| Tool | Instance | Monthly cost (24/7) | Break-even vs Detect Text |
+| --- | --- | ---: | ---: |
+| PyMuPDF | t3.medium | $29.95 | **19,967 pages/month** |
+| Tesseract | t3.medium | $29.95 | **19,967 pages/month** |
+| OpenDataLoader | t3.large | $59.90 | **39,933 pages/month** |
+| PaddleOCR (CPU) | c5.xlarge | $122.40 | **81,600 pages/month** |
+| Docling (CPU) | c5.2xlarge | $244.80 | **163,200 pages/month** |
+
+**Interpretation:** If the platform uses Analyze Document (tables + forms), any
+tool on a dedicated instance breaks even below 30K pages/month. If the platform
+uses Detect Text only, the heavier tools (Docling, PaddleOCR) require ~100K+
+pages/month to justify dedicated infrastructure.
 
 ---
 
-## Additional Cost Factors
+## Cost at Scale: 10M Pages/Month Detail
 
-### Factors that favour self-hosting
+At 10M pages/month, on-demand compute is not practical — dedicated instances
+running continuously are required. The table below shows the **number of
+instances** needed and **total monthly infrastructure cost**.
 
-- **No per-page API cost**: Volume growth does not increase marginal cost.
-- **Latency control**: Avoids synchronous Textract call latency (0.5–5s/page
-  depending on document complexity). Self-hosted PyMuPDF runs in 6ms/doc.
-- **Data residency**: Documents never leave your infrastructure. Avoids
-  Textract's requirement to upload to S3 and pass data through AWS systems.
-- **No vendor lock-in**: Tool can be swapped (PaddleOCR → Tesseract or future
-  model) without changing infrastructure or billing model.
-- **Accuracy tuning**: Open-source tools can be fine-tuned or prompt-tuned on
-  domain-specific documents; Textract cannot.
+| Tool | Instance | Throughput | Instances needed | Monthly cost | $/page |
+| --- | --- | ---: | ---: | ---: | ---: |
+| Textract (Analyze Doc) | — | unlimited | — | $150,000.00 | $0.0150 |
+| PyMuPDF | t3.medium | 20,000/hr | 1 | $29.95 | $0.0000030 |
+| Tesseract | t3.medium | 5,688/hr | 1 | $29.95 | $0.0000030 |
+| OpenDataLoader | t3.large | 2,410/hr | 2 | $119.80 | $0.0000120 |
+| PaddleOCR (CPU) | c5.xlarge | 4,212/hr | 2 | $244.80 | $0.0000245 |
+| PaddleOCR (GPU) *(est.)* | g4dn.xlarge | 2,400/hr | 3 | $1,136.16 | $0.0001136 |
+| Docling (CPU) | c5.2xlarge | 928/hr | 12 | $2,937.60 | $0.0002938 |
+| Docling (GPU) *(est.)* | g4dn.xlarge | 900/hr | 12 | $4,534.56 | $0.0004535 |
+| Mixed pipeline | mixed | — | 3 | $422.15 | $0.0000422 |
 
-### Factors that favour Textract (remaining Textract advantages)
+> **Instance count formula:** `ceil(10M pages / (720 hr/month × throughput))`
+> where 720 = 24 hr × 30 days, assuming 100% utilisation. In practice,
+> over-provision by 20–30% for burst headroom.
 
-- **No infrastructure management**: No EC2 provisioning, OS patching, or model
-  management.
-- **Automatic scaling**: Textract handles burst traffic without over-provisioning.
-- **Textract-specific features**: Queries API, Identity Document analysis,
-  Expense analysis — these have no direct open-source equivalent.
-- **Handwriting**: Textract handles handwriting significantly better than any
-  evaluated open-source tool (none of the five tools evaluated are usable for
-  handwritten content).
-- **Support SLA**: Textract carries AWS enterprise SLA; self-hosted has no SLA.
+**At 10M pages/month, even Docling GPU (est.) at $4,535 saves $145,465/month
+vs Textract Analyze Document.**
+
+---
+
+## Factors Not Captured in Compute Cost
+
+### Costs that increase self-hosting total cost of ownership
+
+| Factor | Estimate | Notes |
+| --- | --- | --- |
+| Engineering ops (patching, monitoring) | 4–8 hrs/month | Amortised across tools |
+| Model updates / dependency upgrades | 1–2 hrs/quarter | Docling, PaddleOCR models update frequently |
+| Storage (model weights) | $0.023/GB/month (S3) | PaddleOCR ~200 MB, Docling ~1.5 GB: <$0.05/month |
+| Data transfer (if Lambda/API pattern) | ~$0.09/GB out | Negligible for text extraction payloads |
+| Monitoring (CloudWatch or equivalent) | $3–$10/month | |
+
+**Total additional overhead estimate: $50–$200/month** for a production
+deployment. Immaterial at 100K+ pages/month but represents a large fraction of
+compute cost at 10K pages/month.
+
+### Factors that favour self-hosting (non-cost)
+
+- **Data residency:** Documents never leave your infrastructure — no S3
+  upload, no Textract API call, no data traversing AWS network boundaries.
+- **Latency:** PyMuPDF at 6ms/doc vs Textract at 0.5–5s/page for synchronous
+  workflows. For real-time pipelines, latency reduction is often more valuable
+  than cost reduction.
+- **No vendor lock-in:** Tool can be swapped without changing billing model,
+  infrastructure, or downstream code (shared `BaseExtractor` interface).
+- **Accuracy tuning:** Open-source tools can be fine-tuned on domain-specific
+  documents. Textract cannot be fine-tuned.
+
+### Remaining Textract advantages
+
+- **No infrastructure management:** No EC2 provisioning, OS patching, or
+  model version management.
+- **Automatic scaling:** Textract handles burst traffic without
+  over-provisioning or queue design.
+- **Textract-specific features:** Queries API, Identity Documents, Expense
+  analysis — no direct open-source equivalent.
+- **Handwriting:** Textract significantly outperforms all five evaluated tools
+  on handwritten content. No open-source alternative is viable.
+- **SLA:** Textract carries AWS enterprise SLA; self-hosted has none.
+
+---
+
+## Summary: Executive Cost Table
+
+Monthly cost including compute only (no overhead). Based on Textract Analyze
+Document ($0.015/page) as the relevant baseline.
+
+| Tool | 10K pages/mo | 100K pages/mo | 1M pages/mo | 10M pages/mo | Saving at 1M |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| **Textract (Analyze Doc)** | **$150** | **$1,500** | **$15,000** | **$150,000** | baseline |
+| PyMuPDF (native only) | $0.02 | $0.21 | $2.08 | $29.95 | **99.99%** |
+| Tesseract | $0.07 | $0.73 | $7.31 | $73.10 | **99.95%** |
+| OpenDataLoader | $0.35 | $3.45 | $34.50 | $345.00 | **99.8%** |
+| PaddleOCR (CPU) | $0.40 | $4.04 | $40.40 | $404.00 | **99.7%** |
+| PaddleOCR (GPU) *(est.)* | $2.19 | $21.90 | $219.00 | $2,190.00 | **98.5%** |
+| Docling (CPU) | $3.66 | $36.60 | $366.00 | $3,660.00 | **97.6%** |
+| Docling (GPU) *(est.)* | $5.84 | $58.40 | $584.00 | $5,840.00 | **96.1%** |
+| **Mixed pipeline** | **$0.34** | **$3.37** | **$33.70** | **$337.00** | **99.8%** |
 
 ---
 
 ## Recommendation
 
-| Workload | Recommendation | Reason |
-| --- | --- | --- |
-| Native PDFs (text-layer) | **PyMuPDF self-hosted** | ~$0 marginal cost; 6ms/doc |
-| Scanned PDFs, accuracy | **PaddleOCR self-hosted** | $0.0001/page vs $0.015/page; 99%+ saving |
-| Table-heavy docs | **Docling self-hosted** | Structured output; cost similar to PaddleOCR |
-| Handwritten content | **Retain Textract** | No viable open-source alternative found |
-| Unknown document mix | **Classify first, route accordingly** | Avoids applying OCR to native PDFs (saves 10-100× latency) |
+| Workload | Recommended tool | Infrastructure | Break-even |
+| --- | --- | --- | ---: |
+| Native PDFs (text layer) | PyMuPDF | t3.medium ($30/mo) | 2,000 pages/mo |
+| Native PDFs (tables required) | OpenDataLoader | t3.large ($60/mo) | 4,000 pages/mo |
+| Scanned PDFs, speed priority | Tesseract | t3.medium ($30/mo) | 2,000 pages/mo |
+| Scanned PDFs, accuracy priority | PaddleOCR CPU | c5.xlarge ($122/mo) | 8,200 pages/mo |
+| Table-heavy scanned documents | Docling CPU | c5.2xlarge ($245/mo) | 16,300 pages/mo |
+| Handwritten content | **Retain Textract** | n/a | n/a |
+| Mixed production pipeline | PyMuPDF + PaddleOCR | t3.medium + c5.xlarge ($152/mo) | 10,200 pages/mo |
 
-For a platform with minimal handwritten content, migrating to the self-hosted
-pipeline produces **>99% cost reduction** at all tested volumes. The minimum
-viable migration requires only PyMuPDF (native) + PaddleOCR (scanned), which
-can be deployed on a single EC2 instance and break even at ~8,200 pages/month.
+**Minimum viable migration** (text-only, no tables): Deploy PyMuPDF for native
+PDFs and Tesseract for scanned PDFs on a single t3.medium ($30/month). Break-
+even occurs at ~2,000 pages/month against Analyze Document pricing.
+
+**Full pipeline migration** (native + scanned + table extraction): PyMuPDF +
+PaddleOCR + Docling on two instances. Total infrastructure cost ~$152–$375/month.
+Break-even at ~10,000–25,000 pages/month. At 1M pages/month the annual saving
+exceeds **$179,000**.
+
+GPU instances improve Docling and PaddleOCR throughput (not yet directly
+measured) but raise break-even points due to higher instance cost. GPU
+acceleration is recommended only above ~25,000 pages/month or where latency
+SLAs require sub-second response times.
 
 ---
 
-## Appendix: AWS Textract API used
+## Appendix: Assumptions and Limitations
 
-Current platform uses:
-- `analyze_document` with `FeatureTypes=["TABLES", "FORMS"]`
-- Billed at $15.00 per 1,000 pages ($0.015/page)
-- Does not use Textract Queries (billed at $0.05/page) or Identity Documents
+1. **All compute costs are on-demand EC2 pricing.** Reserved Instances
+   (1-year) reduce costs by 30–40% and would lower all break-even thresholds
+   proportionally.
 
-If the platform is using only Detect Document Text (OCR only, no tables/forms):
-- Cost is $0.0015/page
-- Break-even with self-hosting still occurs at ~8,200 pages/month
-- Saving at 1M pages/month: ~$1,500 → ~$52 (97% reduction vs Analyze Document)
+2. **GPU latency figures are projected, not measured.** PaddleOCR and Docling
+   GPU latency are estimated from PaddleOCR documentation and Docling issue
+   tracker reports. They should be validated with a direct benchmark before
+   committing to GPU infrastructure.
+
+3. **Throughput assumes 100% CPU utilisation.** Real deployments should
+   provision for 70–80% peak utilisation to handle burst; instance counts and
+   costs at 10M pages/month should be multiplied by ~1.25–1.4.
+
+4. **Single-page document throughput.** All latency figures are from single-
+   page RVL-CDIP documents. Multi-page documents scale approximately linearly
+   for most tools; Docling may be sublinear due to model initialization
+   amortised across pages.
+
+5. **Network and storage costs are excluded.** At typical text extraction
+   payload sizes (<100 KB/page), transfer and storage costs are under $1/month
+   at 1M pages and are omitted from the main analysis.
+
+6. **Textract pricing may change.** AWS adjusts Textract pricing periodically.
+   Verify current pricing at https://aws.amazon.com/textract/pricing/ before
+   production planning.
