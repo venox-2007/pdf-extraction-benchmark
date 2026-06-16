@@ -56,13 +56,13 @@ def savefig(name: str) -> None:
 print("\n=== 1. Comparison Matrix CSV ===")
 
 criteria = [
-    ("Accuracy",           0.30),
-    ("Table Extraction",   0.20),
-    ("Latency",            0.20),
-    ("Cost",               0.15),
-    ("Handwriting",        0.05),
-    ("Layout Preservation",0.05),
-    ("Ease of Integration",0.05),
+    ("Accuracy",            0.30),
+    ("Table Extraction",    0.20),
+    ("Latency",             0.20),
+    ("Cost",                0.15),
+    ("Handwriting",         0.05),
+    ("Layout Preservation", 0.05),
+    ("Ease of Integration", 0.05),
 ]
 
 # Scores taken directly from comparison_matrix.md (updated with 50-doc Docling data)
@@ -77,13 +77,13 @@ scores: dict[str, list[int]] = {
 csv_lines = ["Tool," + ",".join(c for c, _ in criteria) + ",Weighted Total"]
 for tool in TOOLS:
     s = scores[tool]
-    weighted = sum(sc * w for sc, (_, w) in zip(s, criteria))
+    weighted = sum(sc * w for sc, (_, w) in zip(s, criteria, strict=True))
     row = f"{tool}," + ",".join(str(x) for x in s) + f",{weighted:.2f}"
     csv_lines.append(row)
 
 csv_path = ROOT / "docs" / "comparison_matrix.csv"
 csv_path.write_text("\n".join(csv_lines) + "\n", encoding="utf-8")
-print(f"  saved docs/comparison_matrix.csv")
+print("  saved docs/comparison_matrix.csv")
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -103,12 +103,13 @@ with open(RESULTS / "docling_funsd50" / "funsd_summary.json") as f:
 funsd_tools = ["PaddleOCR", "Tesseract", "Docling"]
 funsd_colors = [COLORS[t] for t in funsd_tools]
 
-cer   = [paddle_funsd["average_cer"],   tess_funsd["average_cer"],   docling_funsd["average_cer"]]
-wer   = [paddle_funsd["average_wer"],   tess_funsd["average_wer"],   docling_funsd["average_wer"]]
-tf1   = [paddle_funsd["average_token_f1"],  tess_funsd["average_token_f1"],  docling_funsd["average_token_f1"]]
-tprec = [paddle_funsd["average_token_precision"], tess_funsd["average_token_precision"], docling_funsd["average_token_precision"]]
-trec  = [paddle_funsd["average_token_recall"],    tess_funsd["average_token_recall"],    docling_funsd["average_token_recall"]]
-docs  = [paddle_funsd["evaluated_documents"], tess_funsd["evaluated_documents"], docling_funsd["evaluated_documents"]]
+_srcs = [paddle_funsd, tess_funsd, docling_funsd]
+cer   = [s["average_cer"] for s in _srcs]
+wer   = [s["average_wer"] for s in _srcs]
+tf1   = [s["average_token_f1"] for s in _srcs]
+tprec = [s["average_token_precision"] for s in _srcs]
+trec  = [s["average_token_recall"] for s in _srcs]
+docs  = [s["evaluated_documents"] for s in _srcs]
 
 x = np.arange(len(funsd_tools))
 w = 0.5
@@ -118,11 +119,11 @@ w = 0.5
 fig, ax = plt.subplots(figsize=(7, 4.5))
 bars = ax.bar(x, cer, width=w, color=funsd_colors, zorder=3)
 ax.set_xticks(x)
-ax.set_xticklabels([f"{t}\n(n={d})" for t, d in zip(funsd_tools, docs)])
+ax.set_xticklabels([f"{t}\n(n={d})" for t, d in zip(funsd_tools, docs, strict=True)])
 ax.set_ylabel("Character Error Rate (CER)")
 ax.set_title("FUNSD — Character Error Rate (lower is better)")
 ax.set_ylim(0, max(cer) * 1.35)
-for bar, val in zip(bars, cer):
+for bar, val in zip(bars, cer, strict=True):
     ax.text(bar.get_x() + bar.get_width() / 2, bar.get_height() + 0.008,
             f"{val:.3f}", ha="center", va="bottom", fontsize=10, fontweight="bold")
 ax.axhline(min(cer), color="grey", linestyle="--", linewidth=0.8, alpha=0.6)
@@ -133,11 +134,11 @@ savefig("funsd_cer.png")
 fig, ax = plt.subplots(figsize=(7, 4.5))
 bars = ax.bar(x, wer, width=w, color=funsd_colors, zorder=3)
 ax.set_xticks(x)
-ax.set_xticklabels([f"{t}\n(n={d})" for t, d in zip(funsd_tools, docs)])
+ax.set_xticklabels([f"{t}\n(n={d})" for t, d in zip(funsd_tools, docs, strict=True)])
 ax.set_ylabel("Word Error Rate (WER)")
 ax.set_title("FUNSD — Word Error Rate (lower is better)")
 ax.set_ylim(0, max(wer) * 1.30)
-for bar, val in zip(bars, wer):
+for bar, val in zip(bars, wer, strict=True):
     ax.text(bar.get_x() + bar.get_width() / 2, bar.get_height() + 0.01,
             f"{val:.3f}", ha="center", va="bottom", fontsize=10, fontweight="bold")
 savefig("funsd_wer.png")
@@ -145,22 +146,21 @@ savefig("funsd_wer.png")
 
 # Chart 2c — FUNSD Token F1 / Precision / Recall (grouped)
 fig, ax = plt.subplots(figsize=(9, 5))
-n = len(funsd_tools)
 gw = 0.22
 offsets = [-gw, 0, gw]
 labels = ["Token Precision", "Token Recall", "Token F1"]
 data_sets = [tprec, trec, tf1]
 grp_colors = ["#5B9BD5", "#ED7D31", "#70AD47"]
 
-for i, (vals, label, col) in enumerate(zip(data_sets, labels, grp_colors)):
+for i, (vals, label, col) in enumerate(zip(data_sets, labels, grp_colors, strict=True)):
     xpos = x + offsets[i]
     bars = ax.bar(xpos, vals, width=gw, label=label, color=col, zorder=3)
-    for bar, val in zip(bars, vals):
+    for bar, val in zip(bars, vals, strict=True):
         ax.text(bar.get_x() + bar.get_width() / 2, bar.get_height() + 0.008,
                 f"{val:.3f}", ha="center", va="bottom", fontsize=8)
 
 ax.set_xticks(x)
-ax.set_xticklabels([f"{t}\n(n={d})" for t, d in zip(funsd_tools, docs)])
+ax.set_xticklabels([f"{t}\n(n={d})" for t, d in zip(funsd_tools, docs, strict=True)])
 ax.set_ylabel("Score")
 ax.set_title("FUNSD — Token Precision, Recall, F1 (higher is better)")
 ax.set_ylim(0, 1.0)
@@ -173,18 +173,20 @@ fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(11, 5))
 fig.suptitle("FUNSD Accuracy Summary — 50 documents per tool", fontsize=13, fontweight="bold")
 
 bars1 = ax1.bar(x, cer, width=w, color=funsd_colors, zorder=3)
-ax1.set_xticks(x); ax1.set_xticklabels(funsd_tools)
+ax1.set_xticks(x)
+ax1.set_xticklabels(funsd_tools)
 ax1.set_title("CER ↓  (lower is better)")
 ax1.set_ylim(0, 0.70)
-for bar, val in zip(bars1, cer):
+for bar, val in zip(bars1, cer, strict=True):
     ax1.text(bar.get_x() + bar.get_width() / 2, bar.get_height() + 0.008,
              f"{val:.3f}", ha="center", va="bottom", fontsize=10, fontweight="bold")
 
 bars2 = ax2.bar(x, tf1, width=w, color=funsd_colors, zorder=3)
-ax2.set_xticks(x); ax2.set_xticklabels(funsd_tools)
+ax2.set_xticks(x)
+ax2.set_xticklabels(funsd_tools)
 ax2.set_title("Token F1 ↑  (higher is better)")
 ax2.set_ylim(0, 1.0)
-for bar, val in zip(bars2, tf1):
+for bar, val in zip(bars2, tf1, strict=True):
     ax2.text(bar.get_x() + bar.get_width() / 2, bar.get_height() + 0.008,
              f"{val:.3f}", ha="center", va="bottom", fontsize=10, fontweight="bold")
 
@@ -226,7 +228,7 @@ ax.set_xticks(xi)
 ax.set_xticklabels(lat_tools)
 ax.set_ylabel("Mean latency per document (ms, log scale)")
 ax.set_title("RVL-CDIP — Mean Extraction Latency per Document")
-for bar, val in zip(bars, lat_vals):
+for bar, val in zip(bars, lat_vals, strict=True):
     ax.text(bar.get_x() + bar.get_width() / 2, bar.get_height() * 1.15,
             f"{val:,.0f} ms", ha="center", va="bottom", fontsize=9, fontweight="bold")
 ax.set_ylim(1, max(lat_vals) * 8)
@@ -240,10 +242,11 @@ xi2 = np.arange(len(ocr_tools))
 
 fig, ax = plt.subplots(figsize=(7, 4.5))
 bars = ax.bar(xi2, ocr_vals, color=ocr_colors, zorder=3)
-ax.set_xticks(xi2); ax.set_xticklabels(ocr_tools)
+ax.set_xticks(xi2)
+ax.set_xticklabels(ocr_tools)
 ax.set_ylabel("Mean latency per document (ms)")
 ax.set_title("RVL-CDIP — OCR Tool Latency Comparison (linear scale)")
-for bar, val in zip(bars, ocr_vals):
+for bar, val in zip(bars, ocr_vals, strict=True):
     ax.text(bar.get_x() + bar.get_width() / 2, bar.get_height() + 200,
             f"{val:,.0f} ms", ha="center", va="bottom", fontsize=10, fontweight="bold")
 savefig("rvlcdip_latency_ocr.png")
@@ -269,10 +272,14 @@ xi3 = np.arange(len(TOOLS))
 
 fig, ax = plt.subplots(figsize=(9, 5))
 bars = ax.bar(xi3, wc_vals, color=wc_colors, zorder=3)
-ax.set_xticks(xi3); ax.set_xticklabels(TOOLS)
+ax.set_xticks(xi3)
+ax.set_xticklabels(TOOLS)
 ax.set_ylabel("Mean words extracted per document")
-ax.set_title("RVL-CDIP — Mean Word Count per Document\n(scanned images; native-PDF tools return 0 — no OCR)")
-for bar, val in zip(bars, wc_vals):
+ax.set_title(
+    "RVL-CDIP — Mean Word Count per Document\n"
+    "(scanned images; native-PDF tools return 0 — no OCR)"
+)
+for bar, val in zip(bars, wc_vals, strict=True):
     lbl = f"{val:.0f}" if val > 0 else "0\n(no OCR)"
     ax.text(bar.get_x() + bar.get_width() / 2,
             max(bar.get_height(), 5) + 2,
@@ -315,16 +322,16 @@ cost_colors_map = {
 monthly_at_1m = {label: rate * 1_000_000 for label, rate in cpp.items()}
 fig, ax = plt.subplots(figsize=(10, 5))
 bars = ax.bar(range(len(cost_labels)),
-              [monthly_at_1m[l] for l in cost_labels],
-              color=[cost_colors_map[l] for l in cost_labels],
+              [monthly_at_1m[lbl] for lbl in cost_labels],
+              color=[cost_colors_map[lbl] for lbl in cost_labels],
               zorder=3)
 ax.set_yscale("log")
 ax.set_xticks(range(len(cost_labels)))
 ax.set_xticklabels(cost_labels, fontsize=9)
 ax.set_ylabel("Monthly cost at 1M pages (USD, log scale)")
 ax.set_title("Cost Comparison at 1,000,000 Pages/Month")
-for bar, label in zip(bars, cost_labels):
-    val = monthly_at_1m[label]
+for bar, lbl in zip(bars, cost_labels, strict=True):
+    val = monthly_at_1m[lbl]
     ax.text(bar.get_x() + bar.get_width() / 2, bar.get_height() * 1.4,
             f"${val:,.0f}" if val >= 1 else f"${val:.2f}",
             ha="center", va="bottom", fontsize=8, fontweight="bold")
@@ -332,13 +339,13 @@ savefig("cost_at_1m_pages.png")
 
 # Chart 5b — Cost scaling across all 4 volumes (line chart)
 fig, ax = plt.subplots(figsize=(10, 6))
-for label, rate in cpp.items():
+for lbl, rate in cpp.items():
     monthly = [rate * v for v in volumes]
-    ls = "--" if "Textract" in label else "-"
-    lw = 2.5 if "Textract" in label or "Mixed" in label else 1.5
+    ls = "--" if "Textract" in lbl else "-"
+    lw = 2.5 if "Textract" in lbl or "Mixed" in lbl else 1.5
     ax.plot(vol_labels, monthly,
-            marker="o", label=label,
-            color=cost_colors_map[label],
+            marker="o", label=lbl,
+            color=cost_colors_map[lbl],
             linestyle=ls, linewidth=lw)
 
 ax.set_yscale("log")
@@ -347,7 +354,7 @@ ax.set_xlabel("Monthly page volume")
 ax.set_title("Self-Hosted vs Textract Cost Scaling")
 ax.legend(loc="upper left", fontsize=8, framealpha=0.9)
 ax.yaxis.set_major_formatter(matplotlib.ticker.FuncFormatter(
-    lambda x, _: f"${x:,.0f}" if x >= 1 else f"${x:.4f}"
+    lambda val, _: f"${val:,.0f}" if val >= 1 else f"${val:.4f}"
 ))
 savefig("cost_scaling.png")
 
@@ -363,7 +370,7 @@ weighted = {
     "OpenDataLoader": 7.25,
     "PaddleOCR":      5.50,
     "Docling":        6.05,
-    "Tesseract":      5.65,
+    "Tesseract":      5.95,
 }
 
 sorted_tools  = sorted(weighted, key=weighted.get, reverse=True)
@@ -374,9 +381,12 @@ fig, ax = plt.subplots(figsize=(8, 5))
 bars = ax.barh(sorted_tools, sorted_scores, color=sorted_colors, zorder=3)
 ax.set_xlim(0, 10)
 ax.set_xlabel("Weighted score (out of 10)")
-ax.set_title("Final Weighted Scores\n(Accuracy 30%, Tables 20%, Latency 20%, Cost 15%, Other 15%)")
+ax.set_title(
+    "Final Weighted Scores\n"
+    "(Accuracy 30%, Tables 20%, Latency 20%, Cost 15%, Other 15%)"
+)
 ax.invert_yaxis()
-for bar, val in zip(bars, sorted_scores):
+for bar, val in zip(bars, sorted_scores, strict=True):
     ax.text(val + 0.1, bar.get_y() + bar.get_height() / 2,
             f"{val:.2f}", va="center", fontsize=11, fontweight="bold")
 ax.axvline(6.0, color="grey", linestyle="--", linewidth=0.8, alpha=0.7)
@@ -384,12 +394,14 @@ savefig("weighted_scores.png")
 
 
 # Chart 6b — radar/spider chart for all 5 tools
-criteria_short = ["Accuracy", "Tables", "Latency", "Cost", "Handwriting", "Layout", "Integration"]
+criteria_short = [
+    "Accuracy", "Tables", "Latency", "Cost", "Handwriting", "Layout", "Integration",
+]
 N = len(criteria_short)
 angles = [n / float(N) * 2 * np.pi for n in range(N)]
 angles += angles[:1]
 
-fig, ax = plt.subplots(figsize=(8, 8), subplot_kw=dict(polar=True))
+fig, ax = plt.subplots(figsize=(8, 8), subplot_kw={"polar": True})
 for tool in TOOLS:
     vals = scores[tool] + [scores[tool][0]]
     ax.plot(angles, vals, "o-", linewidth=1.8, label=tool, color=COLORS[tool])
@@ -408,4 +420,4 @@ savefig("radar_scores.png")
 print("\nAll deliverables generated:")
 for p in sorted(CHARTS.iterdir()):
     print(f"  {p.name}")
-print(f"  docs/comparison_matrix.csv")
+print("  docs/comparison_matrix.csv")

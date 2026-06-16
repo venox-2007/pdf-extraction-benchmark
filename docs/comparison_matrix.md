@@ -245,7 +245,7 @@ This matches the target architecture in the internship brief.
 
 - FUNSD accuracy: `outputs/benchmark_results/funsd/funsd_summary.json` (PaddleOCR, 50 docs),
   `outputs/benchmark_results/funsd_tesseract/funsd_summary.json` (Tesseract, 50 docs),
-  `outputs/benchmark_results/docling/funsd_summary.json` (Docling, 5 docs)
+  `outputs/benchmark_results/docling_funsd50/funsd_summary.json` (Docling, 50 docs)
 - RVL-CDIP latency/volume:
   `outputs/benchmark_results/rvl_cdip_tesseract_comparison/rvl_cdip_summary.json` (32 docs)
 - Native vs scanned latency: `outputs/benchmark_results/benchmark_summary.json` (10 docs)
