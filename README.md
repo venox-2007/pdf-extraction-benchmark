@@ -1,6 +1,38 @@
 # PDF Extraction Tool Evaluation & Benchmarking
 
-Beginner-friendly, src-based Python project for benchmarking PDF extraction and OCR tools.
+Benchmarking toolkit for evaluating open-source PDF extraction and OCR tools as
+alternatives to AWS Textract. Includes a Streamlit UI, benchmark pipelines
+(RVL-CDIP, FUNSD), and five production-ready extractor adapters.
+
+## Architecture
+
+```mermaid
+flowchart TD
+    A[Input PDF / Image] --> B[PdfTypeClassifier]
+    B -->|native| C[Fast Path]
+    B -->|scanned / hybrid| D[OCR Path]
+
+    C --> C1[PyMuPDF\n~6 ms/doc]
+    C --> C2[OpenDataLoader\n~730 ms/doc]
+
+    D --> D1[PaddleOCR\n~8.7 s/doc\naccuracy-priority]
+    D --> D2[Tesseract\n~1.3 s/doc\nspeed-priority]
+    D --> D3[Docling\n~32 s/doc\ntable-heavy]
+
+    C1 & C2 & D1 & D2 & D3 --> E[ExtractionResult\nper-page schema]
+    E --> F[text · tables · bboxes · confidence · metadata]
+```
+
+**Key design decisions:**
+- Classify first, extract second — avoids applying OCR to native PDFs (saves
+  10–100× latency).
+- Shared `ExtractionResult` schema across all extractors — downstream code is
+  extractor-agnostic.
+- All five extractors implement `BaseExtractor`; swapping tools requires no
+  changes to application logic.
+
+See [`docs/integration_guide.md`](docs/integration_guide.md) for programmatic
+usage and microservice embedding examples.
 
 ## Runtime Requirements
 
@@ -71,8 +103,8 @@ The dataset is intentionally organized around extraction strategy, not early doc
 
 Why this matters:
 
-- Native PDFs -> direct extraction tools (OpenDataLoader, PyMuPDF, Marker)
-- Scanned PDFs -> OCR-based extractors (PaddleOCR, Tesseract)
+- Native PDFs → direct extraction tools (OpenDataLoader, PyMuPDF)
+- Scanned PDFs → OCR-based extractors (PaddleOCR, Tesseract, Docling)
 
 This keeps routing and benchmarking aligned with real-world document AI pipelines.
 
@@ -105,12 +137,57 @@ unaffected and use OpenDataLoader's own pipeline.
   `tesseract` binary to be installed and discoverable (see Runtime
   Requirements above).
 
-Future-ready TODOs (not implemented yet):
+Tools assessed but not implemented: see [`docs/rejected_tools.md`](docs/rejected_tools.md)
+for the full justification for Marker, Surya OCR, Unstructured.io, and Textract.
 
-- dataset metadata manifests
-- benchmark tags and document categories
-- quality labels (low quality, rotated, skewed)
-- page-level rotation/skew annotations
+## Key Documents
+
+| Document | Location |
+| --- | --- |
+| Tool comparison matrix (1–10 scores per criterion) | [`docs/comparison_matrix.md`](docs/comparison_matrix.md) |
+| Cost analysis vs AWS Textract | [`docs/cost_analysis.md`](docs/cost_analysis.md) |
+| Integration guide (microservice embedding) | [`docs/integration_guide.md`](docs/integration_guide.md) |
+| Rejected / deferred tools | [`docs/rejected_tools.md`](docs/rejected_tools.md) |
+| Tesseract vs PaddleOCR vs Docling evaluation | [`outputs/benchmark_results/tesseract_evaluation/tesseract_evaluation_report.md`](outputs/benchmark_results/tesseract_evaluation/tesseract_evaluation_report.md) |
+
+## Known Limitations
+
+- **Handwriting:** None of the five evaluated tools handle handwritten text
+  reliably. All produce garbled output on the FUNSD handwritten category and the
+  RVL-CDIP handwritten category. Handwritten documents should continue to use
+  AWS Textract or a dedicated HWR model until a viable open-source alternative
+  is identified.
+
+- **FUNSD CER/WER interpretation:** CER of 0.44 (PaddleOCR, best result) on
+  FUNSD reflects extraction on low-resolution, noisy scanned forms without any
+  post-processing. Production documents are typically higher quality; with spell
+  correction and NLP post-processing, usable accuracy is higher. FUNSD numbers
+  establish relative ranking across tools, not absolute production accuracy.
+
+- **Docling latency variance:** Docling's worst-case latency was 207 seconds on
+  a single complex specification document. Mean latency is 32 seconds per
+  document. It is unsuitable for real-time or high-throughput pipelines without
+  a per-document timeout and pre-classification guard.
+
+- **PaddleOCR on native PDFs:** PaddleOCR applies OCR regardless of whether the
+  PDF has a text layer. On a 26-page native document it took 262 seconds.
+  Always classify documents before routing to PaddleOCR.
+
+- **Tesseract word-count inflation:** Tesseract extracts more words than
+  PaddleOCR on most RVL-CDIP documents, but has a higher character error rate
+  (CER 0.48 vs 0.44 on FUNSD). The extra words are partly noise — confirmed
+  by qualitative review on handwritten documents. Higher word count alone is not
+  evidence of higher accuracy.
+
+- **Unstructured.io not evaluated:** A dependency conflict (`numpy<2` required
+  by PaddleOCR 2.6.2 vs `numpy>=2` required by unstructured ≥0.17) prevented
+  installation in the shared environment. See
+  [`docs/rejected_tools.md`](docs/rejected_tools.md).
+
+- **Table extraction tested on RVL-CDIP only:** Ground-truth table comparisons
+  (row/column accuracy) are not available for the RVL-CDIP dataset. Docling's
+  table output was verified qualitatively; no CER-equivalent metric for tables
+  was computed.
 
 ## Milestone 1 scope
 

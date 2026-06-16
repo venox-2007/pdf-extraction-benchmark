@@ -8,8 +8,9 @@ always reflect the extraction results shown elsewhere in the dashboard.
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from pathlib import Path
-from typing import Any, Sequence
+from typing import Any
 
 import fitz
 from PIL import Image, ImageDraw
