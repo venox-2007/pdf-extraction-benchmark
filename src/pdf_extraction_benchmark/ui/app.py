@@ -529,7 +529,7 @@ def _render_document_summary(meta: dict[str, Any]) -> None:
             f'<div class="summary-value">{str(meta.get("pdf_type", "unknown")).title()}</div>'
             f'<div style="margin-top:0.7rem"><b>Confidence:</b> '
             f"{meta.get('classification_confidence', 0.0) * 100:.0f}%</div>"
-            f'<div style="margin-top:0.35rem"><b>Reason:</b> '
+            f'<div style="margin-top:0.35rem"><b>Why this type:</b> '
             f"{meta.get('classification_reasoning', '-')}</div>"
             f'<div style="margin-top:0.35rem"><b>Recommended Extractors:</b> '
             f"{recommendations}</div>"
@@ -545,7 +545,6 @@ def _render_overview_cards(meta: dict[str, Any], comparison_rows: list[dict[str,
     total_pages = meta.get("total_pdf_pages", 0)
     processed_pages = 0
     total_time = 0.0
-    selected = ", ".join(meta.get("selected_extractors", []))
     if comparison_rows:
         processed_pages = max(int(row.get("processed_pages", 0)) for row in comparison_rows)
         total_time = sum(float(row.get("latency_seconds", 0.0)) for row in comparison_rows)
@@ -554,7 +553,6 @@ def _render_overview_cards(meta: dict[str, Any], comparison_rows: list[dict[str,
     c2.metric("Processed Pages", str(processed_pages))
     c3.metric("Extraction Time", f"{total_time:.2f}s")
     c4.metric("Selected Extractors", str(len(meta.get("selected_extractors", []))))
-    st.caption(f"Extractors: {selected}")
 
 
 def _format_comparison_rows(rows: list[dict[str, Any]]) -> pd.DataFrame:
@@ -575,16 +573,29 @@ def _format_comparison_rows(rows: list[dict[str, Any]]) -> pd.DataFrame:
     df["status"] = df["status"].map(
         lambda s: "success" if s == "success" else f"warning: {s}" if s else "warning: unknown"
     )
+    df = df.rename(
+        columns={
+            "extractor": "Extractor",
+            "latency_seconds": "Time (s)",
+            "total_pages": "Total Pages",
+            "processed_pages": "Processed Pages",
+            "text_length": "Text Length",
+            "markdown_length": "Markdown Length",
+            "ocr_required_pages": "OCR Pages",
+            "status": "Status",
+            "pdf_type": "Type",
+        }
+    )
     display_cols = [
-        "extractor",
-        "latency_seconds",
-        "total_pages",
-        "processed_pages",
-        "text_length",
-        "markdown_length",
-        "ocr_required_pages",
-        "status",
-        "pdf_type",
+        "Extractor",
+        "Time (s)",
+        "Total Pages",
+        "Processed Pages",
+        "Text Length",
+        "Markdown Length",
+        "OCR Pages",
+        "Status",
+        "Type",
     ]
     return df[display_cols]
 
@@ -855,7 +866,7 @@ def _build_aggregate_summary_df(per_extractor_summary: dict[str, dict[str, Any]]
                 "Avg Extraction Time (s)": round(summary["avg_extraction_time_seconds"], 3),
                 "Avg Character Count": round(summary["avg_character_count"], 1),
                 "Avg Word Count": round(summary["avg_word_count"], 1),
-                "Avg Bounding Box Count": round(summary["avg_bounding_box_count"], 1),
+                "Avg Layout Regions": round(summary["avg_bounding_box_count"], 1),
             }
         )
     return pd.DataFrame(rows)
@@ -884,7 +895,7 @@ def _render_aggregate_summary(report_rows: list[dict[str, Any]]) -> None:
     c4.metric("Avg Extraction Time (s)", f"{overall['avg_extraction_time_seconds']:.3f}")
     c5.metric("Avg Character Count", f"{overall['avg_character_count']:.1f}")
     c6.metric("Avg Word Count", f"{overall['avg_word_count']:.1f}")
-    st.metric("Avg Bounding Box Count", f"{overall['avg_bounding_box_count']:.1f}")
+    st.metric("Avg Layout Regions", f"{overall['avg_bounding_box_count']:.1f}")
 
     st.markdown("#### Per Extractor")
     st.dataframe(_build_aggregate_summary_df(per_extractor), width="stretch")
@@ -1498,7 +1509,6 @@ def _render_extractor_result_tabs(
     extractor_tabs = st.tabs(list(extractor_results.keys()))
     for index, extractor_name in enumerate(extractor_results.keys()):
         with extractor_tabs[index]:
-            st.markdown(f"### {extractor_name}")
             inner_tabs = st.tabs(["Text", "Markdown", "JSON", "Metadata"])
 
             with inner_tabs[0]:
@@ -1556,14 +1566,6 @@ def _render_extractor_result_tabs(
 
             with inner_tabs[3]:
                 st.markdown('<div class="meta-card">', unsafe_allow_html=True)
-                st.write(f"**File:** {st.session_state.last_meta.get('file_name', '')}")
-                st.write(f"**Size:** {st.session_state.last_meta.get('file_size_kb', 0)} KB")
-                st.write(
-                    f"**Total PDF Pages:** {st.session_state.last_meta.get('total_pdf_pages', 0)}"
-                )
-                st.write(
-                    f"**Detected Type:** {st.session_state.last_meta.get('pdf_type', 'unknown')}"
-                )
                 if extractor_name == "PaddleOCR":
                     ocr_metadata = None
                     if extractor_results.get(extractor_name):
@@ -1574,7 +1576,7 @@ def _render_extractor_result_tabs(
                         else paddleocr_language_mode
                     )
                     st.write(
-                        "**PaddleOCR Language Mode:** "
+                        "**Language Mode:** "
                         f"{_paddleocr_language_label(str(ocr_mode))} "
                         f"(`{ocr_mode}`)"
                     )
@@ -1582,26 +1584,6 @@ def _render_extractor_result_tabs(
                         metadata_extra = ocr_metadata.extra
                         st.write(f"**OCR Model:** {metadata_extra.get('ocr_model_name', '')}")
                         st.write(f"**OCR Language:** {metadata_extra.get('ocr_language', '')}")
-                st.write(
-                    "**Classifier Confidence:** "
-                    f"{st.session_state.last_meta.get('classification_confidence', 0.0):.2f}"
-                )
-                st.write(
-                    f"**Classifier Reason:** "
-                    f"{st.session_state.last_meta.get('classification_reasoning', '')}"
-                )
-                st.write(
-                    f"**Text-rich Pages:** {st.session_state.last_meta.get('text_pages', 0)} / "
-                    f"{st.session_state.last_meta.get('total_pdf_pages', 0)}"
-                )
-                st.write(
-                    f"**Avg Text Density:** "
-                    f"{st.session_state.last_meta.get('avg_text_density', 0.0):.3f}"
-                )
-                st.write(
-                    f"**Avg Image Ratio:** "
-                    f"{st.session_state.last_meta.get('avg_image_ratio', 0.0):.3f}"
-                )
                 st.write(
                     f"**JSON Output:** "
                     f"`{st.session_state.last_paths.get(extractor_name, {}).get('json', '')}`"
@@ -1650,7 +1632,7 @@ def _build_rvl_cdip_extractor_comparison_df(summary: RvlCdipBenchmarkSummary) ->
                 "Avg Latency (ms)": extractor_summary.latency_ms.mean,
                 "Avg Char Count": extractor_summary.char_count.mean,
                 "Avg Word Count": extractor_summary.word_count.mean,
-                "Avg BBox Count": extractor_summary.bbox_count.mean,
+                "Avg Layout Regions": extractor_summary.bbox_count.mean,
             }
         )
     return pd.DataFrame(rows)
@@ -1773,8 +1755,8 @@ def _render_rvl_cdip_results(summary: RvlCdipBenchmarkSummary) -> None:
         st.bar_chart(chart_df[["Avg Latency (ms)"]])
         st.caption("Avg Char & Word Count")
         st.bar_chart(chart_df[["Avg Char Count", "Avg Word Count"]])
-        st.caption("Avg BBox Count")
-        st.bar_chart(chart_df[["Avg BBox Count"]])
+        st.caption("Avg Layout Regions")
+        st.bar_chart(chart_df[["Avg Layout Regions"]])
 
     st.markdown("#### Category Analysis")
     category_df, low_yield_categories = _build_rvl_cdip_category_analysis(summary)
@@ -1932,25 +1914,32 @@ def run() -> None:
             options=list(EXTRACTOR_OPTIONS.keys()),
             default=[],
         )
-        paddleocr_language_label = st.selectbox(
-            "PaddleOCR Language",
-            options=list(PADDLEOCR_LANGUAGE_OPTIONS.keys()),
-            index=0,
-            help="Choose English or multilingual OCR for PaddleOCR runs.",
-        )
+        with st.expander("Advanced Settings"):
+            paddleocr_language_label = st.selectbox(
+                "PaddleOCR Language",
+                options=list(PADDLEOCR_LANGUAGE_OPTIONS.keys()),
+                index=0,
+                help="Choose English or multilingual OCR for PaddleOCR runs.",
+            )
+            opendataloader_mode_label = st.selectbox(
+                "OpenDataLoader Mode",
+                options=list(OPENDATALOADER_MODE_OPTIONS.keys()),
+                index=0,
+                help=(
+                    f"{OPENDATALOADER_MODE_DESCRIPTIONS['auto']}\n\n"
+                    f"{OPENDATALOADER_MODE_DESCRIPTIONS['standard']}\n\n"
+                    f"{OPENDATALOADER_MODE_DESCRIPTIONS['hybrid']}"
+                ),
+            )
         paddleocr_language_mode = PADDLEOCR_LANGUAGE_OPTIONS[paddleocr_language_label]
-        opendataloader_mode_label = st.selectbox(
-            "OpenDataLoader Mode",
-            options=list(OPENDATALOADER_MODE_OPTIONS.keys()),
-            index=0,
-            help=(
-                f"{OPENDATALOADER_MODE_DESCRIPTIONS['auto']}\n\n"
-                f"{OPENDATALOADER_MODE_DESCRIPTIONS['standard']}\n\n"
-                f"{OPENDATALOADER_MODE_DESCRIPTIONS['hybrid']}"
-            ),
-        )
         opendataloader_mode = OPENDATALOADER_MODE_OPTIONS[opendataloader_mode_label]
-        run_clicked = st.button("Run Extraction", type="primary", use_container_width=True)
+        run_clicked = st.button(
+            "Run Extraction",
+            type="primary",
+            use_container_width=True,
+            disabled=not selected_extractors,
+            help=None if selected_extractors else "Select at least one extractor first.",
+        )
 
     st.title(APP_NAME)
     st.markdown(f'<div class="subtitle">{APP_SUBTITLE}</div>', unsafe_allow_html=True)
@@ -2106,15 +2095,17 @@ def run() -> None:
         [
             "Overview",
             "Benchmarking",
-            "Native vs Scanned Analysis",
+            "By Document Type",
             "RVL-CDIP Benchmark",
-            "Extractor Results",
+            "Results",
             "Advanced Features",
             "Visualizations",
         ]
     )
 
     with overview_tab:
+        if not st.session_state.last_meta:
+            st.info("Upload a document and run extraction to see results here.")
         if st.session_state.last_meta:
             _render_document_summary(st.session_state.last_meta)
             _render_overview_cards(st.session_state.last_meta, st.session_state.comparison_rows)
@@ -2137,6 +2128,8 @@ def run() -> None:
             _render_comparison_analysis(st.session_state.comparison_rows)
 
     with benchmarking_tab:
+        if not st.session_state.documents:
+            st.info("Upload a document and run extraction to see results here.")
         if st.session_state.documents:
             report_rows = build_multi_document_report_rows(
                 [(doc["file_name"], doc["comparison_rows"]) for doc in st.session_state.documents]
@@ -2158,17 +2151,23 @@ def run() -> None:
         _render_rvl_cdip_benchmark_tab(project_root)
 
     with extractor_tab:
+        if not st.session_state.last_results:
+            st.info("Upload a document and run extraction to see results here.")
         _render_extractor_result_tabs(
             st.session_state.last_results, paddleocr_language_mode, project_root
         )
 
     with advanced_tab:
+        if not st.session_state.last_results:
+            st.info("Upload a document and run extraction to see results here.")
         if st.session_state.last_results:
             _render_advanced_document_features(
                 st.session_state.last_results, st.session_state.last_markdown
             )
 
     with visualizations_tab:
+        if not st.session_state.documents:
+            st.info("Upload a document and run extraction to see results here.")
         if st.session_state.documents:
             _render_bounding_box_visualization(st.session_state.documents, project_root)
 
