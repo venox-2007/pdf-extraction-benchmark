@@ -49,7 +49,6 @@ def tmp_blank_pdf(tmp_path: Path) -> Path:
 @pytest.fixture()
 def tmp_image_pdf(tmp_path: Path) -> Path:
     """Create a single-page PDF containing only a large JPEG image (no text)."""
-    import io
     p = tmp_path / "scanned.pdf"
     # Create a small white image with Pillow or raw bytes; use PyMuPDF directly.
     doc = fitz.open()

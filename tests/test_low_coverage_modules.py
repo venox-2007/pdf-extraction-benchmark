@@ -6,7 +6,6 @@ from pathlib import Path
 
 import pytest
 
-
 # ── logger ────────────────────────────────────────────────────────────────────
 
 class TestLogger:
@@ -83,7 +82,10 @@ class TestExtractionModels:
         assert result.page_number == 2
 
     def test_extraction_result_with_table(self) -> None:
-        from pdf_extraction_benchmark.models.extraction_result import ExtractedTable, ExtractionResult
+        from pdf_extraction_benchmark.models.extraction_result import (
+            ExtractedTable,
+            ExtractionResult,
+        )
         tbl = ExtractedTable(table_id="t1")
         result = ExtractionResult(
             tool_name="test",

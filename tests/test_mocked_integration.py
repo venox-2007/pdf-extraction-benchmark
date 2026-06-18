@@ -8,12 +8,9 @@ Covers:
 from __future__ import annotations
 
 import json
-from dataclasses import asdict
-from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
-
 
 # ── OpendataloaderExtractor helper methods ────────────────────────────────────
 
@@ -321,8 +318,8 @@ class TestRvlCdipBenchmarkInternals:
     def minimal_summary(self, tmp_path):
         from pdf_extraction_benchmark.benchmarks.rvl_cdip.benchmark import (
             RvlCdipBenchmarkSummary,
-            RvlCdipExtractorSummary,
             RvlCdipCategorySummary,
+            RvlCdipExtractorSummary,
             _statistics_for,
         )
         ext_summary = RvlCdipExtractorSummary(
@@ -454,6 +451,7 @@ class TestRvlCdipBenchmarkInternals:
 
     def test_collect_documents_with_pdfs(self, tmp_path) -> None:
         import fitz
+
         from pdf_extraction_benchmark.benchmarks.rvl_cdip.benchmark import RvlCdipBenchmarkPipeline
 
         cat_dir = tmp_path / "data" / "invoice"
@@ -496,6 +494,7 @@ class TestRvlCdipBenchmarkInternals:
 
     def test_evaluate_document_success(self, tmp_path) -> None:
         import fitz
+
         from pdf_extraction_benchmark.benchmarks.rvl_cdip.benchmark import RvlCdipBenchmarkPipeline
         from pdf_extraction_benchmark.models.extraction_result import ExtractionResult
 
@@ -531,6 +530,7 @@ class TestRvlCdipBenchmarkInternals:
 
     def test_evaluate_document_failure(self, tmp_path) -> None:
         import fitz
+
         from pdf_extraction_benchmark.benchmarks.rvl_cdip.benchmark import RvlCdipBenchmarkPipeline
 
         class BrokenExtractor:
@@ -555,6 +555,7 @@ class TestRvlCdipBenchmarkInternals:
     def test_run_end_to_end_mocked(self, tmp_path) -> None:
         """Full run() with a simple fake extractor and a tiny in-memory dataset."""
         import fitz
+
         from pdf_extraction_benchmark.benchmarks.rvl_cdip.benchmark import RvlCdipBenchmarkPipeline
         from pdf_extraction_benchmark.models.extraction_result import ExtractionResult
 

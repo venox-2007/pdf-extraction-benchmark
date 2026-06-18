@@ -5,9 +5,6 @@ from __future__ import annotations
 from pathlib import Path
 from unittest.mock import patch
 
-import pytest
-
-
 # ── benchmarks/base.py ────────────────────────────────────────────────────────
 
 class TestBenchmarkResult:
@@ -50,23 +47,26 @@ class TestBenchmarkResult:
 
 class TestConfigureLogging:
     def test_configure_logging_creates_log_file(self, tmp_path: Path) -> None:
-        from pdf_extraction_benchmark.utils.logger import configure_logging
         import logging
+
+        from pdf_extraction_benchmark.utils.logger import configure_logging
         configure_logging(tmp_path, level=logging.WARNING)
         log_file = tmp_path / "benchmark.log"
         assert log_file.exists()
 
     def test_configure_logging_creates_dir(self, tmp_path: Path) -> None:
-        from pdf_extraction_benchmark.utils.logger import configure_logging
         import logging
+
+        from pdf_extraction_benchmark.utils.logger import configure_logging
         new_dir = tmp_path / "logs" / "subdir"
         configure_logging(new_dir, level=logging.ERROR)
         assert new_dir.exists()
         assert (new_dir / "benchmark.log").exists()
 
     def test_configure_logging_sets_level(self, tmp_path: Path) -> None:
-        from pdf_extraction_benchmark.utils.logger import configure_logging
         import logging
+
+        from pdf_extraction_benchmark.utils.logger import configure_logging
         configure_logging(tmp_path, level=logging.DEBUG)
         root = logging.getLogger()
         assert root.level <= logging.DEBUG
@@ -85,8 +85,9 @@ class TestIsServerHealthy:
         assert _is_server_healthy("http://127.0.0.1:19998") is False
 
     def test_returns_true_when_healthy(self) -> None:
-        from pdf_extraction_benchmark.utils.opendataloader_hybrid import _is_server_healthy
         from unittest.mock import MagicMock
+
+        from pdf_extraction_benchmark.utils.opendataloader_hybrid import _is_server_healthy
         mock_response = MagicMock()
         mock_response.status = 200
         mock_response.__enter__ = lambda s: s
@@ -95,8 +96,9 @@ class TestIsServerHealthy:
             assert _is_server_healthy("http://127.0.0.1:5002") is True
 
     def test_returns_false_on_non_200(self) -> None:
-        from pdf_extraction_benchmark.utils.opendataloader_hybrid import _is_server_healthy
         from unittest.mock import MagicMock
+
+        from pdf_extraction_benchmark.utils.opendataloader_hybrid import _is_server_healthy
         mock_response = MagicMock()
         mock_response.status = 503
         mock_response.__enter__ = lambda s: s
