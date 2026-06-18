@@ -7,6 +7,7 @@ from collections import defaultdict
 from pathlib import Path
 from typing import Any
 
+import fitz
 import opendataloader_pdf
 
 from pdf_extraction_benchmark.interfaces.base_extractor import BaseExtractor
@@ -18,6 +19,31 @@ from pdf_extraction_benchmark.models.extraction_result import (
     TableCell,
 )
 from pdf_extraction_benchmark.utils.logger import get_logger
+
+# Block types in the OpenDataLoader kids schema that carry text content.
+# Structural/graphical types (image, figure, table, separator, line, background,
+# artifact) are excluded so their bounding boxes are never emitted as text regions.
+_TEXT_BLOCK_TYPES: frozenset[str] = frozenset(
+    {
+        "paragraph",
+        "heading",
+        "text",
+        "list",
+        "list item",
+        "caption",
+        "footnote",
+        "header",
+        "footer",
+        "title",
+        "subtitle",
+        "toc",
+        "reference",
+        "quote",
+        "code",
+        "formula",
+        "note",
+    }
+)
 
 
 class OpendataloaderExtractor(BaseExtractor):
@@ -181,18 +207,26 @@ class OpendataloaderExtractor(BaseExtractor):
         if total_pages is not None and total_pages > 0:
             ordered_pages = sorted(set(ordered_pages) | set(range(1, total_pages + 1)))
 
+        # ODL uses PDF bottom-left coordinates; fetch page heights so we can
+        # convert to top-left screen coordinates (consistent with all other extractors).
+        page_heights = self._get_page_heights(pdf_path)
+
         results: list[ExtractionResult] = []
         for page_num in ordered_pages:
             blocks = page_blocks.get(page_num, [])
+            page_height = page_heights.get(page_num, 0.0)
             text_parts: list[str] = []
             boxes: list[BoundingBox] = []
 
-            for block in blocks:
+            for block in self._collect_text_blocks(blocks):
                 content = block.get("content")
-                if isinstance(content, str) and content.strip():
-                    text_parts.append(content.strip())
+                if not (isinstance(content, str) and content.strip()):
+                    continue
+                text_parts.append(content.strip())
                 box = self._to_bbox(block.get("bounding box"))
                 if box is not None:
+                    if page_height > 0:
+                        box = self._flip_y(box, page_height)
                     boxes.append(box)
 
             results.append(
@@ -211,6 +245,59 @@ class OpendataloaderExtractor(BaseExtractor):
             )
 
         return results
+
+    def _collect_text_blocks(
+        self, blocks: list[dict[str, Any]]
+    ) -> list[dict[str, Any]]:
+        """Recursively collect text-bearing leaf blocks from a kids/rows/cells tree.
+
+        Top-level text blocks (paragraph, heading, etc.) are returned directly.
+        Table blocks are not returned themselves but their cell children are
+        recursed into, yielding tighter per-cell paragraph bboxes instead of
+        the coarse table-level box.
+        """
+        text_blocks: list[dict[str, Any]] = []
+        for block in blocks:
+            if not isinstance(block, dict):
+                continue
+            block_type = str(block.get("type", "")).lower()
+            if block_type == "table":
+                for row in block.get("rows", []):
+                    if not isinstance(row, dict):
+                        continue
+                    for cell in row.get("cells", []):
+                        if not isinstance(cell, dict):
+                            continue
+                        cell_kids = cell.get("kids", [])
+                        if isinstance(cell_kids, list):
+                            text_blocks.extend(self._collect_text_blocks(cell_kids))
+            elif not block_type or block_type in _TEXT_BLOCK_TYPES:
+                text_blocks.append(block)
+        return text_blocks
+
+    def _get_page_heights(self, pdf_path: Path) -> dict[int, float]:
+        """Return PDF page heights in points, keyed by 1-based page number.
+
+        Returns an empty dict if the file cannot be opened (e.g. in unit tests
+        using mock paths), in which case the caller skips the y-flip.
+        """
+        try:
+            heights: dict[int, float] = {}
+            with fitz.open(str(pdf_path)) as doc:
+                for i, page in enumerate(doc, start=1):
+                    heights[i] = float(page.rect.height)
+            return heights
+        except Exception:
+            return {}
+
+    def _flip_y(self, box: BoundingBox, page_height: float) -> BoundingBox:
+        """Convert a bottom-left PDF bbox to top-left screen coordinates."""
+        return BoundingBox(
+            x0=box.x0,
+            y0=page_height - box.y1,
+            x1=box.x1,
+            y1=page_height - box.y0,
+        )
 
     def _extract_text(self, page: dict[str, Any]) -> str:
         """Extract text using common OpenDataLoader page keys."""
