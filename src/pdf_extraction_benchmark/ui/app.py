@@ -108,7 +108,7 @@ EXTRACTOR_CAPABILITIES = {
     "Docling": {
         "ocr_supported": True,
         "supports_pdf": True,
-        "supports_image": False,
+        "supports_image": True,
         "markdown_support": True,
         "layout_preservation_support": True,
     },
