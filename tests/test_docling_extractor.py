@@ -70,16 +70,16 @@ def test_docling_extractor_returns_schema_results(tmp_path: Path, monkeypatch) -
     assert (tmp_path / "outputs" / "docling" / "sample" / "result.md").exists()
 
 
-def test_docling_extractor_rejects_non_pdf(tmp_path: Path, monkeypatch) -> None:
-    """Docling should only accept PDF inputs."""
+def test_docling_extractor_rejects_unsupported_type(tmp_path: Path, monkeypatch) -> None:
+    """Docling should reject file types it cannot handle (e.g. .docx, .csv)."""
     monkeypatch.setattr(docling_module, "DocumentConverter", lambda: _FakeConverter())
     extractor = DoclingExtractor(output_root=tmp_path)
-    image_path = tmp_path / "sample.png"
-    image_path.write_bytes(b"not an image")
+    bad_path = tmp_path / "document.docx"
+    bad_path.write_bytes(b"not a real docx")
 
     try:
-        extractor.extract(image_path)
+        extractor.extract(bad_path)
     except FileNotFoundError as exc:
-        assert "PDF" in str(exc)
+        assert "does not support" in str(exc)
     else:  # pragma: no cover - defensive
-        raise AssertionError("Expected FileNotFoundError for non-PDF input")
+        raise AssertionError("Expected FileNotFoundError for unsupported file type")

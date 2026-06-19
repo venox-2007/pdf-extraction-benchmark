@@ -70,13 +70,20 @@ class DoclingExtractor(BaseExtractor):
         self.output_root = output_root
         self._converter = DocumentConverter()
 
+    SUPPORTED_SUFFIXES: frozenset[str] = frozenset(
+        {".pdf", ".png", ".jpg", ".jpeg", ".tif", ".tiff", ".bmp", ".webp"}
+    )
+
     def extract(self, pdf_path: Path) -> list[ExtractionResult]:
-        """Extract page-wise text, layout, and table structure from a PDF."""
+        """Extract page-wise text, layout, and table structure from a PDF or image."""
         pdf_path = pdf_path.resolve()
         if not pdf_path.exists():
             raise FileNotFoundError(f"Input file not found: {pdf_path}")
-        if pdf_path.suffix.lower() != ".pdf":
-            raise FileNotFoundError(f"Docling supports PDF input only: {pdf_path}")
+        if pdf_path.suffix.lower() not in self.SUPPORTED_SUFFIXES:
+            raise FileNotFoundError(
+                f"Docling does not support this file type: {pdf_path.suffix!r}. "
+                f"Supported: {sorted(self.SUPPORTED_SUFFIXES)}"
+            )
 
         try:
             artifact = self._convert_document(pdf_path)
