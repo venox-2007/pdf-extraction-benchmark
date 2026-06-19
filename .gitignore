@@ -37,6 +37,9 @@ htmlcov/
 !/outputs/benchmark_results/benchmark_observations.md
 !/outputs/benchmark_results/benchmark_summary.csv
 !/outputs/benchmark_results/benchmark_summary.json
+# Keep PAN qualitative benchmark outputs (text + annotated images)
+!/outputs/benchmark_results/pan_card_qualitative/
+!/outputs/benchmark_results/pan_card_qualitative/**
 
 # Keep empty output directories
 !/outputs/benchmarks/

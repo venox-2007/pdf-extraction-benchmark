@@ -1,0 +1,5 @@
+extractor,images_tested,n/a_count,avg_overall_score,pan_number_yes,pan_number_partial,pan_number_rate_%,name_yes,name_rate_%,dob_yes,dob_rate_%,hindi_yes,hindi_rate_%
+PaddleOCR,20,0,4.3,16,0,80.0,17,85.0,19,95.0,0,0.0
+Tesseract,20,0,1.75,4,1,20.0,4,20.0,2,10.0,0,0.0
+Docling,20,0,4.45,17,0,85.0,19,95.0,16,80.0,0,0.0
+OpenDataLoader,0,20,0,0,0,0,0,0,0,0,0,0
