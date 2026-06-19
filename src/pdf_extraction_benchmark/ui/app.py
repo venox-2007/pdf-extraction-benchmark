@@ -94,14 +94,14 @@ EXTRACTOR_CAPABILITIES = {
     "OpenDataLoader": {
         "ocr_supported": True,
         "supports_pdf": True,
-        "supports_image": False,
+        "supports_image": True,
         "markdown_support": True,
         "layout_preservation_support": True,
     },
     "PyMuPDF": {
         "ocr_supported": False,
         "supports_pdf": True,
-        "supports_image": False,
+        "supports_image": True,
         "markdown_support": False,
         "layout_preservation_support": True,
     },
@@ -207,6 +207,44 @@ def _build_unsupported_image_result(
                     "ocr_required": True,
                     "total_page_count": 1,
                     "reason": f"{extractor_name} supports PDF input only.",
+                },
+            ),
+        )
+    ]
+
+
+_NO_OCR_MESSAGE = (
+    "No text layer detected. "
+    "This extractor is designed for native PDFs and does not perform OCR."
+)
+
+_NO_OCR_EXTRACTORS = frozenset({"OpenDataLoader", "PyMuPDF"})
+
+
+def _build_no_ocr_image_result(
+    extractor_name: str,
+    input_path: Path,
+) -> list[ExtractionResult]:
+    """Return a schema-compatible result for extractors that wrapped an image but have no OCR."""
+    return [
+        ExtractionResult(
+            tool_name=_extractor_slug(extractor_name),
+            page_number=1,
+            extracted_text=_NO_OCR_MESSAGE,
+            tables=[],
+            bounding_boxes=[],
+            confidence_scores=[],
+            metadata=ExtractionMetadata(
+                source_file=input_path.name,
+                extra={
+                    "status": "no_text_layer",
+                    "extractor": _extractor_slug(extractor_name),
+                    "input_type": "image",
+                    "ocr_supported": False,
+                    "ocr_used": False,
+                    "ocr_required": True,
+                    "total_page_count": 1,
+                    "reason": _NO_OCR_MESSAGE,
                 },
             ),
         )
@@ -1336,6 +1374,14 @@ def _process_document(
                 results = _build_unsupported_image_result(extractor_name, input_path)
             else:
                 extractor = _create_extractor(extractor_name, paddleocr_language_mode)
+                # ODL and PyMuPDF need a PDF; wrap image inputs in a single-page PDF.
+                extractor_input = input_path
+                _tmp_pdf_handle: Path | None = None
+                if is_image_input and extractor_name in {"OpenDataLoader", "PyMuPDF"}:
+                    _tmp_pdf_bytes = fitz.open(str(input_path)).convert_to_pdf()
+                    _tmp_pdf_handle = extractor_output_dir / f"{input_path.stem}_wrapped.pdf"
+                    _tmp_pdf_handle.write_bytes(_tmp_pdf_bytes)
+                    extractor_input = _tmp_pdf_handle
                 if extractor_name == "OpenDataLoader":
                     hybrid_url = _resolve_opendataloader_hybrid_url(
                         opendataloader_mode=opendataloader_mode,
@@ -1344,12 +1390,24 @@ def _process_document(
                         document_name=uploaded.name,
                     )
                     results = extractor.extract(
-                        pdf_path=input_path,
+                        pdf_path=extractor_input,
                         output_dir=extractor_output_dir,
                         hybrid_url=hybrid_url,
                     )
                 else:
-                    results = extractor.extract(pdf_path=input_path)
+                    results = extractor.extract(pdf_path=extractor_input)
+                # For no-OCR extractors given an image input, replace empty results
+                # with an informative message rather than showing blank text.
+                if (
+                    is_image_input
+                    and extractor_name in _NO_OCR_EXTRACTORS
+                    and not any(
+                        r.extracted_text.strip()
+                        for r in results
+                        if r.extracted_text
+                    )
+                ):
+                    results = _build_no_ocr_image_result(extractor_name, input_path)
             elapsed = time.perf_counter() - start
 
             payload = UnifiedOutputParser().to_json_payload(results)
@@ -1396,9 +1454,14 @@ def _process_document(
                 status = "success" if not no_text_output else "empty_text_output"
             if pdf_type == "scanned" and no_text_output and status == "empty_text_output":
                 status = "limited_for_scanned_pdf"
-            if status == "unsupported_for_image_input":
+            if status in {"unsupported_for_image_input", "no_text_layer"}:
                 processed_page_count = 0
-            if status != "success":
+            if status == "no_text_layer":
+                warnings.append(
+                    f"{uploaded.name} / {extractor_name}: no text layer — "
+                    "extractor does not perform OCR on images"
+                )
+            elif status != "success":
                 warnings.append(f"{uploaded.name} / {extractor_name}: {status.replace('_', ' ')}")
 
             per_extractor_results[extractor_name] = results
@@ -1513,11 +1576,17 @@ def _render_extractor_result_tabs(
 
             with inner_tabs[0]:
                 text_value = st.session_state.last_text.get(extractor_name, "")
-                st.text_area(
-                    f"Extracted Text ({extractor_name})",
-                    value=text_value,
-                    height=320,
-                )
+                _results = extractor_results.get(extractor_name) or []
+                _first_meta = _results[0].metadata if _results else None
+                _status = _first_meta.extra.get("status") if _first_meta else ""
+                if _status == "no_text_layer":
+                    st.info(_NO_OCR_MESSAGE)
+                else:
+                    st.text_area(
+                        f"Extracted Text ({extractor_name})",
+                        value=text_value,
+                        height=320,
+                    )
 
             with inner_tabs[1]:
                 markdown_value = st.session_state.last_markdown.get(extractor_name, "")
