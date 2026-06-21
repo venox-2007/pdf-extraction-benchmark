@@ -57,6 +57,12 @@ htmlcov/
 data/processed/*
 !data/processed/.gitkeep
 
+# Raw PAN dataset (downloaded from Roboflow, ~1400 images) — too large to
+# track in full. Keep the manifest and metadata needed to reproduce the
+# 20-image qualitative sample; re-download train/valid images if needed.
+data/PAN.v2i.yolov8/train/*
+data/PAN.v2i.yolov8/valid/*
+
 # OS/editor junk
 .DS_Store
 Thumbs.db

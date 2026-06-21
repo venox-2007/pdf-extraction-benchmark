@@ -12,7 +12,6 @@ Outputs go to outputs/benchmark_results/pan_card_qualitative/.
 from __future__ import annotations
 
 import csv
-import json
 import re
 import tempfile
 import textwrap
@@ -30,6 +29,7 @@ ROOT = Path(__file__).resolve().parents[1]
 MANIFEST = ROOT / "data" / "PAN.v2i.yolov8" / "pan_sample_manifest.csv"
 OUT_DIR = ROOT / "outputs" / "benchmark_results" / "pan_card_qualitative"
 FAIL_DIR = OUT_DIR / "failure_examples"
+_ERROR_SCORE = {"pan": "error", "name": "error", "dob": "error", "hindi": "error", "overall": 0}
 
 # ---------------------------------------------------------------------------
 # Regex / detection helpers
@@ -210,7 +210,6 @@ def make_failure_image(
         original = original.resize((orig_w, orig_h), Image.LANCZOS)
 
         panel_w = 420
-        panel_h = orig_h
         total_w = orig_w + panel_w
         total_h = max(orig_h, 400)
 
@@ -254,9 +253,10 @@ def make_failure_image(
                 y += line_h
                 # Show first 3 non-empty lines of extracted text
                 snippet = texts.get(extractor, "")
-                lines = [l.strip() for l in snippet.splitlines() if l.strip()][:3]
+                lines = [ln.strip() for ln in snippet.splitlines() if ln.strip()][:3]
                 for line in lines:
-                    draw.text((x + 4, y), textwrap.shorten(line, 52), fill=(180, 220, 180), font=font_sm)
+                    shortened = textwrap.shorten(line, 52)
+                    draw.text((x + 4, y), shortened, fill=(180, 220, 180), font=font_sm)
                     y += line_h
                 if not lines:
                     draw.text((x + 4, y), "(no text extracted)", fill=(160, 100, 100), font=font_sm)
@@ -327,9 +327,12 @@ def main() -> None:
             elapsed = round((time.perf_counter() - t0) * 1000, 0)
             text = results[0].extracted_text if results else ""
             sc = score_text(text)
-            print(f"PAN={sc['pan']} name={sc['name']} dob={sc['dob']} score={sc['overall']}/5 ({elapsed:.0f}ms)")
+            print(
+                f"PAN={sc['pan']} name={sc['name']} dob={sc['dob']} "
+                f"score={sc['overall']}/5 ({elapsed:.0f}ms)"
+            )
         except Exception as e:
-            text, sc, elapsed = "", {"pan": "error", "name": "error", "dob": "error", "hindi": "error", "overall": 0}, 0
+            text, sc, elapsed = "", dict(_ERROR_SCORE), 0
             print(f"ERROR: {e}")
         texts["PaddleOCR"] = text
         scores["PaddleOCR"] = sc
@@ -346,9 +349,12 @@ def main() -> None:
             t0 = time.perf_counter()
             text_t, elapsed_t, best_angle = run_tesseract_best_rotation(image_path)
             sc_t = score_text(text_t)
-            print(f"PAN={sc_t['pan']} name={sc_t['name']} dob={sc_t['dob']} score={sc_t['overall']}/5 angle={best_angle}° ({elapsed_t:.0f}ms)")
+            print(
+                f"PAN={sc_t['pan']} name={sc_t['name']} dob={sc_t['dob']} "
+                f"score={sc_t['overall']}/5 angle={best_angle}° ({elapsed_t:.0f}ms)"
+            )
         except Exception as e:
-            text_t, sc_t, elapsed_t, best_angle = "", {"pan": "error", "name": "error", "dob": "error", "hindi": "error", "overall": 0}, 0, 0
+            text_t, sc_t, elapsed_t, best_angle = "", dict(_ERROR_SCORE), 0, 0
             print(f"ERROR: {e}")
         texts["Tesseract"] = text_t
         scores["Tesseract"] = sc_t
@@ -370,9 +376,12 @@ def main() -> None:
             pdf_path.unlink(missing_ok=True)
             text_d = d_results[0].extracted_text if d_results else ""
             sc_d = score_text(text_d)
-            print(f"PAN={sc_d['pan']} name={sc_d['name']} dob={sc_d['dob']} score={sc_d['overall']}/5 ({elapsed_d:.0f}ms)")
+            print(
+                f"PAN={sc_d['pan']} name={sc_d['name']} dob={sc_d['dob']} "
+                f"score={sc_d['overall']}/5 ({elapsed_d:.0f}ms)"
+            )
         except Exception as e:
-            text_d, sc_d, elapsed_d = "", {"pan": "error", "name": "error", "dob": "error", "hindi": "error", "overall": 0}, 0
+            text_d, sc_d, elapsed_d = "", dict(_ERROR_SCORE), 0
             print(f"ERROR: {e}")
         texts["Docling"] = text_d
         scores["Docling"] = sc_d
@@ -387,20 +396,26 @@ def main() -> None:
         try:
             print("       ODL        …", end=" ", flush=True)
             pdf_path = image_to_temp_pdf(image_path)
-            from pdf_extraction_benchmark.extractors.opendataloader.extractor import OpendataloaderExtractor
+            from pdf_extraction_benchmark.extractors.opendataloader.extractor import (
+                OpendataloaderExtractor,
+            )
             odl_ext = OpendataloaderExtractor()
             t0 = time.perf_counter()
             odl_results = odl_ext.extract(pdf_path)
             elapsed_o = round((time.perf_counter() - t0) * 1000, 0)
             pdf_path.unlink(missing_ok=True)
             text_o = odl_results[0].extracted_text if odl_results else ""
-            sc_o = score_text(text_o) if text_o else {"pan": "no", "name": "no", "dob": "no", "hindi": "no", "overall": 1}
+            no_score = {"pan": "no", "name": "no", "dob": "no", "hindi": "no", "overall": 1}
+            sc_o = score_text(text_o) if text_o else no_score
             # Mark as N/A if truly empty — ODL has no OCR for image PDFs
             if not text_o:
                 sc_o["overall"] = "N/A"
-            print(f"text_len={len(text_o)} ({'N/A – no OCR' if not text_o else 'ok'}) ({elapsed_o:.0f}ms)")
+            status = "N/A - no OCR" if not text_o else "ok"
+            print(f"text_len={len(text_o)} ({status}) ({elapsed_o:.0f}ms)")
         except Exception as e:
-            text_o, sc_o, elapsed_o = "", {"pan": "no", "name": "no", "dob": "no", "hindi": "no", "overall": "N/A"}, 0
+            text_o = ""
+            sc_o = {"pan": "no", "name": "no", "dob": "no", "hindi": "no", "overall": "N/A"}
+            elapsed_o = 0
             print(f"ERROR: {e}")
         texts["OpenDataLoader"] = text_o
         scores["OpenDataLoader"] = sc_o
@@ -460,10 +475,10 @@ def _category(reason: str) -> str:
 
 def _write_aggregate(rows: list[dict[str, Any]]) -> None:
     extractors = {
-        "PaddleOCR":      ("paddle_pan", "paddle_name", "paddle_dob", "paddle_hindi", "paddle_score"),
-        "Tesseract":      ("tess_pan",   "tess_name",   "tess_dob",   "tess_hindi",   "tess_score"),
-        "Docling":        ("docling_pan","docling_name","docling_dob","docling_hindi","docling_score"),
-        "OpenDataLoader": ("odl_pan",    "odl_name",    "odl_dob",    "odl_hindi",    "odl_score"),
+        "PaddleOCR": ("paddle_pan", "paddle_name", "paddle_dob", "paddle_hindi", "paddle_score"),
+        "Tesseract": ("tess_pan", "tess_name", "tess_dob", "tess_hindi", "tess_score"),
+        "Docling": ("docling_pan", "docling_name", "docling_dob", "docling_hindi", "docling_score"),
+        "OpenDataLoader": ("odl_pan", "odl_name", "odl_dob", "odl_hindi", "odl_score"),
     }
 
     agg_rows = []
@@ -547,6 +562,9 @@ def _write_final_report(rows: list[dict[str, Any]]) -> None:
     pan_yes_paddle  = sum(1 for r in rows if r["paddle_pan"] == "yes")
     pan_yes_tess    = sum(1 for r in rows if r["tess_pan"] == "yes")
     pan_yes_docling = sum(1 for r in rows if r["docling_pan"] == "yes")
+    pan_pct_paddle = round(100 * pan_yes_paddle / 20)
+    pan_pct_tess = round(100 * pan_yes_tess / 20)
+    pan_pct_docling = round(100 * pan_yes_docling / 20)
 
     report = f"""# PAN Card OCR — Qualitative Benchmark Report
 
@@ -560,7 +578,7 @@ Sample: 20 images from `data/PAN.v2i.yolov8/pan_sample_manifest.csv`
 | Extractor | Image input | OCR engine | Notes |
 |---|---|---|---|
 | **PaddleOCR** | Native `.jpg/.png` | PP-OCRv5 (en) | Angle classifier enabled |
-| **Tesseract** | Native `.jpg/.png` | Tesseract 5.4 (eng only) | All 4 rotations tried; best angle kept |
+| **Tesseract** | Native `.jpg/.png` | Tesseract 5.4 (eng only) | All 4 rotations tried; best kept |
 | **Docling** | Via fitz temp-PDF | RapidOCR (PP-OCRv4 mobile) | Image wrapped in single-page PDF |
 | **OpenDataLoader** | Via fitz temp-PDF | **None** | No OCR without hybrid URL; returns empty |
 
@@ -570,9 +588,9 @@ Sample: 20 images from `data/PAN.v2i.yolov8/pan_sample_manifest.csv`
 
 | Extractor | Avg Score (/5) | PAN# found | PAN# rate | Notes |
 |---|:---:|:---:|:---:|---|
-| **PaddleOCR** | **{paddle_avg}** | {pan_yes_paddle}/20 | {round(100*pan_yes_paddle/20,0):.0f}% | Best rotation handling |
-| **Docling** | **{docling_avg}** | {pan_yes_docling}/20 | {round(100*pan_yes_docling/20,0):.0f}% | Good on clear images |
-| **Tesseract** | **{tess_avg}** | {pan_yes_tess}/20 | {round(100*pan_yes_tess/20,0):.0f}% | Best-of-4-rotations; still weak |
+| **PaddleOCR** | **{paddle_avg}** | {pan_yes_paddle}/20 | {pan_pct_paddle}% | Best rotation |
+| **Docling** | **{docling_avg}** | {pan_yes_docling}/20 | {pan_pct_docling}% | Good on clear |
+| **Tesseract** | **{tess_avg}** | {pan_yes_tess}/20 | {pan_pct_tess}% | Weak; rotation fallback |
 | **OpenDataLoader** | **N/A** | 0/20 | 0% | No OCR for scanned images |
 
 ---

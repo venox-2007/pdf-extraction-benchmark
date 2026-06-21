@@ -150,6 +150,16 @@ for the full justification for Marker, Surya OCR, Unstructured.io, and Textract.
 | Rejected / deferred tools | [`docs/rejected_tools.md`](docs/rejected_tools.md) |
 | Benchmark findings summary | [`docs/benchmark_findings.md`](docs/benchmark_findings.md) |
 | Tesseract vs PaddleOCR vs Docling evaluation | [`outputs/benchmark_results/tesseract_evaluation/tesseract_evaluation_report.md`](outputs/benchmark_results/tesseract_evaluation/tesseract_evaluation_report.md) |
+| PAN card qualitative OCR benchmark (identity-document images) | [`outputs/benchmark_results/pan_card_qualitative/final_report.md`](outputs/benchmark_results/pan_card_qualitative/final_report.md) |
+
+> **Note:** The PAN benchmark report, manifest, and 20 annotated sample images
+> are committed and fully reproducible from this repo. The underlying raw
+> dataset (~1,400 images, `data/PAN.v2i.yolov8/train/` + `valid/`) is excluded
+> from git for size; re-download it from Roboflow if you need to re-run
+> [`scripts/run_pan_qualitative_benchmark.py`](scripts/run_pan_qualitative_benchmark.py)
+> from scratch — `data/PAN.v2i.yolov8/pan_sample_manifest.csv` and `data.yaml`
+> are kept so the exact 20-image selection can be re-matched against a
+> re-downloaded copy.
 
 ## Known Limitations
 
