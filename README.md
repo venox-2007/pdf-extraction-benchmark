@@ -144,6 +144,7 @@ for the full justification for Marker, Surya OCR, Unstructured.io, and Textract.
 
 | Document | Location |
 | --- | --- |
+| **Final internship benchmark report (consolidated)** | [`docs/final_benchmark_report.md`](docs/final_benchmark_report.md) |
 | Tool comparison matrix (1–10 scores per criterion) | [`docs/comparison_matrix.md`](docs/comparison_matrix.md) |
 | Cost analysis vs AWS Textract | [`docs/cost_analysis.md`](docs/cost_analysis.md) |
 | Integration guide (microservice embedding) | [`docs/integration_guide.md`](docs/integration_guide.md) |
