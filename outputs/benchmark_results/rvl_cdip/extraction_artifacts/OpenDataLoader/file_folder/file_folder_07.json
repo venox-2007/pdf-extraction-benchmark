@@ -1,0 +1,16 @@
+{
+  "file name" : "file_folder_07.pdf",
+  "number of pages" : 1,
+  "author" : null,
+  "title" : "file_folder_07",
+  "creation date" : "D:20260613035618Z",
+  "modification date" : "D:20260613035618Z",
+  "kids" : [ {
+    "type" : "image",
+    "pdfua_tag" : "Figure",
+    "id" : 1,
+    "page number" : 1,
+    "bounding box" : [ 0.0, 0.0, 762.0, 1000.0 ],
+    "source" : "file_folder_07_images/imageFile1.png"
+  } ]
+}

@@ -32,14 +32,13 @@ htmlcov/
 !/outputs/
 !/outputs/.gitkeep
 
-# Keep curated benchmark summaries
+# Keep all benchmark results (summaries + raw per-document artifacts) —
+# these are cited as sources throughout docs/comparison_matrix.md,
+# docs/cost_analysis.md, docs/benchmark_findings.md, and
+# docs/final_benchmark_report.md, and are not cheaply reproducible
+# (the final_60 corpus run alone takes ~20 minutes of compute).
 !/outputs/benchmark_results/
-!/outputs/benchmark_results/benchmark_observations.md
-!/outputs/benchmark_results/benchmark_summary.csv
-!/outputs/benchmark_results/benchmark_summary.json
-# Keep PAN qualitative benchmark outputs (text + annotated images)
-!/outputs/benchmark_results/pan_card_qualitative/
-!/outputs/benchmark_results/pan_card_qualitative/**
+!/outputs/benchmark_results/**
 
 # Keep empty output directories
 !/outputs/benchmarks/

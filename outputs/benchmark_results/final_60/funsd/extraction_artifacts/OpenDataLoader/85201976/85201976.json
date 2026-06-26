@@ -1,0 +1,16 @@
+{
+  "file name" : "85201976.pdf",
+  "number of pages" : 1,
+  "author" : null,
+  "title" : null,
+  "creation date" : null,
+  "modification date" : null,
+  "kids" : [ {
+    "type" : "image",
+    "pdfua_tag" : "Figure",
+    "id" : 1,
+    "page number" : 1,
+    "bounding box" : [ 0.0, 0.0, 565.5, 750.0 ],
+    "source" : "85201976_images/imageFile1.png"
+  } ]
+}

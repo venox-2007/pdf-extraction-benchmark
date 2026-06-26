@@ -1,0 +1,16 @@
+{
+  "file name" : "X51008042787.pdf",
+  "number of pages" : 1,
+  "author" : null,
+  "title" : null,
+  "creation date" : null,
+  "modification date" : null,
+  "kids" : [ {
+    "type" : "image",
+    "pdfua_tag" : "Figure",
+    "id" : 1,
+    "page number" : 1,
+    "bounding box" : [ 0.0, 0.0, 593.25, 2011.5 ],
+    "source" : "X51008042787_images/imageFile1.png"
+  } ]
+}

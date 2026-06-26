@@ -1,0 +1,291 @@
+{
+  "dataset_dir": "C:\\Users\\Yug\\Documents\\Internship\\pdf-extraction-benchmark\\datasets\\FUNSD",
+  "total_documents": 5,
+  "evaluated_documents": 5,
+  "average_cer": 0.416583,
+  "average_wer": 0.735836,
+  "average_token_precision": 0.620458,
+  "average_token_recall": 0.349229,
+  "average_token_f1": 0.439833,
+  "average_token_overlap_accuracy": 0.291345,
+  "metric_statistics": {
+    "cer": {
+      "mean": 0.416583,
+      "median": 0.360595,
+      "minimum": 0.173423,
+      "maximum": 0.649102,
+      "stddev": 0.193115
+    },
+    "wer": {
+      "mean": 0.735836,
+      "median": 0.77027,
+      "minimum": 0.443925,
+      "maximum": 0.88024,
+      "stddev": 0.158024
+    },
+    "token_precision": {
+      "mean": 0.620458,
+      "median": 0.579832,
+      "minimum": 0.560345,
+      "maximum": 0.76,
+      "stddev": 0.075844
+    },
+    "token_recall": {
+      "mean": 0.349229,
+      "median": 0.300885,
+      "minimum": 0.221557,
+      "maximum": 0.621495,
+      "stddev": 0.139668
+    },
+    "token_f1": {
+      "mean": 0.439833,
+      "median": 0.403509,
+      "minimum": 0.317597,
+      "maximum": 0.683805,
+      "stddev": 0.126289
+    },
+    "token_overlap_accuracy": {
+      "mean": 0.291345,
+      "median": 0.252747,
+      "minimum": 0.188776,
+      "maximum": 0.519531,
+      "stddev": 0.116666
+    }
+  },
+  "best_document": "82250337_0338",
+  "best_cer": 0.17342342342342343,
+  "worst_document": "82200067_0069",
+  "worst_cer": 0.6491017964071857,
+  "top_10_best": [
+    {
+      "document_id": "82250337_0338",
+      "cer": 0.17342342342342343,
+      "wer": 0.4439252336448598,
+      "token_precision": 0.76,
+      "token_recall": 0.6214953271028038,
+      "token_f1": 0.6838046272493574,
+      "token_overlap_accuracy": 0.51953125,
+      "primary_failure_mode": "Numeric errors",
+      "failure_patterns": "Numeric errors | Table-related errors"
+    },
+    {
+      "document_id": "82251504",
+      "cer": 0.2656132430398796,
+      "wer": 0.7702702702702703,
+      "token_precision": 0.5603448275862069,
+      "token_recall": 0.2927927927927928,
+      "token_f1": 0.38461538461538464,
+      "token_overlap_accuracy": 0.23809523809523808,
+      "primary_failure_mode": "Missing text",
+      "failure_patterns": "Missing text | Numeric errors | Table-related errors"
+    },
+    {
+      "document_id": "82092117",
+      "cer": 0.36059479553903345,
+      "wer": 0.7174887892376681,
+      "token_precision": 0.5798319327731093,
+      "token_recall": 0.3094170403587444,
+      "token_f1": 0.40350877192982454,
+      "token_overlap_accuracy": 0.25274725274725274,
+      "primary_failure_mode": "Missing text",
+      "failure_patterns": "Missing text | Numeric errors | Table-related errors"
+    },
+    {
+      "document_id": "82252956_2958",
+      "cer": 0.6341829085457271,
+      "wer": 0.8672566371681416,
+      "token_precision": 0.6415094339622641,
+      "token_recall": 0.3008849557522124,
+      "token_f1": 0.4096385542168675,
+      "token_overlap_accuracy": 0.25757575757575757,
+      "primary_failure_mode": "Missing text",
+      "failure_patterns": "Missing text | Numeric errors"
+    },
+    {
+      "document_id": "82200067_0069",
+      "cer": 0.6491017964071857,
+      "wer": 0.8802395209580839,
+      "token_precision": 0.5606060606060606,
+      "token_recall": 0.2215568862275449,
+      "token_f1": 0.31759656652360513,
+      "token_overlap_accuracy": 0.18877551020408162,
+      "primary_failure_mode": "Missing text",
+      "failure_patterns": "Missing text | Numeric errors | Table-related errors"
+    }
+  ],
+  "top_10_worst": [
+    {
+      "document_id": "82200067_0069",
+      "cer": 0.6491017964071857,
+      "wer": 0.8802395209580839,
+      "token_precision": 0.5606060606060606,
+      "token_recall": 0.2215568862275449,
+      "token_f1": 0.31759656652360513,
+      "token_overlap_accuracy": 0.18877551020408162,
+      "primary_failure_mode": "Missing text",
+      "failure_patterns": "Missing text | Numeric errors | Table-related errors"
+    },
+    {
+      "document_id": "82252956_2958",
+      "cer": 0.6341829085457271,
+      "wer": 0.8672566371681416,
+      "token_precision": 0.6415094339622641,
+      "token_recall": 0.3008849557522124,
+      "token_f1": 0.4096385542168675,
+      "token_overlap_accuracy": 0.25757575757575757,
+      "primary_failure_mode": "Missing text",
+      "failure_patterns": "Missing text | Numeric errors"
+    },
+    {
+      "document_id": "82092117",
+      "cer": 0.36059479553903345,
+      "wer": 0.7174887892376681,
+      "token_precision": 0.5798319327731093,
+      "token_recall": 0.3094170403587444,
+      "token_f1": 0.40350877192982454,
+      "token_overlap_accuracy": 0.25274725274725274,
+      "primary_failure_mode": "Missing text",
+      "failure_patterns": "Missing text | Numeric errors | Table-related errors"
+    },
+    {
+      "document_id": "82251504",
+      "cer": 0.2656132430398796,
+      "wer": 0.7702702702702703,
+      "token_precision": 0.5603448275862069,
+      "token_recall": 0.2927927927927928,
+      "token_f1": 0.38461538461538464,
+      "token_overlap_accuracy": 0.23809523809523808,
+      "primary_failure_mode": "Missing text",
+      "failure_patterns": "Missing text | Numeric errors | Table-related errors"
+    },
+    {
+      "document_id": "82250337_0338",
+      "cer": 0.17342342342342343,
+      "wer": 0.4439252336448598,
+      "token_precision": 0.76,
+      "token_recall": 0.6214953271028038,
+      "token_f1": 0.6838046272493574,
+      "token_overlap_accuracy": 0.51953125,
+      "primary_failure_mode": "Numeric errors",
+      "failure_patterns": "Numeric errors | Table-related errors"
+    }
+  ],
+  "failure_mode_counts": {
+    "Numeric errors": 5,
+    "Missing text": 4,
+    "Table-related errors": 4
+  },
+  "chart_paths": {
+    "cer": "outputs\\charts\\docling\\cer_distribution.png",
+    "wer": "outputs\\charts\\docling\\wer_distribution.png",
+    "token_f1": "outputs\\charts\\docling\\f1_distribution.png"
+  },
+  "output_dir": "C:\\Users\\Yug\\Documents\\Internship\\pdf-extraction-benchmark\\outputs\\benchmark_results\\docling",
+  "documents": [
+    {
+      "document_id": "82092117",
+      "image_path": "C:\\Users\\Yug\\Documents\\Internship\\pdf-extraction-benchmark\\datasets\\FUNSD\\images\\82092117.png",
+      "annotation_path": "C:\\Users\\Yug\\Documents\\Internship\\pdf-extraction-benchmark\\datasets\\FUNSD\\annotations\\82092117.json",
+      "prediction_text": "ATT.GEN.ADMIN.0FFICE FaX:614-466-5087 Dec 109817:46 P.01 8 0 6 N b 7 Attorney General Betty D.Montgomery CONFIDENTIALFACSIMILE TRANSMISSIONCOVERSHEET FAX NO.(614) 466-5087 TO:George Baroody FAXNUMBER:(336)335-7392 PHONENUMBER:(336)335-7363 DATE: 12/10/98 NUMBEROFPAGESINCLUDINGCOVERSHEET: 3 SENDER/PHONENUMBER: JuneFlynnforEricBrown/(614)466-8980 SPECLALINSTRUCTIONS: IFYOUDONOTRECEIVEANYOFTHEPAGESPROPERLY PLEASE CONTACTSENDER AS SOONASPOSSIBLE NOTE: THISMESSAGE ISINTENDED ONLYFORTHEUSE OF THE NDIVIDUALORENTITYTO reader of this message is not the intended recipieint or the employee or agent responsible for delivering the mcssage to the intended reciplent, you are hereby uotified that any dissemination, disaribution, received this comumunication in error,please notify us immediately by telephone und_reuuthe original message to us at the address below via the U.S. Postal Service.Thank you for your cooperation. 7.*. State OfficeTower/ S0 East Braad Street/Columbus, Ohio 43215-3428 www.ag.state.oh.us An Equal Opportunity Employer printe en ReeyoladFeper",
+      "ground_truth_text": "TO: DATE: 3 Fax: NOTE: 82092117 614 -466 -5087 Dec 10 '98 17 :46 P. 01 ATT. GEN. ADMIN. OFFICE Attorney General Betty D. Montgomery CONFIDENTIAL FACSIMILE TRANSMISSION COVER SHEET (614) 466- 5087 FAX NO. George Baroody (336) 335- 7392 FAX NUMBER: PHONE NUMBER: (336) 335- 7363 NUMBER OF PAGES INCLUDING COVER SHEET: June Flynn for Eric Brown/ (614) 466- 8980 SENDER /PHONE NUMBER: SPECIAL INSTRUCTIONS: IF YOU DO NOT RECEIVE ANY OF THE PAGES PROPERLY, PLEASE CONTACT SENDER AS SOON AS POSSIBLE THIS MESSAGE IS INTENDED ONLY FOR THE USE OF THE INDIVIDUAL OR ENTITY TO WHOM IT IS ADDRESSED AND MAY CONTAIN INFORMATION THAT IS PRIVILEGED. CONFIDENTIAL, AND EXEMPT FROM DISCLOSURE UNDER APPLICABLE LAW. If the reader of this message is not the intended recipient of the employee or agent responsible for delivering the message to the intended recipient, you are hereby notified that any dissemination, distribution, copying, or conveying of this communication in any manner is strictly prohibited. If you have received this comunication in error, please notify us immediately by telephone and return the original message to us at the address below via the U. S. Postal Service. Thank you for your cooperation. State Office Tower / 30 East Broad Street/ Columbus, Ohio 43215 -3428 www ag state oh us An Equal Opportunity Employer Primed an 12 /10 /98",
+      "cer": 0.36059479553903345,
+      "wer": 0.7174887892376681,
+      "token_precision": 0.5798319327731093,
+      "token_recall": 0.3094170403587444,
+      "token_f1": 0.40350877192982454,
+      "token_overlap_accuracy": 0.25274725274725274,
+      "prediction_char_count": 1062,
+      "ground_truth_char_count": 1345,
+      "prediction_word_count": 119,
+      "ground_truth_word_count": 223,
+      "primary_failure_mode": "Missing text",
+      "failure_patterns": "Missing text | Numeric errors | Table-related errors",
+      "status": "ok",
+      "error": null
+    },
+    {
+      "document_id": "82200067_0069",
+      "image_path": "C:\\Users\\Yug\\Documents\\Internship\\pdf-extraction-benchmark\\datasets\\FUNSD\\images\\82200067_0069.png",
+      "annotation_path": "C:\\Users\\Yug\\Documents\\Internship\\pdf-extraction-benchmark\\datasets\\FUNSD\\annotations\\82200067_0069.json",
+      "prediction_text": "09/17/97 10:55 LORILLARD PTLD 001 5038411898 :01 K. A. Sparrow FROM: T.D. Blachly MAY 12 AUG4 JUN23 SEP 15 X SUBJECT: OLD GOLDMENTHOLLIGHTS&ULTRALIGHTS_1OO'S-PROGRESSREPORT REGION: (ONLY IF PARTIAL REGION CONTINUE WITH DIVISION(S} SCOPE) DVISION: DIVISION: Partland REPS: 6 DIVISloN:Seattle South REPS:7 INOISIAIO Boise REPS:2.5 DIVISlON:Seatlle North REPS:4 DIVISION: Eugene REPS:5 DIVISlON:Helena REPS: DIRECTACCOUNTSANDCHAINSHEADQUARTEREDWITHINTHEREGION (15+STORES)STOCKING NO OLD GOLDMENTHOLLIGHTS ORULTRALGHTS 1OO'S R-1:OGMUg-15.xp Page1 of 3 Pages 8 9 7",
+      "ground_truth_text": "TO: FROM: x SUBJECT: DIVISION: DIVISION: DIVISION: DIVISION: REGION: DIVISION: DIVISION: DIVISION: 225 27 15 31 18 19 20 82200067 09/ 17/ 97 10: 55 603 841 1898 LORILLARD PTLD \u2611 001 K. A. Sparrow T. D. Blachly OLD GOLD MENTHOL LIGHTS & ULTRA LIGHTS 100'S PROGRESS REPORT AUG 4 SEP 15 MAY 12 JUN 23 (ONLY IF PARTIAL REGION CONTINUE WITH DIVISION (S) SCOPE) Portland # REPS: 6 Boise # REPS: 2. 5 Eugene # REPS: 5 Seattle South # REPS: 7 Seattle North # REPS: 4 Helena # REPS: 4 DIRECT ACCOUNTS AND CHAINS HEADQUARTERED WITHIN THE REGION (15 + STORES) STOCKING NO OLD GOLD MENTHOL LIGHTS OR ULTRA LIGHTS 100'S NAME OF ACCOUNT VOLUME NO. OF STORES NAME OF ACCOUNT VOLUME NO. OF STORES Texaco Seattle Texaco Portland Maid -O Clover Dari Mart Zip Trip Maverick Astro Gas 105 / 5 61 / 3 20 / 2 125 / 5 106 / 4 77 / 1 600 / 7 Page 1 of 3 Pages",
+      "cer": 0.6491017964071857,
+      "wer": 0.8802395209580839,
+      "token_precision": 0.5606060606060606,
+      "token_recall": 0.2215568862275449,
+      "token_f1": 0.31759656652360513,
+      "token_overlap_accuracy": 0.18877551020408162,
+      "prediction_char_count": 559,
+      "ground_truth_char_count": 835,
+      "prediction_word_count": 66,
+      "ground_truth_word_count": 167,
+      "primary_failure_mode": "Missing text",
+      "failure_patterns": "Missing text | Numeric errors | Table-related errors",
+      "status": "ok",
+      "error": null
+    },
+    {
+      "document_id": "82250337_0338",
+      "image_path": "C:\\Users\\Yug\\Documents\\Internship\\pdf-extraction-benchmark\\datasets\\FUNSD\\images\\82250337_0338.png",
+      "annotation_path": "C:\\Users\\Yug\\Documents\\Internship\\pdf-extraction-benchmark\\datasets\\FUNSD\\annotations\\82250337_0338.json",
+      "prediction_text": "8 7 0 3 3 L COMPETITIVEPRODUCTINTRODUCTION PROGRESSREPORT TO: Sam Zolot MANUFACTURER: B&W FROM: D.J. Landro BRAND: Kool Waterfall DATE: 2-Dec-97 TYPE OFPACKINGS: AllPackings REPORTINGPERIODS: Oct. Nov.X Dec. Jan. TESTMARKETGEOGRAPHY: Divisions 621 and 627 wiscorIir PRICEPOINT:FULL$ PV$ (lndicate Distributor's Cost Per Carton) SALESFORCEINVOLVEMENT: They have crew-worked distribution, and it is reported that they may crew-work it again.Sales force has been busy promoting old style packs to clean up inventory.All POS is being converted to \u201cB Kool. DISTRIBUTORS-ACCEPTANCE/INTROTERMS/INTRODEALS/INVOLVEMENT: All accounts have the new packaging. It was not a problem obtaining new distribution. All accounts appear tohave 100%distribution of new packings. CHAINS-ACCEPTANCE/MERCHANDISING: This has not been a problem. New packaging is just following up on the old \"packaging\". INDEPENDENTS-ACCEPTANCE/MERCHANDISING: Very wellreceived. The old packs are being consolidated and promoted in select retail locations at 40g off/S4.00 off cartons. ADVERTISING-EFFECTIVENESSOFP.O.S.: The theme\u201cB\" Kool has replaced all previous POS. They have effectively replaced all old POS. New door signage,hour signs, poster mats, and clocks have the new design.\u201cB Kool also appears on billboards in Illinois. PAGE 1 OF 2",
+      "ground_truth_text": "TO: FROM: DATE: MANUFACTURER: BRAND: Oct. Dec. Jan. Nov. X B&W 82250337 COMPETITIVE PRODUCT INTRODUCTION PROGRESS REPORT Sam Zolot Kool Waterfall All Packings TYPE OF PACKINGS: D. J. Landro 2- Dec- 97 REPORTING PERIODS: TEST MARKET GEOGRAPHY: Divisions 621 and 627 wisconsin PRICE POINT: FULLS $ P/ V $ (Indicate Distributor's Cost Per Carton) SALES FORCE INVOLVEMENT: They have crew- worked distribution, and it is reported that they may crew- work it again Sales force has been busy promoting old style backs to clean up inventory. All POS is being converted to \"B\" Kool. DISTRIBUTORS ACCEPTANCE INTRO TERMS INTRO DEALS INVOLVEMENT: All accounts have the new packaging. It was not a problem obtaining new distribution. All accounts appear to have 100% distribution of new packings. CHAINS ACCEPTANCE/ MERCHANDISING: This has not been a problem. New packaging is just following on the old \"packaging\". INDEPENDENTS ACCEPTANCE/ MERCHANDISING: Very well received. The packs are peing consolidated and promoted in select retail locations at 40 off $4 00 off cartons. ADVERTISING EFFECTIVENESS OF P. O. S.: The theme \"B\" Kool has replaced all previous POS. They have effectively replaced all old POS. New door signage, hour signs, poster mats, and clocks have the new design. \"B\" Kool also appears on billboards in llinois. PAGE 1 OF 2",
+      "cer": 0.17342342342342343,
+      "wer": 0.4439252336448598,
+      "token_precision": 0.76,
+      "token_recall": 0.6214953271028038,
+      "token_f1": 0.6838046272493574,
+      "token_overlap_accuracy": 0.51953125,
+      "prediction_char_count": 1304,
+      "ground_truth_char_count": 1332,
+      "prediction_word_count": 175,
+      "ground_truth_word_count": 214,
+      "primary_failure_mode": "Numeric errors",
+      "failure_patterns": "Numeric errors | Table-related errors",
+      "status": "ok",
+      "error": null
+    },
+    {
+      "document_id": "82251504",
+      "image_path": "C:\\Users\\Yug\\Documents\\Internship\\pdf-extraction-benchmark\\datasets\\FUNSD\\images\\82251504.png",
+      "annotation_path": "C:\\Users\\Yug\\Documents\\Internship\\pdf-extraction-benchmark\\datasets\\FUNSD\\annotations\\82251504.json",
+      "prediction_text": "11/05/97 11:03 813 884 0663 LORILLARDTAXPA++\u2192GREENSBOR Retail Excel Progress Report 002/003 Submission for: Distribution by/to: July 31 () DM to RSM 1st of Month August 29 () To: R. W. Caldarella RSM to R.W.C.10th September 30\uff08) CC: D.O.S. October31 (X) KentB. Mills Ncvember28 \uff08\uff09 December30\uff08\uff09 Area:5 Region:17 Acceptance/Response:What is theretailersresponse toLorillard'sExcel Merchandising plan? Chains:This program has been successfulto date with chains where our \"Flex Paymentwas notin_place.The_chains where wewereusing theFlexPayment\" systemwe have not heenas successful_TheP.O.S.requirementsof theP-1Plan with Qil Companiesis difficult to_obtain. Independents: Additional P.V.merchandisingisbeing.securedquickly. AdditionalmonieshaveassistedReqion_17infightingPMExclusivesandPM/RJR co-existence situations. Hardware Evaluation/Effectlveness:Commenton theassemblyofdisplaysand application of shields: The displays are easily assembled and durable.Some questions have been raised concemingtheinabilitytobefushwiththecounterand/or_upagainsttheregister As.wellastheabilityto.place thisontheBackBarifthesettlement goesthrough. PermanentAdvertisingEvaluation/Effectiveness/Acceptance:(P-1/P-5&C-5 Plans Only: Notavailable atthistime 8 7 5 C",
+      "ground_truth_text": "17 cc: : From: Area: Region: 5 X Chains: Independents: 82251504 11/05/97 11: 03 813 384 0683 LORILLARD TAMPA GREENSBOR 0002/ 003 Retail Excel Progress Report Submission for: Distribution by/ to: DM to RSM 1st of Month RSM to R W. C. 10th D. O. S. R. W. Caldarella Kent B. Mills July 31 August 29 September 30 October 31 November 28 December 30 Acceptance/ Response: What is the retailers response to Lorillard's Excel Merchandising plan? This program has been successful to date with chains where our \"Flex Payment\". was not place. The chains where were using the \"Flex Payment\" system we have not been las successful. The P. O. S. requirements of the P- 1 Plan with Oil Companies is difficult to obtain. Additional P. V. merchandising is being secured quickly, Additional monies have assisted Region 17 in fighting PM Exclusives and PM/ RJR co-existence situations. Hardware Evaluation/ Effectiveness: Comment on the assembly of displays and application of shields: The displays are easily assembled and durable. Some questions have been raised conceming the inability to be flush with the counter and/ or against the register. As well as the ability to place this or the Back Bar if the settlement goes through Pemanent Advertising Evaluation/ Effectiveness/ Acceptance: (P- 1/ P- 5 & C 5 Plans Only: Not available at this time",
+      "cer": 0.2656132430398796,
+      "wer": 0.7702702702702703,
+      "token_precision": 0.5603448275862069,
+      "token_recall": 0.2927927927927928,
+      "token_f1": 0.38461538461538464,
+      "token_overlap_accuracy": 0.23809523809523808,
+      "prediction_char_count": 1242,
+      "ground_truth_char_count": 1329,
+      "prediction_word_count": 116,
+      "ground_truth_word_count": 222,
+      "primary_failure_mode": "Missing text",
+      "failure_patterns": "Missing text | Numeric errors | Table-related errors",
+      "status": "ok",
+      "error": null
+    },
+    {
+      "document_id": "82252956_2958",
+      "image_path": "C:\\Users\\Yug\\Documents\\Internship\\pdf-extraction-benchmark\\datasets\\FUNSD\\images\\82252956_2958.png",
+      "annotation_path": "C:\\Users\\Yug\\Documents\\Internship\\pdf-extraction-benchmark\\datasets\\FUNSD\\annotations\\82252956_2958.json",
+      "prediction_text": "TO: FROM: SUBJECT: REGION: (ONLYIFPARTIALREGIONCONTINUEWITHDIVISION(S)SCOPE) DIVISION: DIVISION NAME: DIVISION NAME: DIVISION NAME: K. A. Sparrow D. J. Landro Milw.South_DIVISIONNAME: Milw.North_DIVISIONNAME: DIVISION NAME: DISTRIBUTION DIRECTACCOUNTSAND CHAINSHEADQUARTEREDWITHINTHEREGION (15+STORES)STOCKINGNO OLDGOLDMENTHOLLIGHTSORULTRALIGHTS 100'S 8 2 5) 6 5 MAY 12 JUN 23X SUBMISSION DATE AUG4 SEP15 OLDGOLDMENTHOLLIGHTS&ULTRALIGHTS100'S-PROGRESSREPORT GEOGRAPHY #REP #REP #REPS 7 7 OLOGOLD.XLS Page1 of 3 Pages",
+      "ground_truth_text": "AUG 4 SEP 15 JUN 23 MAY 12 REGION: DIVISION: 7 7 TO: FROM: SUBJECT: OLOGOLD.XLS 82252956 GEOGRAPHY DISTRIBUTION 144/14 93 K. A. Sparrow SUBMISSION DATE D. J. Landro OLD GOLD MENTHOL LIGHTS & ULTRA LIGHTS 100'S PROGRESS REPORT (ONLY IF PARTIAL REGION CONTINUE WITH DIVISION (S) SCOPE) DIVISION NAME: DIVISION NAME: DIVISION NAME: Milw. South Milw. North DIVISION NAME: DIVISION NAME: DIVISION NAME: # REP # REP # REPS DIRECT ACCOUNTS AND CHAINS HEADQUARTERED WITHIN THE REGION (15 + STORES) STOCKING NO OLD GOLD MENTHOL LIGHTS OR ULTRA LIGHTS 100'S NAME OF ACCOUNT IND/LOR VOLUME NO. OF STORES NAME OF ACCOUNT IND/LOR VOLUME NO. OF TORES Page1 of 3 Pages Walgreen Drug",
+      "cer": 0.6341829085457271,
+      "wer": 0.8672566371681416,
+      "token_precision": 0.6415094339622641,
+      "token_recall": 0.3008849557522124,
+      "token_f1": 0.4096385542168675,
+      "token_overlap_accuracy": 0.25757575757575757,
+      "prediction_char_count": 516,
+      "ground_truth_char_count": 667,
+      "prediction_word_count": 53,
+      "ground_truth_word_count": 113,
+      "primary_failure_mode": "Missing text",
+      "failure_patterns": "Missing text | Numeric errors",
+      "status": "ok",
+      "error": null
+    }
+  ]
+}

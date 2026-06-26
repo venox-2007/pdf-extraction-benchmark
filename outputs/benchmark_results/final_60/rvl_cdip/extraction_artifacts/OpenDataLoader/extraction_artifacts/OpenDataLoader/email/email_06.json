@@ -1,0 +1,16 @@
+{
+  "file name" : "email_06.pdf",
+  "number of pages" : 1,
+  "author" : null,
+  "title" : null,
+  "creation date" : null,
+  "modification date" : null,
+  "kids" : [ {
+    "type" : "image",
+    "pdfua_tag" : "Figure",
+    "id" : 1,
+    "page number" : 1,
+    "bounding box" : [ 0.0, 0.0, 802.0, 1000.0 ],
+    "source" : "email_06_images/imageFile1.png"
+  } ]
+}

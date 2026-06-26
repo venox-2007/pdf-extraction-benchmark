@@ -1,0 +1,16 @@
+{
+  "file name" : "memo_04.pdf",
+  "number of pages" : 1,
+  "author" : null,
+  "title" : "memo_04",
+  "creation date" : "D:20260613035618Z",
+  "modification date" : "D:20260613035618Z",
+  "kids" : [ {
+    "type" : "image",
+    "pdfua_tag" : "Figure",
+    "id" : 1,
+    "page number" : 1,
+    "bounding box" : [ 0.0, 0.0, 762.0, 1000.0 ],
+    "source" : "memo_04_images/imageFile1.png"
+  } ]
+}

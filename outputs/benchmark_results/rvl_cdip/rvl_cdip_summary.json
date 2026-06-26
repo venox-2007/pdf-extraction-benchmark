@@ -1,0 +1,1257 @@
+{
+  "dataset_dir": "C:\\Users\\Yug\\Documents\\Internship\\pdf-extraction-benchmark\\data\\raw\\rvl_cdip",
+  "output_dir": "C:\\Users\\Yug\\Documents\\Internship\\pdf-extraction-benchmark\\outputs\\benchmark_results\\rvl_cdip",
+  "categories": [
+    "advertisement",
+    "budget",
+    "email",
+    "file_folder",
+    "form",
+    "handwritten",
+    "invoice",
+    "letter",
+    "memo",
+    "news_article",
+    "presentation",
+    "questionnaire",
+    "resume",
+    "scientific_publication",
+    "scientific_report",
+    "specification"
+  ],
+  "total_documents": 16,
+  "extractor_summaries": {
+    "PyMuPDF": {
+      "extractor": "PyMuPDF",
+      "documents_evaluated": 16,
+      "documents_ok": 16,
+      "documents_failed": 0,
+      "success_rate": 1.0,
+      "latency_ms": {
+        "mean": 6.382625,
+        "median": 3.593,
+        "minimum": 2.811,
+        "maximum": 28.483,
+        "stddev": 6.60213
+      },
+      "word_count": {
+        "mean": 0,
+        "median": 0.0,
+        "minimum": 0,
+        "maximum": 0,
+        "stddev": 0.0
+      },
+      "char_count": {
+        "mean": 0,
+        "median": 0.0,
+        "minimum": 0,
+        "maximum": 0,
+        "stddev": 0.0
+      },
+      "bbox_count": {
+        "mean": 0,
+        "median": 0.0,
+        "minimum": 0,
+        "maximum": 0,
+        "stddev": 0.0
+      }
+    },
+    "OpenDataLoader": {
+      "extractor": "OpenDataLoader",
+      "documents_evaluated": 16,
+      "documents_ok": 16,
+      "documents_failed": 0,
+      "success_rate": 1.0,
+      "latency_ms": {
+        "mean": 729.558313,
+        "median": 721.6315,
+        "minimum": 650.115,
+        "maximum": 892.857,
+        "stddev": 59.834592
+      },
+      "word_count": {
+        "mean": 0,
+        "median": 0.0,
+        "minimum": 0,
+        "maximum": 0,
+        "stddev": 0.0
+      },
+      "char_count": {
+        "mean": 0,
+        "median": 0.0,
+        "minimum": 0,
+        "maximum": 0,
+        "stddev": 0.0
+      },
+      "bbox_count": {
+        "mean": 1,
+        "median": 1.0,
+        "minimum": 1,
+        "maximum": 1,
+        "stddev": 0.0
+      }
+    },
+    "PaddleOCR": {
+      "extractor": "PaddleOCR",
+      "documents_evaluated": 16,
+      "documents_ok": 16,
+      "documents_failed": 0,
+      "success_rate": 1.0,
+      "latency_ms": {
+        "mean": 7314.814125,
+        "median": 5054.051,
+        "minimum": 821.395,
+        "maximum": 23935.812,
+        "stddev": 6146.723897
+      },
+      "word_count": {
+        "mean": 107,
+        "median": 46.5,
+        "minimum": 1,
+        "maximum": 575,
+        "stddev": 140.563153
+      },
+      "char_count": {
+        "mean": 699.625,
+        "median": 349.5,
+        "minimum": 9,
+        "maximum": 3479,
+        "stddev": 848.276552
+      },
+      "bbox_count": {
+        "mean": 34.125,
+        "median": 18.5,
+        "minimum": 1,
+        "maximum": 142,
+        "stddev": 40.833312
+      }
+    },
+    "Docling": {
+      "extractor": "Docling",
+      "documents_evaluated": 16,
+      "documents_ok": 16,
+      "documents_failed": 0,
+      "success_rate": 1.0,
+      "latency_ms": {
+        "mean": 35617.9305,
+        "median": 14513.802,
+        "minimum": 7733.387,
+        "maximum": 264016.086,
+        "stddev": 60348.47335
+      },
+      "word_count": {
+        "mean": 95.75,
+        "median": 38.5,
+        "minimum": 1,
+        "maximum": 519,
+        "stddev": 128.094935
+      },
+      "char_count": {
+        "mean": 726.125,
+        "median": 402.0,
+        "minimum": 9,
+        "maximum": 3470,
+        "stddev": 854.414483
+      },
+      "bbox_count": {
+        "mean": 25.1875,
+        "median": 10.0,
+        "minimum": 1,
+        "maximum": 130,
+        "stddev": 34.964658
+      }
+    }
+  },
+  "category_summaries": {
+    "advertisement": {
+      "category": "advertisement",
+      "documents": 1,
+      "extractor_success_rate": {
+        "PyMuPDF": 1.0,
+        "OpenDataLoader": 1.0,
+        "PaddleOCR": 1.0,
+        "Docling": 1.0
+      },
+      "extractor_word_count": {
+        "PyMuPDF": 0,
+        "OpenDataLoader": 0,
+        "PaddleOCR": 63,
+        "Docling": 61
+      }
+    },
+    "budget": {
+      "category": "budget",
+      "documents": 1,
+      "extractor_success_rate": {
+        "PyMuPDF": 1.0,
+        "OpenDataLoader": 1.0,
+        "PaddleOCR": 1.0,
+        "Docling": 1.0
+      },
+      "extractor_word_count": {
+        "PyMuPDF": 0,
+        "OpenDataLoader": 0,
+        "PaddleOCR": 40,
+        "Docling": 28
+      }
+    },
+    "email": {
+      "category": "email",
+      "documents": 1,
+      "extractor_success_rate": {
+        "PyMuPDF": 1.0,
+        "OpenDataLoader": 1.0,
+        "PaddleOCR": 1.0,
+        "Docling": 1.0
+      },
+      "extractor_word_count": {
+        "PyMuPDF": 0,
+        "OpenDataLoader": 0,
+        "PaddleOCR": 53,
+        "Docling": 35
+      }
+    },
+    "file_folder": {
+      "category": "file_folder",
+      "documents": 1,
+      "extractor_success_rate": {
+        "PyMuPDF": 1.0,
+        "OpenDataLoader": 1.0,
+        "PaddleOCR": 1.0,
+        "Docling": 1.0
+      },
+      "extractor_word_count": {
+        "PyMuPDF": 0,
+        "OpenDataLoader": 0,
+        "PaddleOCR": 1,
+        "Docling": 1
+      }
+    },
+    "form": {
+      "category": "form",
+      "documents": 1,
+      "extractor_success_rate": {
+        "PyMuPDF": 1.0,
+        "OpenDataLoader": 1.0,
+        "PaddleOCR": 1.0,
+        "Docling": 1.0
+      },
+      "extractor_word_count": {
+        "PyMuPDF": 0,
+        "OpenDataLoader": 0,
+        "PaddleOCR": 36,
+        "Docling": 47
+      }
+    },
+    "handwritten": {
+      "category": "handwritten",
+      "documents": 1,
+      "extractor_success_rate": {
+        "PyMuPDF": 1.0,
+        "OpenDataLoader": 1.0,
+        "PaddleOCR": 1.0,
+        "Docling": 1.0
+      },
+      "extractor_word_count": {
+        "PyMuPDF": 0,
+        "OpenDataLoader": 0,
+        "PaddleOCR": 121,
+        "Docling": 41
+      }
+    },
+    "invoice": {
+      "category": "invoice",
+      "documents": 1,
+      "extractor_success_rate": {
+        "PyMuPDF": 1.0,
+        "OpenDataLoader": 1.0,
+        "PaddleOCR": 1.0,
+        "Docling": 1.0
+      },
+      "extractor_word_count": {
+        "PyMuPDF": 0,
+        "OpenDataLoader": 0,
+        "PaddleOCR": 135,
+        "Docling": 183
+      }
+    },
+    "letter": {
+      "category": "letter",
+      "documents": 1,
+      "extractor_success_rate": {
+        "PyMuPDF": 1.0,
+        "OpenDataLoader": 1.0,
+        "PaddleOCR": 1.0,
+        "Docling": 1.0
+      },
+      "extractor_word_count": {
+        "PyMuPDF": 0,
+        "OpenDataLoader": 0,
+        "PaddleOCR": 3,
+        "Docling": 14
+      }
+    },
+    "memo": {
+      "category": "memo",
+      "documents": 1,
+      "extractor_success_rate": {
+        "PyMuPDF": 1.0,
+        "OpenDataLoader": 1.0,
+        "PaddleOCR": 1.0,
+        "Docling": 1.0
+      },
+      "extractor_word_count": {
+        "PyMuPDF": 0,
+        "OpenDataLoader": 0,
+        "PaddleOCR": 244,
+        "Docling": 209
+      }
+    },
+    "news_article": {
+      "category": "news_article",
+      "documents": 1,
+      "extractor_success_rate": {
+        "PyMuPDF": 1.0,
+        "OpenDataLoader": 1.0,
+        "PaddleOCR": 1.0,
+        "Docling": 1.0
+      },
+      "extractor_word_count": {
+        "PyMuPDF": 0,
+        "OpenDataLoader": 0,
+        "PaddleOCR": 575,
+        "Docling": 519
+      }
+    },
+    "presentation": {
+      "category": "presentation",
+      "documents": 1,
+      "extractor_success_rate": {
+        "PyMuPDF": 1.0,
+        "OpenDataLoader": 1.0,
+        "PaddleOCR": 1.0,
+        "Docling": 1.0
+      },
+      "extractor_word_count": {
+        "PyMuPDF": 0,
+        "OpenDataLoader": 0,
+        "PaddleOCR": 25,
+        "Docling": 17
+      }
+    },
+    "questionnaire": {
+      "category": "questionnaire",
+      "documents": 1,
+      "extractor_success_rate": {
+        "PyMuPDF": 1.0,
+        "OpenDataLoader": 1.0,
+        "PaddleOCR": 1.0,
+        "Docling": 1.0
+      },
+      "extractor_word_count": {
+        "PyMuPDF": 0,
+        "OpenDataLoader": 0,
+        "PaddleOCR": 2,
+        "Docling": 2
+      }
+    },
+    "resume": {
+      "category": "resume",
+      "documents": 1,
+      "extractor_success_rate": {
+        "PyMuPDF": 1.0,
+        "OpenDataLoader": 1.0,
+        "PaddleOCR": 1.0,
+        "Docling": 1.0
+      },
+      "extractor_word_count": {
+        "PyMuPDF": 0,
+        "OpenDataLoader": 0,
+        "PaddleOCR": 197,
+        "Docling": 158
+      }
+    },
+    "scientific_publication": {
+      "category": "scientific_publication",
+      "documents": 1,
+      "extractor_success_rate": {
+        "PyMuPDF": 1.0,
+        "OpenDataLoader": 1.0,
+        "PaddleOCR": 1.0,
+        "Docling": 1.0
+      },
+      "extractor_word_count": {
+        "PyMuPDF": 0,
+        "OpenDataLoader": 0,
+        "PaddleOCR": 19,
+        "Docling": 20
+      }
+    },
+    "scientific_report": {
+      "category": "scientific_report",
+      "documents": 1,
+      "extractor_success_rate": {
+        "PyMuPDF": 1.0,
+        "OpenDataLoader": 1.0,
+        "PaddleOCR": 1.0,
+        "Docling": 1.0
+      },
+      "extractor_word_count": {
+        "PyMuPDF": 0,
+        "OpenDataLoader": 0,
+        "PaddleOCR": 39,
+        "Docling": 36
+      }
+    },
+    "specification": {
+      "category": "specification",
+      "documents": 1,
+      "extractor_success_rate": {
+        "PyMuPDF": 1.0,
+        "OpenDataLoader": 1.0,
+        "PaddleOCR": 1.0,
+        "Docling": 1.0
+      },
+      "extractor_word_count": {
+        "PyMuPDF": 0,
+        "OpenDataLoader": 0,
+        "PaddleOCR": 159,
+        "Docling": 161
+      }
+    }
+  },
+  "documents": [
+    {
+      "category": "advertisement",
+      "document_id": "advertisement_01",
+      "pdf_path": "C:\\Users\\Yug\\Documents\\Internship\\pdf-extraction-benchmark\\data\\raw\\rvl_cdip\\advertisement\\advertisement_01.pdf",
+      "extractor": "PyMuPDF",
+      "status": "ok",
+      "page_count": 1,
+      "word_count": 0,
+      "char_count": 0,
+      "layout_region_count": 0,
+      "latency_ms": 28.483,
+      "error": null
+    },
+    {
+      "category": "advertisement",
+      "document_id": "advertisement_01",
+      "pdf_path": "C:\\Users\\Yug\\Documents\\Internship\\pdf-extraction-benchmark\\data\\raw\\rvl_cdip\\advertisement\\advertisement_01.pdf",
+      "extractor": "OpenDataLoader",
+      "status": "ok",
+      "page_count": 1,
+      "word_count": 0,
+      "char_count": 0,
+      "layout_region_count": 1,
+      "latency_ms": 781.487,
+      "error": null
+    },
+    {
+      "category": "advertisement",
+      "document_id": "advertisement_01",
+      "pdf_path": "C:\\Users\\Yug\\Documents\\Internship\\pdf-extraction-benchmark\\data\\raw\\rvl_cdip\\advertisement\\advertisement_01.pdf",
+      "extractor": "PaddleOCR",
+      "status": "ok",
+      "page_count": 1,
+      "word_count": 63,
+      "char_count": 390,
+      "layout_region_count": 29,
+      "latency_ms": 5830.488,
+      "error": null
+    },
+    {
+      "category": "advertisement",
+      "document_id": "advertisement_01",
+      "pdf_path": "C:\\Users\\Yug\\Documents\\Internship\\pdf-extraction-benchmark\\data\\raw\\rvl_cdip\\advertisement\\advertisement_01.pdf",
+      "extractor": "Docling",
+      "status": "ok",
+      "page_count": 1,
+      "word_count": 61,
+      "char_count": 505,
+      "layout_region_count": 13,
+      "latency_ms": 24007.258,
+      "error": null
+    },
+    {
+      "category": "budget",
+      "document_id": "budget_01",
+      "pdf_path": "C:\\Users\\Yug\\Documents\\Internship\\pdf-extraction-benchmark\\data\\raw\\rvl_cdip\\budget\\budget_01.pdf",
+      "extractor": "PyMuPDF",
+      "status": "ok",
+      "page_count": 1,
+      "word_count": 0,
+      "char_count": 0,
+      "layout_region_count": 0,
+      "latency_ms": 2.811,
+      "error": null
+    },
+    {
+      "category": "budget",
+      "document_id": "budget_01",
+      "pdf_path": "C:\\Users\\Yug\\Documents\\Internship\\pdf-extraction-benchmark\\data\\raw\\rvl_cdip\\budget\\budget_01.pdf",
+      "extractor": "OpenDataLoader",
+      "status": "ok",
+      "page_count": 1,
+      "word_count": 0,
+      "char_count": 0,
+      "layout_region_count": 1,
+      "latency_ms": 681.595,
+      "error": null
+    },
+    {
+      "category": "budget",
+      "document_id": "budget_01",
+      "pdf_path": "C:\\Users\\Yug\\Documents\\Internship\\pdf-extraction-benchmark\\data\\raw\\rvl_cdip\\budget\\budget_01.pdf",
+      "extractor": "PaddleOCR",
+      "status": "ok",
+      "page_count": 1,
+      "word_count": 40,
+      "char_count": 299,
+      "layout_region_count": 13,
+      "latency_ms": 3042.307,
+      "error": null
+    },
+    {
+      "category": "budget",
+      "document_id": "budget_01",
+      "pdf_path": "C:\\Users\\Yug\\Documents\\Internship\\pdf-extraction-benchmark\\data\\raw\\rvl_cdip\\budget\\budget_01.pdf",
+      "extractor": "Docling",
+      "status": "ok",
+      "page_count": 1,
+      "word_count": 28,
+      "char_count": 286,
+      "layout_region_count": 3,
+      "latency_ms": 11439.494,
+      "error": null
+    },
+    {
+      "category": "email",
+      "document_id": "email_01",
+      "pdf_path": "C:\\Users\\Yug\\Documents\\Internship\\pdf-extraction-benchmark\\data\\raw\\rvl_cdip\\email\\email_01.pdf",
+      "extractor": "PyMuPDF",
+      "status": "ok",
+      "page_count": 1,
+      "word_count": 0,
+      "char_count": 0,
+      "layout_region_count": 0,
+      "latency_ms": 3.326,
+      "error": null
+    },
+    {
+      "category": "email",
+      "document_id": "email_01",
+      "pdf_path": "C:\\Users\\Yug\\Documents\\Internship\\pdf-extraction-benchmark\\data\\raw\\rvl_cdip\\email\\email_01.pdf",
+      "extractor": "OpenDataLoader",
+      "status": "ok",
+      "page_count": 1,
+      "word_count": 0,
+      "char_count": 0,
+      "layout_region_count": 1,
+      "latency_ms": 702.107,
+      "error": null
+    },
+    {
+      "category": "email",
+      "document_id": "email_01",
+      "pdf_path": "C:\\Users\\Yug\\Documents\\Internship\\pdf-extraction-benchmark\\data\\raw\\rvl_cdip\\email\\email_01.pdf",
+      "extractor": "PaddleOCR",
+      "status": "ok",
+      "page_count": 1,
+      "word_count": 53,
+      "char_count": 405,
+      "layout_region_count": 12,
+      "latency_ms": 4456.452,
+      "error": null
+    },
+    {
+      "category": "email",
+      "document_id": "email_01",
+      "pdf_path": "C:\\Users\\Yug\\Documents\\Internship\\pdf-extraction-benchmark\\data\\raw\\rvl_cdip\\email\\email_01.pdf",
+      "extractor": "Docling",
+      "status": "ok",
+      "page_count": 1,
+      "word_count": 35,
+      "char_count": 396,
+      "layout_region_count": 10,
+      "latency_ms": 15785.511,
+      "error": null
+    },
+    {
+      "category": "file_folder",
+      "document_id": "file_folder_01",
+      "pdf_path": "C:\\Users\\Yug\\Documents\\Internship\\pdf-extraction-benchmark\\data\\raw\\rvl_cdip\\file_folder\\file_folder_01.pdf",
+      "extractor": "PyMuPDF",
+      "status": "ok",
+      "page_count": 1,
+      "word_count": 0,
+      "char_count": 0,
+      "layout_region_count": 0,
+      "latency_ms": 3.11,
+      "error": null
+    },
+    {
+      "category": "file_folder",
+      "document_id": "file_folder_01",
+      "pdf_path": "C:\\Users\\Yug\\Documents\\Internship\\pdf-extraction-benchmark\\data\\raw\\rvl_cdip\\file_folder\\file_folder_01.pdf",
+      "extractor": "OpenDataLoader",
+      "status": "ok",
+      "page_count": 1,
+      "word_count": 0,
+      "char_count": 0,
+      "layout_region_count": 1,
+      "latency_ms": 726.397,
+      "error": null
+    },
+    {
+      "category": "file_folder",
+      "document_id": "file_folder_01",
+      "pdf_path": "C:\\Users\\Yug\\Documents\\Internship\\pdf-extraction-benchmark\\data\\raw\\rvl_cdip\\file_folder\\file_folder_01.pdf",
+      "extractor": "PaddleOCR",
+      "status": "ok",
+      "page_count": 1,
+      "word_count": 1,
+      "char_count": 9,
+      "layout_region_count": 1,
+      "latency_ms": 821.395,
+      "error": null
+    },
+    {
+      "category": "file_folder",
+      "document_id": "file_folder_01",
+      "pdf_path": "C:\\Users\\Yug\\Documents\\Internship\\pdf-extraction-benchmark\\data\\raw\\rvl_cdip\\file_folder\\file_folder_01.pdf",
+      "extractor": "Docling",
+      "status": "ok",
+      "page_count": 1,
+      "word_count": 1,
+      "char_count": 9,
+      "layout_region_count": 1,
+      "latency_ms": 8144.445,
+      "error": null
+    },
+    {
+      "category": "form",
+      "document_id": "form_01",
+      "pdf_path": "C:\\Users\\Yug\\Documents\\Internship\\pdf-extraction-benchmark\\data\\raw\\rvl_cdip\\form\\form_01.pdf",
+      "extractor": "PyMuPDF",
+      "status": "ok",
+      "page_count": 1,
+      "word_count": 0,
+      "char_count": 0,
+      "layout_region_count": 0,
+      "latency_ms": 3.54,
+      "error": null
+    },
+    {
+      "category": "form",
+      "document_id": "form_01",
+      "pdf_path": "C:\\Users\\Yug\\Documents\\Internship\\pdf-extraction-benchmark\\data\\raw\\rvl_cdip\\form\\form_01.pdf",
+      "extractor": "OpenDataLoader",
+      "status": "ok",
+      "page_count": 1,
+      "word_count": 0,
+      "char_count": 0,
+      "layout_region_count": 1,
+      "latency_ms": 892.857,
+      "error": null
+    },
+    {
+      "category": "form",
+      "document_id": "form_01",
+      "pdf_path": "C:\\Users\\Yug\\Documents\\Internship\\pdf-extraction-benchmark\\data\\raw\\rvl_cdip\\form\\form_01.pdf",
+      "extractor": "PaddleOCR",
+      "status": "ok",
+      "page_count": 1,
+      "word_count": 36,
+      "char_count": 309,
+      "layout_region_count": 29,
+      "latency_ms": 4335.305,
+      "error": null
+    },
+    {
+      "category": "form",
+      "document_id": "form_01",
+      "pdf_path": "C:\\Users\\Yug\\Documents\\Internship\\pdf-extraction-benchmark\\data\\raw\\rvl_cdip\\form\\form_01.pdf",
+      "extractor": "Docling",
+      "status": "ok",
+      "page_count": 1,
+      "word_count": 47,
+      "char_count": 408,
+      "layout_region_count": 40,
+      "latency_ms": 12443.707,
+      "error": null
+    },
+    {
+      "category": "handwritten",
+      "document_id": "handwritten_01",
+      "pdf_path": "C:\\Users\\Yug\\Documents\\Internship\\pdf-extraction-benchmark\\data\\raw\\rvl_cdip\\handwritten\\handwritten_01.pdf",
+      "extractor": "PyMuPDF",
+      "status": "ok",
+      "page_count": 1,
+      "word_count": 0,
+      "char_count": 0,
+      "layout_region_count": 0,
+      "latency_ms": 3.646,
+      "error": null
+    },
+    {
+      "category": "handwritten",
+      "document_id": "handwritten_01",
+      "pdf_path": "C:\\Users\\Yug\\Documents\\Internship\\pdf-extraction-benchmark\\data\\raw\\rvl_cdip\\handwritten\\handwritten_01.pdf",
+      "extractor": "OpenDataLoader",
+      "status": "ok",
+      "page_count": 1,
+      "word_count": 0,
+      "char_count": 0,
+      "layout_region_count": 1,
+      "latency_ms": 708.654,
+      "error": null
+    },
+    {
+      "category": "handwritten",
+      "document_id": "handwritten_01",
+      "pdf_path": "C:\\Users\\Yug\\Documents\\Internship\\pdf-extraction-benchmark\\data\\raw\\rvl_cdip\\handwritten\\handwritten_01.pdf",
+      "extractor": "PaddleOCR",
+      "status": "ok",
+      "page_count": 1,
+      "word_count": 121,
+      "char_count": 824,
+      "layout_region_count": 24,
+      "latency_ms": 8171.311,
+      "error": null
+    },
+    {
+      "category": "handwritten",
+      "document_id": "handwritten_01",
+      "pdf_path": "C:\\Users\\Yug\\Documents\\Internship\\pdf-extraction-benchmark\\data\\raw\\rvl_cdip\\handwritten\\handwritten_01.pdf",
+      "extractor": "Docling",
+      "status": "ok",
+      "page_count": 1,
+      "word_count": 41,
+      "char_count": 525,
+      "layout_region_count": 10,
+      "latency_ms": 24541.058,
+      "error": null
+    },
+    {
+      "category": "invoice",
+      "document_id": "invoice_01",
+      "pdf_path": "C:\\Users\\Yug\\Documents\\Internship\\pdf-extraction-benchmark\\data\\raw\\rvl_cdip\\invoice\\invoice_01.pdf",
+      "extractor": "PyMuPDF",
+      "status": "ok",
+      "page_count": 1,
+      "word_count": 0,
+      "char_count": 0,
+      "layout_region_count": 0,
+      "latency_ms": 4.938,
+      "error": null
+    },
+    {
+      "category": "invoice",
+      "document_id": "invoice_01",
+      "pdf_path": "C:\\Users\\Yug\\Documents\\Internship\\pdf-extraction-benchmark\\data\\raw\\rvl_cdip\\invoice\\invoice_01.pdf",
+      "extractor": "OpenDataLoader",
+      "status": "ok",
+      "page_count": 1,
+      "word_count": 0,
+      "char_count": 0,
+      "layout_region_count": 1,
+      "latency_ms": 674.274,
+      "error": null
+    },
+    {
+      "category": "invoice",
+      "document_id": "invoice_01",
+      "pdf_path": "C:\\Users\\Yug\\Documents\\Internship\\pdf-extraction-benchmark\\data\\raw\\rvl_cdip\\invoice\\invoice_01.pdf",
+      "extractor": "PaddleOCR",
+      "status": "ok",
+      "page_count": 1,
+      "word_count": 135,
+      "char_count": 984,
+      "layout_region_count": 78,
+      "latency_ms": 11487.889,
+      "error": null
+    },
+    {
+      "category": "invoice",
+      "document_id": "invoice_01",
+      "pdf_path": "C:\\Users\\Yug\\Documents\\Internship\\pdf-extraction-benchmark\\data\\raw\\rvl_cdip\\invoice\\invoice_01.pdf",
+      "extractor": "Docling",
+      "status": "ok",
+      "page_count": 1,
+      "word_count": 183,
+      "char_count": 1358,
+      "layout_region_count": 92,
+      "latency_ms": 30451.515,
+      "error": null
+    },
+    {
+      "category": "letter",
+      "document_id": "letter_01",
+      "pdf_path": "C:\\Users\\Yug\\Documents\\Internship\\pdf-extraction-benchmark\\data\\raw\\rvl_cdip\\letter\\letter_01.pdf",
+      "extractor": "PyMuPDF",
+      "status": "ok",
+      "page_count": 1,
+      "word_count": 0,
+      "char_count": 0,
+      "layout_region_count": 0,
+      "latency_ms": 4.116,
+      "error": null
+    },
+    {
+      "category": "letter",
+      "document_id": "letter_01",
+      "pdf_path": "C:\\Users\\Yug\\Documents\\Internship\\pdf-extraction-benchmark\\data\\raw\\rvl_cdip\\letter\\letter_01.pdf",
+      "extractor": "OpenDataLoader",
+      "status": "ok",
+      "page_count": 1,
+      "word_count": 0,
+      "char_count": 0,
+      "layout_region_count": 1,
+      "latency_ms": 721.628,
+      "error": null
+    },
+    {
+      "category": "letter",
+      "document_id": "letter_01",
+      "pdf_path": "C:\\Users\\Yug\\Documents\\Internship\\pdf-extraction-benchmark\\data\\raw\\rvl_cdip\\letter\\letter_01.pdf",
+      "extractor": "PaddleOCR",
+      "status": "ok",
+      "page_count": 1,
+      "word_count": 3,
+      "char_count": 19,
+      "layout_region_count": 3,
+      "latency_ms": 1008.058,
+      "error": null
+    },
+    {
+      "category": "letter",
+      "document_id": "letter_01",
+      "pdf_path": "C:\\Users\\Yug\\Documents\\Internship\\pdf-extraction-benchmark\\data\\raw\\rvl_cdip\\letter\\letter_01.pdf",
+      "extractor": "Docling",
+      "status": "ok",
+      "page_count": 1,
+      "word_count": 14,
+      "char_count": 106,
+      "layout_region_count": 8,
+      "latency_ms": 12398.137,
+      "error": null
+    },
+    {
+      "category": "memo",
+      "document_id": "memo_01",
+      "pdf_path": "C:\\Users\\Yug\\Documents\\Internship\\pdf-extraction-benchmark\\data\\raw\\rvl_cdip\\memo\\memo_01.pdf",
+      "extractor": "PyMuPDF",
+      "status": "ok",
+      "page_count": 1,
+      "word_count": 0,
+      "char_count": 0,
+      "layout_region_count": 0,
+      "latency_ms": 15.513,
+      "error": null
+    },
+    {
+      "category": "memo",
+      "document_id": "memo_01",
+      "pdf_path": "C:\\Users\\Yug\\Documents\\Internship\\pdf-extraction-benchmark\\data\\raw\\rvl_cdip\\memo\\memo_01.pdf",
+      "extractor": "OpenDataLoader",
+      "status": "ok",
+      "page_count": 1,
+      "word_count": 0,
+      "char_count": 0,
+      "layout_region_count": 1,
+      "latency_ms": 783.074,
+      "error": null
+    },
+    {
+      "category": "memo",
+      "document_id": "memo_01",
+      "pdf_path": "C:\\Users\\Yug\\Documents\\Internship\\pdf-extraction-benchmark\\data\\raw\\rvl_cdip\\memo\\memo_01.pdf",
+      "extractor": "PaddleOCR",
+      "status": "ok",
+      "page_count": 1,
+      "word_count": 244,
+      "char_count": 1534,
+      "layout_region_count": 37,
+      "latency_ms": 14003.716,
+      "error": null
+    },
+    {
+      "category": "memo",
+      "document_id": "memo_01",
+      "pdf_path": "C:\\Users\\Yug\\Documents\\Internship\\pdf-extraction-benchmark\\data\\raw\\rvl_cdip\\memo\\memo_01.pdf",
+      "extractor": "Docling",
+      "status": "ok",
+      "page_count": 1,
+      "word_count": 209,
+      "char_count": 1608,
+      "layout_region_count": 35,
+      "latency_ms": 47584.499,
+      "error": null
+    },
+    {
+      "category": "news_article",
+      "document_id": "news_article_01",
+      "pdf_path": "C:\\Users\\Yug\\Documents\\Internship\\pdf-extraction-benchmark\\data\\raw\\rvl_cdip\\news_article\\news_article_01.pdf",
+      "extractor": "PyMuPDF",
+      "status": "ok",
+      "page_count": 1,
+      "word_count": 0,
+      "char_count": 0,
+      "layout_region_count": 0,
+      "latency_ms": 11.086,
+      "error": null
+    },
+    {
+      "category": "news_article",
+      "document_id": "news_article_01",
+      "pdf_path": "C:\\Users\\Yug\\Documents\\Internship\\pdf-extraction-benchmark\\data\\raw\\rvl_cdip\\news_article\\news_article_01.pdf",
+      "extractor": "OpenDataLoader",
+      "status": "ok",
+      "page_count": 1,
+      "word_count": 0,
+      "char_count": 0,
+      "layout_region_count": 1,
+      "latency_ms": 791.2,
+      "error": null
+    },
+    {
+      "category": "news_article",
+      "document_id": "news_article_01",
+      "pdf_path": "C:\\Users\\Yug\\Documents\\Internship\\pdf-extraction-benchmark\\data\\raw\\rvl_cdip\\news_article\\news_article_01.pdf",
+      "extractor": "PaddleOCR",
+      "status": "ok",
+      "page_count": 1,
+      "word_count": 575,
+      "char_count": 3479,
+      "layout_region_count": 142,
+      "latency_ms": 23935.812,
+      "error": null
+    },
+    {
+      "category": "news_article",
+      "document_id": "news_article_01",
+      "pdf_path": "C:\\Users\\Yug\\Documents\\Internship\\pdf-extraction-benchmark\\data\\raw\\rvl_cdip\\news_article\\news_article_01.pdf",
+      "extractor": "Docling",
+      "status": "ok",
+      "page_count": 1,
+      "word_count": 519,
+      "char_count": 3470,
+      "layout_region_count": 28,
+      "latency_ms": 51313.878,
+      "error": null
+    },
+    {
+      "category": "presentation",
+      "document_id": "presentation_01",
+      "pdf_path": "C:\\Users\\Yug\\Documents\\Internship\\pdf-extraction-benchmark\\data\\raw\\rvl_cdip\\presentation\\presentation_01.pdf",
+      "extractor": "PyMuPDF",
+      "status": "ok",
+      "page_count": 1,
+      "word_count": 0,
+      "char_count": 0,
+      "layout_region_count": 0,
+      "latency_ms": 3.03,
+      "error": null
+    },
+    {
+      "category": "presentation",
+      "document_id": "presentation_01",
+      "pdf_path": "C:\\Users\\Yug\\Documents\\Internship\\pdf-extraction-benchmark\\data\\raw\\rvl_cdip\\presentation\\presentation_01.pdf",
+      "extractor": "OpenDataLoader",
+      "status": "ok",
+      "page_count": 1,
+      "word_count": 0,
+      "char_count": 0,
+      "layout_region_count": 1,
+      "latency_ms": 650.115,
+      "error": null
+    },
+    {
+      "category": "presentation",
+      "document_id": "presentation_01",
+      "pdf_path": "C:\\Users\\Yug\\Documents\\Internship\\pdf-extraction-benchmark\\data\\raw\\rvl_cdip\\presentation\\presentation_01.pdf",
+      "extractor": "PaddleOCR",
+      "status": "ok",
+      "page_count": 1,
+      "word_count": 25,
+      "char_count": 192,
+      "layout_region_count": 9,
+      "latency_ms": 3212.113,
+      "error": null
+    },
+    {
+      "category": "presentation",
+      "document_id": "presentation_01",
+      "pdf_path": "C:\\Users\\Yug\\Documents\\Internship\\pdf-extraction-benchmark\\data\\raw\\rvl_cdip\\presentation\\presentation_01.pdf",
+      "extractor": "Docling",
+      "status": "ok",
+      "page_count": 1,
+      "word_count": 17,
+      "char_count": 187,
+      "layout_region_count": 5,
+      "latency_ms": 11044.445,
+      "error": null
+    },
+    {
+      "category": "questionnaire",
+      "document_id": "questionnaire_01",
+      "pdf_path": "C:\\Users\\Yug\\Documents\\Internship\\pdf-extraction-benchmark\\data\\raw\\rvl_cdip\\questionnaire\\questionnaire_01.pdf",
+      "extractor": "PyMuPDF",
+      "status": "ok",
+      "page_count": 1,
+      "word_count": 0,
+      "char_count": 0,
+      "layout_region_count": 0,
+      "latency_ms": 3.926,
+      "error": null
+    },
+    {
+      "category": "questionnaire",
+      "document_id": "questionnaire_01",
+      "pdf_path": "C:\\Users\\Yug\\Documents\\Internship\\pdf-extraction-benchmark\\data\\raw\\rvl_cdip\\questionnaire\\questionnaire_01.pdf",
+      "extractor": "OpenDataLoader",
+      "status": "ok",
+      "page_count": 1,
+      "word_count": 0,
+      "char_count": 0,
+      "layout_region_count": 1,
+      "latency_ms": 760.725,
+      "error": null
+    },
+    {
+      "category": "questionnaire",
+      "document_id": "questionnaire_01",
+      "pdf_path": "C:\\Users\\Yug\\Documents\\Internship\\pdf-extraction-benchmark\\data\\raw\\rvl_cdip\\questionnaire\\questionnaire_01.pdf",
+      "extractor": "PaddleOCR",
+      "status": "ok",
+      "page_count": 1,
+      "word_count": 2,
+      "char_count": 13,
+      "layout_region_count": 2,
+      "latency_ms": 1295.027,
+      "error": null
+    },
+    {
+      "category": "questionnaire",
+      "document_id": "questionnaire_01",
+      "pdf_path": "C:\\Users\\Yug\\Documents\\Internship\\pdf-extraction-benchmark\\data\\raw\\rvl_cdip\\questionnaire\\questionnaire_01.pdf",
+      "extractor": "Docling",
+      "status": "ok",
+      "page_count": 1,
+      "word_count": 2,
+      "char_count": 14,
+      "layout_region_count": 2,
+      "latency_ms": 7733.387,
+      "error": null
+    },
+    {
+      "category": "resume",
+      "document_id": "resume_01",
+      "pdf_path": "C:\\Users\\Yug\\Documents\\Internship\\pdf-extraction-benchmark\\data\\raw\\rvl_cdip\\resume\\resume_01.pdf",
+      "extractor": "PyMuPDF",
+      "status": "ok",
+      "page_count": 1,
+      "word_count": 0,
+      "char_count": 0,
+      "layout_region_count": 0,
+      "latency_ms": 4.389,
+      "error": null
+    },
+    {
+      "category": "resume",
+      "document_id": "resume_01",
+      "pdf_path": "C:\\Users\\Yug\\Documents\\Internship\\pdf-extraction-benchmark\\data\\raw\\rvl_cdip\\resume\\resume_01.pdf",
+      "extractor": "OpenDataLoader",
+      "status": "ok",
+      "page_count": 1,
+      "word_count": 0,
+      "char_count": 0,
+      "layout_region_count": 1,
+      "latency_ms": 658.337,
+      "error": null
+    },
+    {
+      "category": "resume",
+      "document_id": "resume_01",
+      "pdf_path": "C:\\Users\\Yug\\Documents\\Internship\\pdf-extraction-benchmark\\data\\raw\\rvl_cdip\\resume\\resume_01.pdf",
+      "extractor": "PaddleOCR",
+      "status": "ok",
+      "page_count": 1,
+      "word_count": 197,
+      "char_count": 1222,
+      "layout_region_count": 24,
+      "latency_ms": 11056.602,
+      "error": null
+    },
+    {
+      "category": "resume",
+      "document_id": "resume_01",
+      "pdf_path": "C:\\Users\\Yug\\Documents\\Internship\\pdf-extraction-benchmark\\data\\raw\\rvl_cdip\\resume\\resume_01.pdf",
+      "extractor": "Docling",
+      "status": "ok",
+      "page_count": 1,
+      "word_count": 158,
+      "char_count": 1140,
+      "layout_region_count": 4,
+      "latency_ms": 25307.33,
+      "error": null
+    },
+    {
+      "category": "scientific_publication",
+      "document_id": "scientific_publication_01",
+      "pdf_path": "C:\\Users\\Yug\\Documents\\Internship\\pdf-extraction-benchmark\\data\\raw\\rvl_cdip\\scientific_publication\\scientific_publication_01.pdf",
+      "extractor": "PyMuPDF",
+      "status": "ok",
+      "page_count": 1,
+      "word_count": 0,
+      "char_count": 0,
+      "layout_region_count": 0,
+      "latency_ms": 3.451,
+      "error": null
+    },
+    {
+      "category": "scientific_publication",
+      "document_id": "scientific_publication_01",
+      "pdf_path": "C:\\Users\\Yug\\Documents\\Internship\\pdf-extraction-benchmark\\data\\raw\\rvl_cdip\\scientific_publication\\scientific_publication_01.pdf",
+      "extractor": "OpenDataLoader",
+      "status": "ok",
+      "page_count": 1,
+      "word_count": 0,
+      "char_count": 0,
+      "layout_region_count": 1,
+      "latency_ms": 721.635,
+      "error": null
+    },
+    {
+      "category": "scientific_publication",
+      "document_id": "scientific_publication_01",
+      "pdf_path": "C:\\Users\\Yug\\Documents\\Internship\\pdf-extraction-benchmark\\data\\raw\\rvl_cdip\\scientific_publication\\scientific_publication_01.pdf",
+      "extractor": "PaddleOCR",
+      "status": "ok",
+      "page_count": 1,
+      "word_count": 19,
+      "char_count": 171,
+      "layout_region_count": 11,
+      "latency_ms": 3547.05,
+      "error": null
+    },
+    {
+      "category": "scientific_publication",
+      "document_id": "scientific_publication_01",
+      "pdf_path": "C:\\Users\\Yug\\Documents\\Internship\\pdf-extraction-benchmark\\data\\raw\\rvl_cdip\\scientific_publication\\scientific_publication_01.pdf",
+      "extractor": "Docling",
+      "status": "ok",
+      "page_count": 1,
+      "word_count": 20,
+      "char_count": 195,
+      "layout_region_count": 9,
+      "latency_ms": 10434.045,
+      "error": null
+    },
+    {
+      "category": "scientific_report",
+      "document_id": "scientific_report_01",
+      "pdf_path": "C:\\Users\\Yug\\Documents\\Internship\\pdf-extraction-benchmark\\data\\raw\\rvl_cdip\\scientific_report\\scientific_report_01.pdf",
+      "extractor": "PyMuPDF",
+      "status": "ok",
+      "page_count": 1,
+      "word_count": 0,
+      "char_count": 0,
+      "layout_region_count": 0,
+      "latency_ms": 3.361,
+      "error": null
+    },
+    {
+      "category": "scientific_report",
+      "document_id": "scientific_report_01",
+      "pdf_path": "C:\\Users\\Yug\\Documents\\Internship\\pdf-extraction-benchmark\\data\\raw\\rvl_cdip\\scientific_report\\scientific_report_01.pdf",
+      "extractor": "OpenDataLoader",
+      "status": "ok",
+      "page_count": 1,
+      "word_count": 0,
+      "char_count": 0,
+      "layout_region_count": 1,
+      "latency_ms": 682.898,
+      "error": null
+    },
+    {
+      "category": "scientific_report",
+      "document_id": "scientific_report_01",
+      "pdf_path": "C:\\Users\\Yug\\Documents\\Internship\\pdf-extraction-benchmark\\data\\raw\\rvl_cdip\\scientific_report\\scientific_report_01.pdf",
+      "extractor": "PaddleOCR",
+      "status": "ok",
+      "page_count": 1,
+      "word_count": 39,
+      "char_count": 300,
+      "layout_region_count": 13,
+      "latency_ms": 5651.65,
+      "error": null
+    },
+    {
+      "category": "scientific_report",
+      "document_id": "scientific_report_01",
+      "pdf_path": "C:\\Users\\Yug\\Documents\\Internship\\pdf-extraction-benchmark\\data\\raw\\rvl_cdip\\scientific_report\\scientific_report_01.pdf",
+      "extractor": "Docling",
+      "status": "ok",
+      "page_count": 1,
+      "word_count": 36,
+      "char_count": 299,
+      "layout_region_count": 13,
+      "latency_ms": 13242.093,
+      "error": null
+    },
+    {
+      "category": "specification",
+      "document_id": "specification_01",
+      "pdf_path": "C:\\Users\\Yug\\Documents\\Internship\\pdf-extraction-benchmark\\data\\raw\\rvl_cdip\\specification\\specification_01.pdf",
+      "extractor": "PyMuPDF",
+      "status": "ok",
+      "page_count": 1,
+      "word_count": 0,
+      "char_count": 0,
+      "layout_region_count": 0,
+      "latency_ms": 3.396,
+      "error": null
+    },
+    {
+      "category": "specification",
+      "document_id": "specification_01",
+      "pdf_path": "C:\\Users\\Yug\\Documents\\Internship\\pdf-extraction-benchmark\\data\\raw\\rvl_cdip\\specification\\specification_01.pdf",
+      "extractor": "OpenDataLoader",
+      "status": "ok",
+      "page_count": 1,
+      "word_count": 0,
+      "char_count": 0,
+      "layout_region_count": 1,
+      "latency_ms": 735.95,
+      "error": null
+    },
+    {
+      "category": "specification",
+      "document_id": "specification_01",
+      "pdf_path": "C:\\Users\\Yug\\Documents\\Internship\\pdf-extraction-benchmark\\data\\raw\\rvl_cdip\\specification\\specification_01.pdf",
+      "extractor": "PaddleOCR",
+      "status": "ok",
+      "page_count": 1,
+      "word_count": 159,
+      "char_count": 1044,
+      "layout_region_count": 119,
+      "latency_ms": 15181.851,
+      "error": null
+    },
+    {
+      "category": "specification",
+      "document_id": "specification_01",
+      "pdf_path": "C:\\Users\\Yug\\Documents\\Internship\\pdf-extraction-benchmark\\data\\raw\\rvl_cdip\\specification\\specification_01.pdf",
+      "extractor": "Docling",
+      "status": "ok",
+      "page_count": 1,
+      "word_count": 161,
+      "char_count": 1112,
+      "layout_region_count": 130,
+      "latency_ms": 264016.086,
+      "error": null
+    }
+  ]
+}
